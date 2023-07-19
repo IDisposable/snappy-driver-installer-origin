@@ -101,10 +101,11 @@ BEGIN
         END
     END
 
+    // https://ss64.com/locale.html
     BLOCK "VarFileInfo"
     BEGIN
         VALUE "Translation",
-            0x409, 1252, // English
+            0x409, 1252, // English (United States)
             0x004, 1200, // Chinese simplified
             0x401, 1200, // Arabic
             0x402, 1200, // Bulgarian
@@ -133,6 +134,7 @@ BEGIN
             0x421, 1200, // Indonesia
             0x422, 1200, // Ukrainian
             0x423, 1200, // Belarusian
+            0x424, 1200, // Slovenian
             0x425, 1200, // Estonian
             0x426, 1200, // Latvian
             0x427, 1200, // Lithuanian
@@ -140,6 +142,7 @@ BEGIN
             0x42A, 1200, // Vietnamese
             0x42B, 1200, // Armenian
             0x437, 1200, // Georgian
+            0x804, 1200, // Chinese
             0x816, 1200, // Portuguese (Portugal)
             0x82C, 1200  // Azerbaijani
     END

@@ -7,6 +7,13 @@ www.glenn.delahoy.com
 
 Change Log
 
+Version 1.12.14.755
+19 July 2023
+* Sam Driver Packs 23.07.0
+* SDIO Driver Packs 23.07.3
+* Updated languages
+* Changed sdi.cfg to sdio.cfg
+
 Version 1.12.13.754
 15 June 2023
 * Sam Driver Packs 23.06.0
