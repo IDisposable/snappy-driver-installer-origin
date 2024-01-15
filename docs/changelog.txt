@@ -7,6 +7,10 @@ www.glenn.delahoy.com
 
 Change Log
 
+Version 1.12.19.760
+15 January 2024
+* Sam Driver Packs 24.00.0
+
 Version 1.12.18.759
 17 December 2023
 * Sam Driver Packs 23.12.0
