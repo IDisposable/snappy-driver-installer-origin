@@ -302,20 +302,22 @@ void Driver::read_reg_val(HKEY hkey,State *state,const wchar_t *key,ofst *val)
 
     *val=0;
     lr=RegQueryValueEx(hkey,key,nullptr,nullptr,nullptr,&dwSize);
-    if(lr==ERROR_FILE_NOT_FOUND)return;
-    if(lr!=ERROR_SUCCESS)
+    if(lr!=ERROR_FILE_NOT_FOUND)
     {
-        Log.print_err("Key %S\n",key);
-        Log.print_syserr(lr,L"RegQueryValueEx()");
-        return;
-    }
+            if(lr!=ERROR_SUCCESS)
+        {
+            Log.print_err("Key %S\n",key);
+            Log.print_syserr(lr,L"RegQueryValueEx()");
+            return;
+        }
 
-    *val=static_cast<ofst>(state->textas.alloc(dwSize));
-    lr=RegQueryValueEx(hkey,key,nullptr,&dwType,(unsigned char*)state->textas.get(*val),&dwSize);
-    if(lr!=ERROR_SUCCESS)
-    {
-        Log.print_err("Key %S\n",key);
-        Log.print_syserr(lr,L"read_reg_val()");
+        *val=static_cast<ofst>(state->textas.alloc(dwSize));
+        lr=RegQueryValueEx(hkey,key,nullptr,&dwType,(unsigned char*)state->textas.get(*val),&dwSize);
+        if(lr!=ERROR_SUCCESS)
+        {
+            Log.print_err("Key %S\n",key);
+            Log.print_syserr(lr,L"read_reg_val()");
+        }
     }
 }
 
