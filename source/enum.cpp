@@ -550,6 +550,7 @@ void State::fakeOSversion()
     if(Settings.virtual_arch_type==32)architecture=0;
     if(Settings.virtual_arch_type==64)architecture=1;
     // virtual_os_version holds the index into the versions array+ID_OS_ITEMS
+    // eg Windows 10 = 15+1000
     if(Settings.virtual_os_version)
     {
         int ver=winVersions.GetEntry(Settings.virtual_os_version-ID_OS_ITEMS);
@@ -1025,17 +1026,8 @@ void State::getsysinfo_fast()
             platform.dwMajorVersion=(DWORD)11;
             // minor version
             platform.dwMinorVersion=0;
-            //DWORD dwData;
-            //DWORD cbData=sizeof(DWORD);
-            //DWORD dwType=REG_DWORD;
-            //RegQueryValueEx(hkey,L"UBR",nullptr,&dwType,(LPBYTE)&dwData,&cbData);
-            //platform.dwMinorVersion=dwData;
-            // display version can be "DisplayVersion" or "ReleaseId"
-            //wchar_t displayversion[MAX_PATH];
-            //RegQueryValueEx(hkey,L"DisplayVersion",nullptr,nullptr,(LPBYTE)&displayversion,&size);
-            //
-            //wchar_t releaseid[MAX_PATH];
-            //RegQueryValueEx(hkey,L"ReleaseId",nullptr,nullptr,(LPBYTE)&releaseid,&size);
+            // set fake version
+            Settings.virtual_os_version=(DWORD)1015;
         }
     }
     RegCloseKey(hkey);
