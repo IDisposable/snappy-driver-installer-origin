@@ -59,6 +59,7 @@ Settings_t::Settings_t()
     flags=COLLECTION_USE_LZMA;
     statemode=STATEMODE_REAL;
     expertmode=0;
+    forcewin10=0;
     hintdelay=500;
     license=0;
     scale=256;
@@ -137,6 +138,7 @@ void Settings_t::parse(const wchar_t *str,size_t ind)
         if(argint(pr,L"-activetorrent:", &Updater->activetorrent))continue;
 
         if(argopt(pr,L"-expertmode",     &expertmode))continue;
+        if(argopt(pr,L"-forcewin10",     &forcewin10))continue;
         if(argflg(pr,L"-showconsole",    FLAG_SHOWCONSOLE))continue;
         if(argflg(pr,L"-norestorepnt",   FLAG_NORESTOREPOINT))continue;
         if(argflg(pr,L"-novirusalerts",  FLAG_NOVIRUSALERTS))continue;
@@ -262,6 +264,7 @@ void Settings_t::save()
             Updater->torrentport,Updater->downlimit,Updater->uplimit,Updater->connections);
 
     if(expertmode)fwprintf(f,L"-expertmode ");
+    if(forcewin10)fwprintf(f,L"-forcewin10 ");
     if(flags&FLAG_SHOWCONSOLE)fwprintf(f,L"-showconsole ");
     if(flags&FLAG_NORESTOREPOINT)fwprintf(f,L"-norestorepnt ");
     if(flags&FLAG_NOVIRUSALERTS)fwprintf(f,L"-novirusalerts ");
@@ -291,6 +294,7 @@ void Settings_t::loginfo()
         Log.print_con("  theme=%S\n",curtheme);
         Log.print_con("  scale=%d\n",scale);
         Log.print_con("  expertmode=%d\n",expertmode);
+        Log.print_con("  forcewin10=%d\n",forcewin10);
         Log.print_con("  filters=%d\n",filters);
         Log.print_con("  autoinstall=%d\n",(flags&FLAG_AUTOINSTALL)?1:0);
         Log.print_con("  autoclose=%d\n",(flags&FLAG_AUTOCLOSE)?1:0);

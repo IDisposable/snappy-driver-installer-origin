@@ -191,6 +191,7 @@ public:
     int flags;
     int statemode;
     int expertmode;
+    int forcewin10;
     int hintdelay;
     int license;
     int scale;

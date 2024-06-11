@@ -1019,7 +1019,7 @@ void State::getsysinfo_fast()
         wchar_t* endString;
         DWORD build=wcstoul(currentbuild, &endString, 10);
         // only change the platform info if I detect windows 11
-        if(build>=22000)
+        if((build>=22000)&&(Settings.forcewin10))
         {
             platform.dwBuildNumber=build;
             // major version
