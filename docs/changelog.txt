@@ -7,6 +7,11 @@ www.glenn.delahoy.com
 
 Change Log
 
+Version 1.13.2.766
+1 July 2024
+* Sam Driver Packs 24.07.0
+* Updated languages
+
 Version 1.13.1.765
 11 June 2024
 * Sam Driver Packs 24.06.1
@@ -14,7 +19,7 @@ Version 1.13.1.765
   the change made in 1.12.23. To set the virtual OS version to Windows 10 
   if Windows 11 is detected add this to the SDIO.cfg file. Without 
   this set, the virtual OS will not automatically change. If you
-  dont want to automatically set Windows 10 when Windows 11 is
+  don't want to automatically set Windows 10 when Windows 11 is
   detected then remove this from the config.
   
 
