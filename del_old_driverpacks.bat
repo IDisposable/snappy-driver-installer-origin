@@ -11,6 +11,13 @@ rem out of date driver packs
 for /f "tokens=1,2,3,4,5,6,7 delims=_. usebackq" %%i in (`dir /b *.7z`) do call :cleanup %%i %%j %%k %%l %%m %%n %%o
 rem redundant driver packs
 del DP_Sound_ADI_*.7z 2> nul
+del DP_zVirtual_*.7z 2> nul
+del DP_Video_Intel_DCH2x_*.7z 2> nul
+del DP_Videos_AMD_DCH_*.7z 2> nul
+del DP_Videos_AMD-10_*.7z 2> nul
+del DP_Video_Intel_DCH_*.7z 2> nul
+del DP_Bluetooth_*.7z 2> nul
+del DP_Video_nVIDIA_DCH_*.7z 2> nul
 cd ..
 goto :end
 
