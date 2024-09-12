@@ -781,7 +781,7 @@ int UpdateDialog_t::populate(int update,bool clearlist)
             indexdownloaded+=file_progress[i];
             wsprintf(buf,L"%S",filenamefull);
             *wcsstr(buf,L"DP_")=L'_';
-            strsub(buf,L"indexes\\SDI",Settings.index_dir);
+            strsub(buf,L"indexes\\SDIO",Settings.index_dir);
             if(!System.FileExists(buf))
                 missingindexes=1;
         }
@@ -1077,7 +1077,7 @@ void UpdaterImp::moveNewFiles()
     // Delete old "_" online indexes if new are downloaded
     for(i=0;i<numfiles;i++)
         if(hTorrent.file_priority(i)&&
-           StrStrIA(ti->file_at(i).path.c_str(),"indexes\\SDI"))
+           StrStrIA(ti->file_at(i).path.c_str(),"indexes\\SDIO"))
             break;
     if(i!=numfiles)
     {
@@ -1102,9 +1102,9 @@ void UpdaterImp::moveNewFiles()
         // Determine destination dirs
         wchar_t filenamefull_dst[BUFLEN];
         wsprintf(filenamefull_dst,L"%S",filenamefull.c_str());
-        strsub(filenamefull_dst,L"indexes\\SDI",Settings.index_dir);
+        strsub(filenamefull_dst,L"indexes\\SDIO",Settings.index_dir);
         strsub(filenamefull_dst,L"drivers",Settings.drp_dir);
-        strsub(filenamefull_dst,L"tools\\SDI",Settings.data_dir);
+        strsub(filenamefull_dst,L"tools\\SDIO",Settings.data_dir);
 
         // Delete old driverpacks
         if(StrStrIA(filenamefull.c_str(),"drivers\\"))
@@ -1115,7 +1115,7 @@ void UpdaterImp::moveNewFiles()
         if(p)
         {
             while(wcschr(p,L'\\'))p=wcschr(p,L'\\')+1;
-            if(StrStrIW(filenamefull_src,L"indexes\\SDI\\"))*p=L'_';
+            if(StrStrIW(filenamefull_src,L"indexes\\SDIO\\"))*p=L'_';
 
             // Create dirs for the file
             WStringShort dirs;

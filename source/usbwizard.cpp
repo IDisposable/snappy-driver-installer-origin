@@ -339,7 +339,7 @@ static void BuildFilesList(HWND hwnd)
                     SourceFileName.append(L"\\");
                     SourceFileName.append(FindFileData.cFileName);
                     TargetFileName=targetDrive;
-                    TargetFileName.append(L"indexes\\SDI\\");
+                    TargetFileName.append(L"indexes\\SDIO\\");
                     TargetFileName.append(FindFileData.cFileName);
                     USBWiz->AddFile(SourceFileName,TargetFileName);
                 }
@@ -372,7 +372,7 @@ static void BuildFilesList(HWND hwnd)
                 if(found!=std::wstring::npos)
                     filename=filename.substr(found+1);
                 TargetFileName=targetDrive;
-                TargetFileName.append(L"tools\\SDI\\langs\\"+filename);
+                TargetFileName.append(L"tools\\SDIO\\langs\\"+filename);
                 USBWiz->AddFile(SourceFileName,TargetFileName);
                 break;
             }
@@ -405,7 +405,7 @@ static void BuildFilesList(HWND hwnd)
             if(found!=std::wstring::npos)
                 filename=filename.substr(found+1);
             TargetFileName=targetDrive;
-            TargetFileName.append(L"tools\\SDI\\themes\\"+filename);
+            TargetFileName.append(L"tools\\SDIO\\themes\\"+filename);
             USBWiz->AddFile(SourceFileName,TargetFileName);
             // copy the theme folder
             filename=vTheme->GetFileName(Settings.curtheme);

@@ -45,10 +45,10 @@ Settings_t::Settings_t()
     wcscpy(logO_dir,  L"logs");
 
     wcscpy(drp_dir,   L"drivers");
-    wcscpy(output_dir,L"indexes\\SDI\\txt");
+    wcscpy(output_dir,L"indexes\\SDIO\\txt");
     *drpext_dir=0;
-    wcscpy(index_dir, L"indexes\\SDI");
-    wcscpy(data_dir,  L"tools\\SDI");
+    wcscpy(index_dir, L"indexes\\SDIO");
+    wcscpy(data_dir,  L"tools\\SDIO");
     *log_dir=0;
 
     wcscpy(state_file,L"untitled.snp");
