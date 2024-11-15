@@ -1851,6 +1851,8 @@ unsigned int __stdcall UpdaterImp::thread_download(void *arg)
                 InvalidateRect(Popup->hPopup,nullptr,0);
             }
 
+            // the following cast is throwing ERROR: Exception: std::bad_cast in SDI
+            // appears to be ok in SDIO
             // Send libtorrent messages to log
             std::unique_ptr<alert> holder;
             holder=hSession->pop_alert();

@@ -7,6 +7,11 @@ www.glenn.delahoy.com
 
 Change Log
 
+Version 1.13.5.772
+16 November 2024
+* Added Windows Server versions 2019 & 2022
+* Sam Driver Packs 24.11.0
+
 Version 1.13.4.771
 12 September 2024
 * Sam Driver Packs 24.09.0

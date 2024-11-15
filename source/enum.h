@@ -203,7 +203,7 @@ struct VER_STRUCT
 };
 class WinVersions
 {
-    static const VER_STRUCT _versions[17];
+    static const VER_STRUCT _versions[19];
     const wchar_t* UnknownOS=L"Unknown OS";
 public:
     int GetEntry(int num);                             // returns entry version number

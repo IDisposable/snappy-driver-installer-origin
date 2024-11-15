@@ -1409,7 +1409,8 @@ int iswide(int x,int y)
 //}
 
 // https://msdn.microsoft.com/en-au/library/windows/desktop/ms724832(v=vs.85).aspx
-const VER_STRUCT WinVersions::_versions[17]={{50, false,L"Windows 2000"},
+// see also enum.h
+const VER_STRUCT WinVersions::_versions[19]={{50, false,L"Windows 2000"},
                                              {51, false,L"Windows XP"},
                                              {52, false,L"Windows XP 64"},
                                              {52, true, L"Windows Server 2003"},
@@ -1424,6 +1425,8 @@ const VER_STRUCT WinVersions::_versions[17]={{50, false,L"Windows 2000"},
                                              {63, false,L"Windows 8.1"},
                                              {64, false,L"Windows 10 Tech Preview"},
                                              {100,true, L"Windows Server 2016"},
+                                             {100,true, L"Windows Server 2019"},
+                                             {100,true, L"Windows Server 2022"},
                                              {100,false,L"Windows 10"},
                                              {110,false,L"Windows 11"}};
 int WinVersions::GetEntry(int num)
