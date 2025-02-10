@@ -2,6 +2,10 @@
 
 #include "StdAfx.h"
 
+#ifdef _WIN32
+#include "../../../../C/DllSecur.h"
+#endif
+
 #include "../../../Common/MyException.h"
 #include "../../../Common/StdOutStream.h"
 
@@ -45,7 +49,7 @@ static void PrintError(const char *message)
 #define NT_CHECK_FAIL_ACTION *g_StdStream << "Unsupported Windows version"; return NExitCode::kFatalError;
 
 int Extract7z(const WCHAR *str);
-int MY_CDECL _main
+int MY_CDECL main
 (
   #ifndef _WIN32
   int numArgs, const char *args[]
@@ -56,7 +60,6 @@ int MY_CDECL _main
 }
 int Extract7z(const WCHAR *str)
 {
-  g_ErrStream = &g_StdErr;
   g_StdStream = &g_StdOut;
 
   NT_CHECK

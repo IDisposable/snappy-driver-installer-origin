@@ -22,4 +22,5 @@ REGISTER_CODEC_VAR
 REGISTER_CODEC(BCJ2)
 
 }}
+
 void registerBCJ2(){}

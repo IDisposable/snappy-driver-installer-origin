@@ -90,4 +90,5 @@ REGISTER_CODECS_VAR
 REGISTER_CODECS(ByteSwap)
 
 }}
+
 void registerByteSwap(){}

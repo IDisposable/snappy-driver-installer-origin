@@ -20,4 +20,5 @@ REGISTER_CODEC_E(LZMA2,
     "LZMA2")
 
 }}
+
 void registerLZMA2(){}
