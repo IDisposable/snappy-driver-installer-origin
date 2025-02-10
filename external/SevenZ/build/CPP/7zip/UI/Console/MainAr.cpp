@@ -49,7 +49,7 @@ static void PrintError(const char *message)
 #define NT_CHECK_FAIL_ACTION *g_StdStream << "Unsupported Windows version"; return NExitCode::kFatalError;
 
 int Extract7z(const WCHAR *str);
-int MY_CDECL main
+int MY_CDECL _main
 (
   #ifndef _WIN32
   int numArgs, const char *args[]
@@ -60,13 +60,14 @@ int MY_CDECL main
 }
 int Extract7z(const WCHAR *str)
 {
+  g_ErrStream = &g_StdErr;
   g_StdStream = &g_StdOut;
 
   NT_CHECK
 
   NConsoleClose::CCtrlHandlerSetter ctrlHandlerSetter;
   int res = 0;
-  
+
   try
   {
 	res = Main2(str);

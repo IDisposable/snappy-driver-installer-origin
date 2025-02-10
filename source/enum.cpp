@@ -820,10 +820,17 @@ void State::contextmenu2(int x,int y)
 {
     HMENU hPopupMenu=CreatePopupMenu();
     HMENU hSub1=CreatePopupMenu();
+
     // find the version array index for the current platform
-    int ver=platform.dwMinorVersion+10*platform.dwMajorVersion;
-    bool serv=platform.wProductType==2||platform.wProductType==3;
-    int veridx=winVersions.GetVersionIndex(ver,serv);
+    // start with the selected virtual os
+    int veridx = Settings.virtual_os_version-ID_OS_ITEMS;
+    // no virtual os selected
+    if(veridx<0)
+    {
+        int ver=platform.dwMinorVersion+10*platform.dwMajorVersion;
+        bool serv=platform.wProductType==2||platform.wProductType==3;
+        veridx=winVersions.GetVersionIndex(ver,serv);
+    }
 
     // create a menu item for each entry in the version array
     // and checkmark the current platform
@@ -1195,11 +1202,19 @@ void State::init()
 
 const wchar_t *State::get_winverstr()
 {
-    // retrieve the version string for the current platform
-    int ver=platform.dwMinorVersion;
-    ver+=10*platform.dwMajorVersion;
-    bool serv=platform.wProductType==2||platform.wProductType==3;
-    return winVersions.GetVersion(ver,serv);
+    int veridx = Settings.virtual_os_version-ID_OS_ITEMS;
+    if(veridx>=0)
+    {
+        return winVersions.GetEntryW(veridx);
+    }
+    else
+    {
+        // retrieve the version string for the current platform
+        int ver=platform.dwMinorVersion;
+        ver+=10*platform.dwMajorVersion;
+        bool serv=platform.wProductType==2||platform.wProductType==3;
+        return winVersions.GetVersion(ver,serv);
+    }
 }
 
 size_t State::opencatfile(const Driver *cur_driver)
@@ -1410,7 +1425,7 @@ int iswide(int x,int y)
 
 // https://msdn.microsoft.com/en-au/library/windows/desktop/ms724832(v=vs.85).aspx
 // see also enum.h
-const VER_STRUCT WinVersions::_versions[19]={{50, false,L"Windows 2000"},
+const VER_STRUCT WinVersions::_versions[20]={{50, false,L"Windows 2000"},
                                              {51, false,L"Windows XP"},
                                              {52, false,L"Windows XP 64"},
                                              {52, true, L"Windows Server 2003"},
@@ -1427,6 +1442,7 @@ const VER_STRUCT WinVersions::_versions[19]={{50, false,L"Windows 2000"},
                                              {100,true, L"Windows Server 2016"},
                                              {100,true, L"Windows Server 2019"},
                                              {100,true, L"Windows Server 2022"},
+                                             {100,true, L"Windows Server 2025"},
                                              {100,false,L"Windows 10"},
                                              {110,false,L"Windows 11"}};
 int WinVersions::GetEntry(int num)

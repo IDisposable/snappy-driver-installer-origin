@@ -2153,6 +2153,7 @@ LRESULT MainWindow_t::WndProcMain(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lP
             // select a virtual OS from the menu
             if(wp>=ID_OS_ITEMS&&wp<ID_OS_ITEMS+winVersions.Count())
             {
+                Log.print_con("Virtual OS Version: %S\n\n",winVersions.GetEntryW(wp-ID_OS_ITEMS));
                 Settings.virtual_os_version=wp;
                 invalidate(INVALIDATE_SYSINFO|INVALIDATE_MANAGER);
             }
