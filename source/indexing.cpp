@@ -1144,7 +1144,7 @@ int Driverpack::genindex()
     FileInStream_CreateVTable(&archiveStream);
     LookToRead2_CreateVTable(&lookStream,False);
     lookStream.realStream=&archiveStream.vt;
-    LookToRead2_Init(&lookStream);
+    LookToRead2_INIT(&lookStream);
 
     ISzAlloc allocImp;
     ISzAlloc allocTempImp;
