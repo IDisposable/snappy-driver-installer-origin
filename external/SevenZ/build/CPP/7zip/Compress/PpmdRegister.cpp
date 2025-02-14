@@ -6,7 +6,7 @@
 
 #include "PpmdDecoder.h"
 
-#ifndef EXTRACT_ONLY
+#ifndef Z7_EXTRACT_ONLY
 #include "PpmdEncoder.h"
 #endif
 
@@ -20,5 +20,4 @@ REGISTER_CODEC_E(PPMD,
     "PPMD")
 
 }}
-
 void registerPPMD(){}

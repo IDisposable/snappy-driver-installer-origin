@@ -6,7 +6,7 @@
 
 #include "Lzma2Decoder.h"
 
-#ifndef EXTRACT_ONLY
+#ifndef Z7_EXTRACT_ONLY
 #include "Lzma2Encoder.h"
 #endif
 
@@ -20,5 +20,4 @@ REGISTER_CODEC_E(LZMA2,
     "LZMA2")
 
 }}
-
 void registerLZMA2(){}
