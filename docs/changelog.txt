@@ -7,8 +7,8 @@ www.glenn.delahoy.com
 
 Change Log
 
-Version 1.15.0.808
-February 2025
+Version 1.15.0.811
+15 February 2025
 * Sam Driver Packs 25.01.0
 * 7-Zip version 23.01
 * Fixed virtual OS selection
