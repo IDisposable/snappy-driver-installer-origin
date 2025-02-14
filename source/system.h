@@ -97,7 +97,7 @@ public:
     void fileDelSpec(wchar_t *filename);
     int DriveNumber(const wchar_t *filename);
 
-    void UnregisterClass_log(const wchar_t *lpClassName,const wchar_t *func,const wchar_t *obj);
+    int UnregisterClass_log(const wchar_t *lpClassName,const wchar_t *func,const wchar_t *obj);
     int _vscwprintf_dll(const wchar_t * _Format,va_list _ArgList);
     std::string wtoa (const std::wstring& wstr);
     std::wstring AppPathW();

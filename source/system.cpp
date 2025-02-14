@@ -199,10 +199,13 @@ void mkdir_r(const wchar_t *path)
         Log.print_err("ERROR in mkdir_r(): failed _wmkdir(%S,%d). Write protected?\n",buf,errno);
 }
 
-void SystemImp::UnregisterClass_log(const wchar_t *lpClassName,const wchar_t *func,const wchar_t *obj)
+int SystemImp::UnregisterClass_log(const wchar_t *lpClassName,const wchar_t *func,const wchar_t *obj)
 {
-    if(!UnregisterClass(lpClassName,ghInst))
+    if(!UnregisterClass(lpClassName,ghInst)) {
         Log.print_err("ERROR in %S(): failed UnregisterClass(%S)\n",func,obj);
+        return 1;
+    }
+    return 0;
 }
 
 bool SystemImp::FileAvailable(const wchar_t *path, int numRetries, int waitTime)

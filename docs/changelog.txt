@@ -7,12 +7,14 @@ www.glenn.delahoy.com
 
 Change Log
 
-Version 1.15.0.811
+Version 1.15.0.812
 15 February 2025
 * Sam Driver Packs 25.01.0
 * 7-Zip version 23.01
 * Fixed virtual OS selection
 * Fixed TEST BUILD issue
+* Catch std::bad_cast exception in torrent download
+* Catch UnregisterClass failure preventing the program from shutting down.
 
 Version 1.14.0.777
 4 February 2025

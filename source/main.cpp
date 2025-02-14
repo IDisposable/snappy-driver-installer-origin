@@ -567,9 +567,14 @@ void MainWindow_t::MainLoop(int nCmd)
         }
     }
 
-    System.UnregisterClass_log(classMain,L"gui",L"classMain");
-    System.UnregisterClass_log(classPopup,L"gui",L"classPopup");
-    System.UnregisterClass_log(classField,L"gui",L"classField");
+    // UnregisterClass will fail if a window is still in use
+    // result is application can't shut down
+    if( (System.UnregisterClass_log(classMain,L"gui",L"classMain") or
+         System.UnregisterClass_log(classPopup,L"gui",L"classPopup") or
+         System.UnregisterClass_log(classField,L"gui",L"classField")) ) {
+             // the ugly way to end the process
+            _Exit(0);
+         }
 }
 //}
 

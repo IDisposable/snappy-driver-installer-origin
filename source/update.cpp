@@ -1854,13 +1854,19 @@ unsigned int __stdcall UpdaterImp::thread_download(void *arg)
             // the following cast is throwing ERROR: Exception: std::bad_cast in SDI
             // appears to be ok in SDIO
             // Send libtorrent messages to log
-            std::unique_ptr<alert> holder;
-            holder=hSession->pop_alert();
-            while(holder.get())
+            try
             {
-                if(Log.isAllowed(LOG_VERBOSE_TORRENT))
-                    Log.print_con("Torrent: %s | %s\n",holder.get()->what(),holder.get()->message().c_str());
+                std::unique_ptr<alert> holder;
                 holder=hSession->pop_alert();
+                while(holder.get())
+                {
+                    if(Log.isAllowed(LOG_VERBOSE_TORRENT))
+                        Log.print_con("Torrent: %s | %s\n",holder.get()->what(),holder.get()->message().c_str());
+                    holder=hSession->pop_alert();
+                }
+            }
+            catch(std::bad_cast&){
+                Log.print_con("Torrent: std::bad_cast");
             }
 
             // process the downloads when finished and not seeding
