@@ -93,7 +93,7 @@ static inline bool CheckIsa()
 }
 
 int Extract7z(const WCHAR *str);
-int Z7_CDECL main
+int Z7_CDECL _main
 (
   #ifndef _WIN32
   int numArgs, const char *args[]
