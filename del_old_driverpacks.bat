@@ -18,6 +18,7 @@ del DP_Videos_AMD-10_*.7z 2> nul
 del DP_Video_Intel_DCH_*.7z 2> nul
 del DP_Bluetooth_*.7z 2> nul
 del DP_Video_nVIDIA_DCH_*.7z 2> nul
+del DP_yEXP_*.7z 2> nul
 cd ..
 goto :end
 
