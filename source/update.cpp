@@ -1792,6 +1792,7 @@ void UpdaterImp::StopSeedingDrivers()
 unsigned int __stdcall UpdaterImp::thread_download(void *arg)
 {
 	UNREFERENCED_PARAMETER(arg);
+    // -verbose:4096
 
     // Wait till is allowed to download the torrent
     Log.print_debug("{thread_download\n");
@@ -1851,9 +1852,6 @@ unsigned int __stdcall UpdaterImp::thread_download(void *arg)
                 InvalidateRect(Popup->hPopup,nullptr,0);
             }
 
-            // the following cast is throwing ERROR: Exception: std::bad_cast in SDI
-            // appears to be ok in SDIO
-            // Send libtorrent messages to log
             try
             {
                 std::unique_ptr<alert> holder;

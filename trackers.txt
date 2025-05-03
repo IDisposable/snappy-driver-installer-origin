@@ -4,6 +4,4 @@ udp://tracker.tiny-vps.com:6969/announce
 
 udp://open.stealth.si:80/announce
 
-http://share.camoe.cn:8080/announce
-
 udp://tracker.torrent.eu.org:451/announce
