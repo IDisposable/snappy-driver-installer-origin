@@ -19,7 +19,7 @@ along with Snappy Driver Installer.  If not, see <http://www.gnu.org/licenses/>.
 #define MATCHER_H
 
 #define NUM_DECS 14*4
-#define NUM_MARKERS 39
+#define NUM_MARKERS 53
 #define NUM_FILTERS 22
 
 enum DRIVER_STATUS
@@ -163,6 +163,7 @@ public:
     int   getdrp_packontorrent()const;
     //inffile
     const char *getdrp_infpath()const;
+    std::string getdrp_infmarker();
     const char *getdrp_infname()const;
     const char *getdrp_drvfield(int n)const;
     const char *getdrp_drvcat(int n)const;

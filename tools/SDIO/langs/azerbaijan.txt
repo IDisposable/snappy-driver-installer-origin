@@ -271,6 +271,7 @@ STR_HINT_DRIVER               = "Quraşdırılmış və quraşdmağa hazı olan 
 STR_SYS_WINVER                = "Windows versiyası"
 STR_SYS_32                    = "32-bit"
 STR_SYS_64                    = "64-bit"
+STR_SYS_DETECT                = "Detect OS version"
 STR_SYS_DEVICEMNG             = "Qurğu dispetçeri"
 STR_SYS_DISINSTALL            = "Drayverlərin quraşdırılmasını söndürmək"
 STR_SYS_DISRESTPNT            = "Bərpa nöqtələrinin yaradılmasını kəsmək"

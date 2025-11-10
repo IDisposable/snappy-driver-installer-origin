@@ -271,6 +271,7 @@ STR_HINT_DRIVER               = "Κρατήστε πατημένο το πλήκ
 STR_SYS_WINVER                = "Εκδοση των Windows"
 STR_SYS_32                    = "32-bit"
 STR_SYS_64                    = "64-bit"
+STR_SYS_DETECT                = "Detect OS version"
 STR_SYS_DEVICEMNG             = "Διαχείριση Συσκευών"
 STR_SYS_DISINSTALL            = "Απενεργοποίηση εγκατάστασης οδηγών"
 STR_SYS_DISRESTPNT            = "Απενεργοποίηση δημιουργίας σημείων επαναφοράς"

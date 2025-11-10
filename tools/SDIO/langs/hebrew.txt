@@ -271,6 +271,7 @@ STR_HINT_DRIVER               = "החזק את לחצן Ctrl כדי להשוות
 STR_SYS_WINVER                = "גרסאת Windows"
 STR_SYS_32                    = "32 סיביות"
 STR_SYS_64                    = "64 סיביות"
+STR_SYS_DETECT                = "Detect OS version"
 STR_SYS_DEVICEMNG             = "מנהל ההתקנים"
 STR_SYS_DISINSTALL            = "בטל התקנה"
 STR_SYS_DISRESTPNT            = "בטל יצירת נקודות שחזור"

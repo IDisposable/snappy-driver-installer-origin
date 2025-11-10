@@ -271,6 +271,7 @@ STR_HINT_DRIVER               = "Klikkeljen ide az alternatív Driver-ek megjele
 STR_SYS_WINVER                = "Windows verzió"
 STR_SYS_32                    = "32-bit"
 STR_SYS_64                    = "64-bit"
+STR_SYS_DETECT                = "Detect OS version"
 STR_SYS_DEVICEMNG             = "Eszközkezelõ"
 STR_SYS_DISINSTALL            = "Telepítés letiltása"
 STR_SYS_DISRESTPNT            = "Visszaállítási pontok blokkolása"

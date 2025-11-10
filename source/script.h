@@ -29,6 +29,7 @@ class Script
         virtual ~Script();
         bool loadscript();
         bool runscript();
+        void initEngine(std::wstring args1=L"");
         static bool cmdArgIsPresent();
     protected:
 
@@ -40,6 +41,7 @@ class Script
         void doParameters(std::wstring &cmd);
         std::vector<std::wstring> parameters;
         void RunLatest(std::wstring args);
+        int LastExitCode=0;
 };
 
 #endif // SCRIPT_H

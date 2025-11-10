@@ -271,6 +271,7 @@ STR_HINT_DRIVER               = "Turiet piespiestu Ctrl, lai salīdzinātu uzst�
 STR_SYS_WINVER                = "Windows versija"
 STR_SYS_32                    = "32-bit"
 STR_SYS_64                    = "64-bit"
+STR_SYS_DETECT                = "Detect OS version"
 STR_SYS_DEVICEMNG             = "Ierīču pārvaldnieks"
 STR_SYS_DISINSTALL            = "Atslēgt vadītāju uzstādīšanu. Atslēgt atjaunošanas punktu izveidi"
 STR_SYS_DISRESTPNT            = "Atspējot atjaunošanas punktus"

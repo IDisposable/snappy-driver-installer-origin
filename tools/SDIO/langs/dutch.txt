@@ -271,6 +271,7 @@ STR_HINT_DRIVER               = "Houd de Ctrl-knop in om het stuurprogramma te v
 STR_SYS_WINVER                = "Windows versie"
 STR_SYS_32                    = "32-bit"
 STR_SYS_64                    = "64-bit"
+STR_SYS_DETECT                = "Detect OS version"
 STR_SYS_DEVICEMNG             = "Apparaatbeheer"
 STR_SYS_DISINSTALL            = "Installatie uitschakelen"
 STR_SYS_DISRESTPNT            = "Uitschakelen van herstelpunten"

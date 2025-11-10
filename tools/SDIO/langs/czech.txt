@@ -271,6 +271,7 @@ STR_HINT_DRIVER               = "Podržením klávesy Ctrl porovnáme instalovan
 STR_SYS_WINVER                = "Verze Windows"
 STR_SYS_32                    = "32-bit"
 STR_SYS_64                    = "64-bit"
+STR_SYS_DETECT                = "Detect OS version"
 STR_SYS_DEVICEMNG             = "Správce zařízení"
 STR_SYS_DISINSTALL            = "Zakázat instalaci"
 STR_SYS_DISRESTPNT            = "Zakázat body obnovení"

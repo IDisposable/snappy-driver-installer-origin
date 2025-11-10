@@ -271,6 +271,7 @@ STR_HINT_DRIVER               = "Tahan tombol Ctrl untuk membandingkan driver ya
 STR_SYS_WINVER                = "Versi Windows"
 STR_SYS_32                    = "32-bit"
 STR_SYS_64                    = "64-bit"
+STR_SYS_DETECT                = "Detect OS version"
 STR_SYS_DEVICEMNG             = "Manajer Perangkat"
 STR_SYS_DISINSTALL            = "Mendisable instalasi"
 STR_SYS_DISRESTPNT            = "Mendisable restore points"

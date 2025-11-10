@@ -271,6 +271,7 @@ STR_HINT_DRIVER               = "Mențineți apăsat Ctrl pentru a compara drive
 STR_SYS_WINVER                = "Versiune Windows"
 STR_SYS_32                    = "32-bit"
 STR_SYS_64                    = "64-bit"
+STR_SYS_DETECT                = "Detect OS version"
 STR_SYS_DEVICEMNG             = "Manager dispozitive"
 STR_SYS_DISINSTALL            = "Dezactivează instlarea"
 STR_SYS_DISRESTPNT            = "Dezactivează punctele de restaurare"

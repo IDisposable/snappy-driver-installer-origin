@@ -271,6 +271,7 @@ STR_HINT_DRIVER               = "Strg-Taste drücken, um den installierten Treib
 STR_SYS_WINVER                = "Windows-Version"
 STR_SYS_32                    = "32 Bit"
 STR_SYS_64                    = "64 Bit"
+STR_SYS_DETECT                = "Detect OS version"
 STR_SYS_DEVICEMNG             = "Gerätemanager"
 STR_SYS_DISINSTALL            = "Installation deaktivieren"
 STR_SYS_DISRESTPNT            = "Wiederherstellungspunkt-Erstellung deaktivieren"

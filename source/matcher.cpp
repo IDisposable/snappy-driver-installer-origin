@@ -41,6 +41,8 @@ Invalid:
     ntx64.6.0   ntAMD64
     nt.7        future
 */
+// following matches the optional architecture field in the [Manufacturer]
+// section of the inf file
 const char *nts[NUM_DECS]=
 {
     "nt.5",  "ntx86.5",  "ntamd64.5"  ,"ntia64.5",   // 2000
@@ -55,7 +57,7 @@ const char *nts[NUM_DECS]=
     "nt.6.4","ntx86.6.4","ntamd64.6.4","ntia64.6.4", // 10
     "nt.10.0","ntx86.10.0","ntamd64.10.0","ntia64.10.0", // 10
     "nt.10.0.1","ntx86.10.0.1","ntamd64.10.0.1","ntia64.10.0.1", // 10
-    "nt",    "ntx86",    "ntamd64",    "ntia64",
+    "nt",    "ntx86",    "ntamd64",    "ntia64",                 // NT specifies Win 2000 and later
     "nt..",  "ntx86..",  "ntamd64..",  "ntia64..",
 };
 
@@ -121,13 +123,17 @@ const markers_t markers[NUM_MARKERS]=
     {"7x86",    6, 1, 0},
     {"8x86",    6, 2, 0},
     {"81x86",   6, 3, 0},
-    {"9x86",    6, 4, 0},
+    {"10x86",   6, 4, 0},             // to be confirmed
     {"10x86",  10, 0, 0},
+    {"U10x86", 10, 0, 0},             // to be confirmed
 
     {"67x86",   6, 0, 0},
     {"6xx86",   6, 0, 0},
     {"78x86",   6, 1, 0},
     {"781x86",  6, 1, 0},
+    {"710x86",  6, 1, 0},             // to be confirmed
+    {"88110x86",6, 3, 0},             // to be confirmed
+    {"8110x86", 6, 3, 0},             // to be confirmed
 
     // Exact x64
     {"5x64",    5, 2, 1},
@@ -135,13 +141,17 @@ const markers_t markers[NUM_MARKERS]=
     {"7x64",    6, 1, 1},
     {"8x64",    6, 2, 1},
     {"81x64",   6, 3, 1},
-    {"9x64",    6, 4, 1},
+    {"10x64",   6, 4, 1},             // to be confirmed
     {"10x64",  10, 0, 1},
+    {"U10x64", 10, 0, 1},             // to be confirmed
 
     {"67x64",   6, 0, 1},
     {"6xx64",   6, 0, 1},
     {"78x64",   6, 1, 1},
     {"781x64",  6, 1, 1},
+    {"710x64",  6, 1, 1},             // to be confirmed
+    {"88110x64",6, 3, 1},             // to be confirmed
+    {"8110x64", 6, 3, 1},             // to be confirmed
 
     // Each OS, ignore arch
     {"allnt",   4, 0,-1},
@@ -150,8 +160,15 @@ const markers_t markers[NUM_MARKERS]=
     {"all7",    6, 1,-1},
     {"all8\\",  6, 2,-1},
     {"all81",   6, 3,-1},
-    {"all9",    6, 4,-1},
+    {"all10",   6, 4,-1},             // to be confirmed
     {"all10",  10, 0,-1},
+
+    {"allntx64x86",4, 0, -1},             // to be confirmed
+    {"all5x86x64",5, 2, -1},             // to be confirmed
+    {"all6x86x64",6, 0, -1},             // to be confirmed
+    {"all7x86x64",6, 1, -1},             // to be confirmed
+    {"all8x86x64",6, 2, -1},             // to be confirmed
+    {"all10x86x64",10, 0, -1},             // to be confirmed
 
     // arch
     {"allx86", -1,-1, 0},
@@ -1048,6 +1065,40 @@ const char *Hwidmatch::getdrp_infpath()const
     size_t manufacturer_index=drp->desc_list[desc_index].manufacturer_index;
     size_t inffile_index=drp->manufacturer_list[manufacturer_index].inffile_index;
     return drp->text_ind.get(drp->inffile[inffile_index].infpath);
+}
+std::string Hwidmatch::getdrp_infmarker()
+{
+    std::string path;
+    std::string buf;
+    std::string::size_type pos,len;
+
+    size_t desc_index=drp->HWID_list[HWID_index].desc_index;
+    size_t manufacturer_index=drp->desc_list[desc_index].manufacturer_index;
+    size_t inffile_index=drp->manufacturer_list[manufacturer_index].inffile_index;
+
+    // this is the full path of the inf file in the driver pack
+    path=drp->text_ind.get(drp->inffile[inffile_index].infpath);
+    // make it lower case
+    std::transform(path.begin(), path.end(),path.begin(), ::tolower);
+    // iterate my list of known markers
+    for(int i=0;i<NUM_MARKERS;i++)
+    {
+        // wrap it in backslashes
+        buf=markers[i].name;
+        len=buf.length();
+        buf="\\"+buf+"\\";
+        // see if this known marker is in the inf path
+        pos=path.find(buf);
+		if (pos != std::string::npos)
+        {
+            // get the un-lower case path
+            path=drp->text_ind.get(drp->inffile[inffile_index].infpath);
+            // get the marker from the path with the correct case
+            buf=path.substr(pos+1,len);
+            return buf;
+        }
+    }
+    return "";
 }
 const char *Hwidmatch::getdrp_infname()const
 {

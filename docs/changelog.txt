@@ -7,6 +7,27 @@ www.glenn.delahoy.com
 
 Change Log
 
+Version 1.16.0.818
+10 November 2025
+
+I've changed the way Win 11 is handled. Firstly, SDIO will no longer set the virtual OS if 
+Win 11 is detected. If it detects Win 11, you will see Win 11 in the System Information 
+panel. You can still set the virtual OS yourself if you choose. Secondly, because Win 11 is 
+not yet directly supported in the driver packs and because Win 10 drivers are compatible 
+with Win 11 anyway, when Win 11 is detected, SDIO will search for Win 10 drivers. 
+
+* Sam Driver Packs 25.11.1
+* Show Newer is off by default
+* Added available driver version, date and marker to driver list items.
+* ForceWin10 option removed
+* No longer set virtual os version when win11 is detected
+* Because win11 is not currently supported in the driver packs, search for compatible win10 drivers
+* Added Detect OS version to System panel context menu
+* Updated translations
+* Added checks to make sure script engine is initialised
+* Added environment variable expansion to script directories (%appdata% etc)
+* Updated list of known inf markers
+
 Version 1.15.6.817
 30 August 2025
 * Sam Driver Packs 25.08.3

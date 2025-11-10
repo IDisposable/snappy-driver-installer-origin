@@ -271,6 +271,7 @@ STR_HINT_DRIVER               = "설치된 드라이버를 사용가능한 드�
 STR_SYS_WINVER                = "윈도우 버전"
 STR_SYS_32                    = "32-bit"
 STR_SYS_64                    = "64-bit"
+STR_SYS_DETECT                = "Detect OS version"
 STR_SYS_DEVICEMNG             = "장치 관리자"
 STR_SYS_DISINSTALL            = "설치 사용안함"
 STR_SYS_DISRESTPNT            = "복원지점 사용안함"

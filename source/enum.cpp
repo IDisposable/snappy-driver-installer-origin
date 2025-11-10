@@ -566,6 +566,10 @@ void State::getWinVer(int *major,int *minor)const
 {
     *major=platform.dwMajorVersion;
     *minor=platform.dwMinorVersion;
+    // there are no win11 paths in the driver packs
+    // so look for win10
+    // this will change when win11 is supported
+    if(*major==11){*major=10;}
 }
 
 const wchar_t *State::getProduct()
@@ -845,6 +849,7 @@ void State::contextmenu2(int x,int y)
     InsertMenu(hPopupMenu,i++,MF_BYPOSITION|MF_STRING|MF_POPUP,(UINT_PTR)hSub1,STR(STR_SYS_WINVER));
     InsertMenu(hPopupMenu,i++,MF_BYPOSITION|MF_STRING|(architecture==0?MF_CHECKED:0),ID_EMU_32,STR(STR_SYS_32));
     InsertMenu(hPopupMenu,i++,MF_BYPOSITION|MF_STRING|(architecture==1?MF_CHECKED:0),ID_EMU_64,STR(STR_SYS_64));
+    InsertMenu(hPopupMenu,i++,MF_BYPOSITION|MF_STRING,ID_DETECT_OS,STR(STR_SYS_DETECT));
     InsertMenu(hPopupMenu,i++,MF_BYPOSITION|MF_SEPARATOR,0,nullptr);
     InsertMenu(hPopupMenu,i++,MF_BYPOSITION|MF_STRING,ID_DEVICEMNG,STR(STR_SYS_DEVICEMNG));
     InsertMenu(hPopupMenu,i++,MF_BYPOSITION|MF_SEPARATOR,0,nullptr);
@@ -1025,16 +1030,14 @@ void State::getsysinfo_fast()
         RegQueryValueEx(hkey,L"CurrentBuild",nullptr,nullptr,(LPBYTE)&currentbuild,&size);
         wchar_t* endString;
         DWORD build=wcstoul(currentbuild, &endString, 10);
-        // only change the platform info if I detect windows 11
-        if((build>=22000)&&(Settings.forcewin10))
+        // windows 11 detected
+        if((build>=22000))
         {
             platform.dwBuildNumber=build;
             // major version
             platform.dwMajorVersion=(DWORD)11;
             // minor version
             platform.dwMinorVersion=0;
-            // set fake version
-            Settings.virtual_os_version=(DWORD)1015;
         }
     }
     RegCloseKey(hkey);

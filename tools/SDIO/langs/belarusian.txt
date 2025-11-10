@@ -271,6 +271,7 @@ STR_HINT_DRIVER               = "Утрымлівайце Ctrl, каб пара�
 STR_SYS_WINVER                = "Версія Windows"
 STR_SYS_32                    = "32-біт"
 STR_SYS_64                    = "64-біт"
+STR_SYS_DETECT                = "Detect OS version"
 STR_SYS_DEVICEMNG             = "Дыспетчар прылад"
 STR_SYS_DISINSTALL            = "Адключыць усталёўку драйвераў"
 STR_SYS_DISRESTPNT            = "Адключыць стварэнне кропак аднаўлення"

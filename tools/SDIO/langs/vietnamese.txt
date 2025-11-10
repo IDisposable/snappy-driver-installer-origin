@@ -271,6 +271,7 @@ STR_HINT_DRIVER               = "Giữ Ctrl để so sánh driver có sẵn vớ
 STR_SYS_WINVER                = "Phiên bản Windows"
 STR_SYS_32                    = "32 bit"
 STR_SYS_64                    = "64 bit"
+STR_SYS_DETECT                = "Detect OS version"
 STR_SYS_DEVICEMNG             = "Quản lí thiết bị"
 STR_SYS_DISINSTALL            = "Bản cài không dùng"
 STR_SYS_DISRESTPNT            = "Không dùng điểm khôi phục"

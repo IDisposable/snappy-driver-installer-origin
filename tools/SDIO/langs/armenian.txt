@@ -271,6 +271,7 @@ STR_HINT_DRIVER               = "Պահել Ctrl, որպեսզի համեմատ�
 STR_SYS_WINVER                = "Windows-ի տարբերակը"
 STR_SYS_32                    = "32-բիթ"
 STR_SYS_64                    = "64-բիթ"
+STR_SYS_DETECT                = "Detect OS version"
 STR_SYS_DEVICEMNG             = "Սարքավորումների վերահսկիչ"
 STR_SYS_DISINSTALL            = "Անջատել տեղադրումը"
 STR_SYS_DISRESTPNT            = "Անջատել վերականգման կետերը"

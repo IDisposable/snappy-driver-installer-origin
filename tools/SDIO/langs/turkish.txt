@@ -271,6 +271,7 @@ STR_HINT_DRIVER               = "<Ctrl> tuşuna basılı tutarsanız kurulu sür
 STR_SYS_WINVER                = "Windows sürümü"
 STR_SYS_32                    = "32-bit"
 STR_SYS_64                    = "64-bit"
+STR_SYS_DETECT                = "Detect OS version"
 STR_SYS_DEVICEMNG             = "Aygıt yöneticisi"
 STR_SYS_DISINSTALL            = "Kurulumu devre dışı bırak"
 STR_SYS_DISRESTPNT            = "Sistem geri yükleme noktası oluşturmayı devre dışı bırak"

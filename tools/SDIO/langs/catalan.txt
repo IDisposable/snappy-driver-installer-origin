@@ -271,6 +271,7 @@ STR_HINT_DRIVER               = "Mantenir presionat el teclat Ctrl per comparar 
 STR_SYS_WINVER                = "Versió de Windows"
 STR_SYS_32                    = "32-bit"
 STR_SYS_64                    = "64-bit"
+STR_SYS_DETECT                = "Detect OS version"
 STR_SYS_DEVICEMNG             = "Gestor de dispositiu"
 STR_SYS_DISINSTALL            = "Desactivar l'instal.lació"
 STR_SYS_DISRESTPNT            = "Desactivar punts de restauració."

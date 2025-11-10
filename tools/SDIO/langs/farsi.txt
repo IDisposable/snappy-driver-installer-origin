@@ -271,6 +271,7 @@ STR_HINT_DRIVER               = "کلیک Ctrl را نگه‌دارید تا د�
 STR_SYS_WINVER                = "نسخه ویندوز"
 STR_SYS_32                    = "32-بیت"
 STR_SYS_64                    = "64-بیت"
+STR_SYS_DETECT                = "Detect OS version"
 STR_SYS_DEVICEMNG             = "مدیریت دستگاه"
 STR_SYS_DISINSTALL            = "لغو عملیات نصب"
 STR_SYS_DISRESTPNT            = "غیرفعال کردن نقاط بازیابی"

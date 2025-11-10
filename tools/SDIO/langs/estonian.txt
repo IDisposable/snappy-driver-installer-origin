@@ -271,6 +271,7 @@ STR_HINT_DRIVER               = "Võrdlemaks saadaval draivereid paigaldatud ver
 STR_SYS_WINVER                = "Windowsi versioon"
 STR_SYS_32                    = "32-bit"
 STR_SYS_64                    = "64-bit"
+STR_SYS_DETECT                = "Detect OS version"
 STR_SYS_DEVICEMNG             = "Seadmehaldur"
 STR_SYS_DISINSTALL            = "Lülita paigaldamine välja"
 STR_SYS_DISRESTPNT            = "Lülita taastepunkti loomine välja"

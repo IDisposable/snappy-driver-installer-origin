@@ -271,6 +271,7 @@ STR_HINT_DRIVER               = "Appuyer sur la touche CTRL pour comparer le pil
 STR_SYS_WINVER                = "Version Windows"
 STR_SYS_32                    = "32-bit"
 STR_SYS_64                    = "64-bit"
+STR_SYS_DETECT                = "Detect OS version"
 STR_SYS_DEVICEMNG             = "Gestionnaire de périphériques"
 STR_SYS_DISINSTALL            = "Désactiver l'installation"
 STR_SYS_DISRESTPNT            = "Désactiver les points de restauration"

@@ -106,6 +106,7 @@ enum GUI_ID
     ID_SYSCONTROL      =54,
     ID_SYSREST         =55,
     ID_SYSPROPS_ADV    =57,
+    ID_DETECT_OS       =58,
 
     ID_HWID_CLIP      =100,
     ID_HWID_WEB       =200,
@@ -191,7 +192,6 @@ public:
     int flags;
     int statemode;
     int expertmode;
-    int forcewin10;
     int hintdelay;
     int license;
     int scale;

@@ -136,6 +136,23 @@ bool Script::loadscript()
     return ret;
 }
 
+void Script::initEngine(std::wstring args1)
+{
+    bool r=false;
+    r=StrStrIW(args1.c_str(),L"reindex");
+    Log.print_debug("Argument: %S\n",args1.c_str());
+
+    if(r)Settings.flags|=COLLECTION_FORCE_REINDEXING;
+    else Settings.flags&=~COLLECTION_FORCE_REINDEXING;
+    manager_v[0].init(bundle[bundle_display].getMatcher());
+    manager_v[1].init(bundle[bundle_display].getMatcher());
+    bundle[bundle_display].bundle_prep();
+    // following triggers deviceupdate_event->raise
+    invalidate(INVALIDATE_DEVICES|INVALIDATE_SYSINFO|INVALIDATE_INDEXES|INVALIDATE_MANAGER);
+    LastExitCode=Bundle::thread_loadall(&bundle);
+    Settings.flags&=~COLLECTION_FORCE_REINDEXING;
+}
+
 bool Script::runscript()
 {
     if(ScriptText.size()==0)return false;
@@ -144,7 +161,7 @@ bool Script::runscript()
                    FLAG_PRESERVECFG|FLAG_SCRIPTMODE|COLLECTION_USE_LZMA;
     Settings.filters=0;
     std::wstring logdir(Settings.logO_dir);
-    int LastExitCode=0;
+
     bool NeedReboot=false;
     Log.set_verbose(0);
     Updater=CreateUpdater();
@@ -189,21 +206,10 @@ bool Script::runscript()
 
             if(StrStrIW(args[0].c_str(),L"init"))
             {
-                bool r=false;
+                std::wstring args1;
                 if(args.size()>1)
-                {
-                    r=StrStrIW(args[1].c_str(),L"reindex");
-                    Log.print_debug("Argument: %S\n",args[1].c_str());
-                }
-                if(r)Settings.flags|=COLLECTION_FORCE_REINDEXING;
-                else Settings.flags&=~COLLECTION_FORCE_REINDEXING;
-                manager_v[0].init(bundle[bundle_display].getMatcher());
-                manager_v[1].init(bundle[bundle_display].getMatcher());
-                bundle[bundle_display].bundle_prep();
-                // following triggers deviceupdate_event->raise
-                invalidate(INVALIDATE_DEVICES|INVALIDATE_SYSINFO|INVALIDATE_INDEXES|INVALIDATE_MANAGER);
-                LastExitCode=Bundle::thread_loadall(&bundle);
-                Settings.flags&=~COLLECTION_FORCE_REINDEXING;
+                    args1=args[1];
+                initEngine(args1);
             }
             else if(_wcsicmp(args[0].c_str(),L"activetorrent")==0)
             {
@@ -257,10 +263,14 @@ bool Script::runscript()
             }
             else if(StrStrIW(args[0].c_str(),L"checkupdates"))
             {
+                if(manager_g->matcher==nullptr)
+                    initEngine();
                 LastExitCode=Updater->scriptInitUpdates(torrentport);
             }
             else if(_wcsicmp(args[0].c_str(),L"get")==0)
             {
+                if(manager_g->matcher==nullptr)
+                    initEngine();
                 if(args.size()>1)
                 {
                     if(_wcsicmp(args[1].c_str(),L"app")==0)
@@ -394,6 +404,8 @@ bool Script::runscript()
                     Log.print_debug("Argument: %S\n",args[1].c_str());
                     wchar_t arg[BUFLEN];
                     wcscpy(arg,args[1].c_str());
+                    if(manager_g->matcher==nullptr)
+                        initEngine();
                     LastExitCode=manager_g->matcher->write_device_list(arg);
                     Log.print_con("Write Device List %S\n",LastExitCode?L"failed":L"succeeded");
                 }
@@ -407,8 +419,8 @@ bool Script::runscript()
             {
                 if(allargs.length()>0)
                 {
-                    logdir=allargs;
-                    Log.print_debug("Argument: %S\n",allargs.c_str());
+                    logdir=System.ExpandEnvVar(allargs);
+                    Log.print_debug("Argument: %S\n",logdir.c_str());
                 }
                 else
                 {
@@ -420,8 +432,9 @@ bool Script::runscript()
             {
                 if(allargs.length()>0)
                 {
-                    Log.print_debug("Argument: %S\n",allargs.c_str());
+                    allargs=System.ExpandEnvVar(allargs);
                     wcscpy(Settings.drp_dir,allargs.c_str());
+                    Log.print_debug("Argument: %S\n",Settings.drp_dir);
                     invalidate(INVALIDATE_INDEXES|INVALIDATE_MANAGER);
                 }
                 else
@@ -434,8 +447,9 @@ bool Script::runscript()
             {
                 if(allargs.length()>0)
                 {
-                    Log.print_debug("Argument: %S\n",allargs.c_str());
+                    allargs=System.ExpandEnvVar(allargs);
                     wcscpy(Settings.index_dir,allargs.c_str());
+                    Log.print_debug("Argument: %S\n",Settings.index_dir);
                     invalidate(INVALIDATE_INDEXES|INVALIDATE_MANAGER);
                 }
                 else
@@ -448,8 +462,9 @@ bool Script::runscript()
             {
                 if(allargs.length()>0)
                 {
-                    Log.print_debug("Argument: %S\n",allargs.c_str());
+                    allargs=System.ExpandEnvVar(allargs);
                     wcscpy(extractdir,allargs.c_str());
+                    Log.print_debug("Argument: %S\n",extractdir);
                 }
                 else
                 {
@@ -509,6 +524,7 @@ bool Script::runscript()
                 {
                     if(StrStrIW(args[1].c_str(),L"on"))
                     {
+                        Log.stop();
                         Settings.flags&=~FLAG_NOLOGFILE;
                         wchar_t arg[BUFLEN];
                         wcscpy(arg,logdir.c_str());

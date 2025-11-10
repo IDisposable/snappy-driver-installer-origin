@@ -271,6 +271,7 @@ STR_HINT_DRIVER               = "Задръжте Ctrl за да сравнит�
 STR_SYS_WINVER                = "Версия на Windows"
 STR_SYS_32                    = "32 битова"
 STR_SYS_64                    = "64 битова"
+STR_SYS_DETECT                = "Detect OS version"
 STR_SYS_DEVICEMNG             = "Диспечер на устройствата"
 STR_SYS_DISINSTALL            = "Забрани инсталацията"
 STR_SYS_DISRESTPNT            = "Забрани точките за възстановяване"

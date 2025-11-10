@@ -271,6 +271,7 @@ STR_HINT_DRIVER               = "Hold Ctrl knappen for å sammenligne installert
 STR_SYS_WINVER                = "Windows versjon"
 STR_SYS_32                    = "32-bit"
 STR_SYS_64                    = "64-bit"
+STR_SYS_DETECT                = "Detect OS version"
 STR_SYS_DEVICEMNG             = "Enhetsbehandling"
 STR_SYS_DISINSTALL            = "Deaktiver installasjon"
 STR_SYS_DISRESTPNT            = "Deaktiver gjenopprettingspunkt"

@@ -271,6 +271,7 @@ STR_HINT_DRIVER               = "გეჭიროთ Ctrl, იმისათ�
 STR_SYS_WINVER                = "Windows-ის ვერსია"
 STR_SYS_32                    = "32-ბიტ"
 STR_SYS_64                    = "64-ბიტ"
+STR_SYS_DETECT                = "Detect OS version"
 STR_SYS_DEVICEMNG             = "მოწყობილობის დისპეტჩერი"
 STR_SYS_DISINSTALL            = "გამორთო დრაივერების ინსტალაცია"
 STR_SYS_DISRESTPNT            = "გამორთო აღდგენის ცერთილების შექმნა"

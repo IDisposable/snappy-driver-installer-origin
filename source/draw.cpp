@@ -491,6 +491,25 @@ void CanvasImp::DrawTextXY(int x1,int y1,LPCTSTR buf)
     TextOut(hdcMem,x1,y1,buf,static_cast<int>(wcslen(buf)));
 }
 
+void CanvasImp::DrawTextXYEx(int x1,int y1,LPCTSTR buf,int size)
+{
+    // draw text with a different font size
+    LOGFONT lf;
+    // get the current font metrics
+    HGDIOBJ oldFont=GetCurrentObject(hdcMem, OBJ_FONT);
+    GetObject(oldFont, sizeof(LOGFONT), &lf);
+    // set the new size
+    lf.lfHeight=-MulDiv(size, GetDeviceCaps(hdcMem,LOGPIXELSY),72);
+    // apply the new font
+    HGDIOBJ newFont=CreateFontIndirect(&lf);
+    oldFont=SelectObject(hdcMem,newFont);
+    // draw the text
+    TextOut(hdcMem,x1,y1,buf,static_cast<int>(wcslen(buf)));
+    // revert to previous font
+    SelectObject(hdcMem,oldFont);
+    DeleteObject(newFont);
+}
+
 void CanvasImp::SetTextColor(int color)
 {
     ::SetTextColor(hdcMem,color);

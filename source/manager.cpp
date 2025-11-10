@@ -75,6 +75,9 @@ void itembar_t::itembar_setpos(int *pos,int *cnt,bool addspace)
 
 void itembar_t::str_status(wchar_t *buf)
 {
+    // returns a language display string according to the
+    // outcome of the hardware match
+
     buf[0]=0;
 
     if(hwidmatch)
@@ -1599,8 +1602,7 @@ int Manager::drawitem(Canvas &canvas,size_t index,int ofsy,int zone,int cutoff)
                 else
                     canvas.DrawTextRect(bufw,&rect,rtl?DT_RIGHT:0);
 
-
-                // Available driver status
+                // get available driver status
                 canvas.SetTextColor(D_C(boxindex[itembar->box_status()]+15));
                 itembar->str_status(bufw);
                 switch(itembar->install_status)
@@ -1624,6 +1626,7 @@ int Manager::drawitem(Canvas &canvas,size_t index,int ofsy,int zone,int cutoff)
                     default:
                         wcscpy(bufw,STR(itembar->install_status));
                 }
+                // calculate the location to write the status text
                 rect.left=x+D_X(ITEM_TEXT_OFS_X)+wx1/2;
                 rect.top=pos;
                 rect.right=rect.left+wx1/2;
@@ -1633,6 +1636,26 @@ int Manager::drawitem(Canvas &canvas,size_t index,int ofsy,int zone,int cutoff)
                 else
                     canvas.DrawTextRect(bufw,&rect);
 
+                // display the driver version number, date and marker
+                Version *v;
+                WStringShort vers;
+                WStringShort date;
+                v=itembar->hwidmatch->getdrp_drvversion();
+                v->str_version(vers);
+                v->str_date(date);
+                // inf marker
+                std::string mark=itembar->hwidmatch->getdrp_infmarker();
+                std::wstring wmark=std::wstring(mark.begin(), mark.end());
+
+                swprintf(bufw,L"- %s%s (%s) %s",STR(STR_HINT_VERSION), vers.Get(), date.Get(), wmark.c_str());
+                if(!oldstyle)
+                {
+                    canvas.SetTextColor(D_C(DRVITEM_TEXT2_COLOR_IU));
+                    //canvas.DrawTextXY(x+D_X(ITEM_TEXT_OFS_X)+wx1/2,pos+D_X(ITEM_TEXT_DIST_Y),bufw);
+                    canvas.DrawTextXYEx(x+D_X(ITEM_TEXT_OFS_X)+wx1/2,pos+D_X(ITEM_TEXT_DIST_Y),bufw,D_X(FONT_SIZE)*2/3);
+                }
+
+                // display DRP names
                 if(Settings.flags&FLAG_SHOWDRPNAMES1)
                 {
                     size_t len=wcslen(matcher->getCol()->getDriverpack_dir());

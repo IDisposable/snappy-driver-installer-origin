@@ -271,6 +271,7 @@ STR_HINT_DRIVER               = "Ctrl ボタン押下で、利用可能なドラ
 STR_SYS_WINVER                = "Windows バージョン"
 STR_SYS_32                    = "32-bit"
 STR_SYS_64                    = "64-bit"
+STR_SYS_DETECT                = "Detect OS version"
 STR_SYS_DEVICEMNG             = "デバイス マネージャー"
 STR_SYS_DISINSTALL            = "インストール無効"
 STR_SYS_DISRESTPNT            = "システムの復元ポイント無効"

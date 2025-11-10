@@ -2142,6 +2142,12 @@ LRESULT MainWindow_t::WndProcMain(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lP
                     invalidate(INVALIDATE_SYSINFO|INVALIDATE_MANAGER);
                     break;
 
+                case ID_DETECT_OS:
+                    Settings.virtual_os_version=0;
+                    Settings.virtual_arch_type=0;
+                    invalidate(INVALIDATE_SYSINFO|INVALIDATE_MANAGER);
+                    break;
+
                 case ID_DIS_INSTALL:
                     Settings.flags^=FLAG_DISABLEINSTALL;
                     break;

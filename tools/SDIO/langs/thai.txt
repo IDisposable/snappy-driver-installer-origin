@@ -271,6 +271,7 @@ STR_HINT_DRIVER               = "กดปุ่ม Ctrl เพื่อเป�
 STR_SYS_WINVER                = "รุ่นของ windows"
 STR_SYS_32                    = "32 บิต"
 STR_SYS_64                    = "64 บิต"
+STR_SYS_DETECT                = "Detect OS version"
 STR_SYS_DEVICEMNG             = "การจัดการอุปกรณ์"
 STR_SYS_DISINSTALL            = "ปิดใช้งานการติดตั้ง"
 STR_SYS_DISRESTPNT            = "ปิดการใช้งานระบบการเรียกคืน"

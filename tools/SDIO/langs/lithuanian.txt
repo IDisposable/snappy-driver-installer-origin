@@ -271,6 +271,7 @@ STR_HINT_DRIVER               = "Laikykite nuspaudę Ctrl mygtuką norėdami pal
 STR_SYS_WINVER                = "Windows versija"
 STR_SYS_32                    = "32-bitų"
 STR_SYS_64                    = "64-bitų"
+STR_SYS_DETECT                = "Detect OS version"
 STR_SYS_DEVICEMNG             = "Įrenginių tvarkytuvė"
 STR_SYS_DISINSTALL            = "Išjungti diegimą"
 STR_SYS_DISRESTPNT            = "Išjungti sistemos atkūrimo taškus"

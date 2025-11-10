@@ -91,6 +91,7 @@ public:
     __int64 FileSize(const wchar_t *filename);
     __int64 DirectorySize(const std::wstring directory);
     std::wstring ExpandEnvVar(std::wstring source);
+    std::wstring StripQuotes(std::wstring source);
     bool ChooseDir(wchar_t *path,const wchar_t *title);
     bool ChooseFile(wchar_t *filename,const wchar_t *strlist,const wchar_t *ext);
     void CreateDir(const wchar_t *filename);

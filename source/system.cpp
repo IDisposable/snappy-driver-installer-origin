@@ -344,10 +344,26 @@ int SystemImp::DriveNumber(const wchar_t *filename)
     return PathGetDriveNumberW(filename);
 }
 
+std::wstring SystemImp::StripQuotes(std::wstring source)
+{
+  if (source.size() > 1) {
+    if (source.front() == '"' && source.back() == '"') {
+      if (source.size() == 2) {
+        source.erase();
+      } else {
+        source.erase(source.begin());
+        source.erase(source.end() - 1);
+      }
+    }
+  }
+  return source;
+}
+
 std::wstring SystemImp::ExpandEnvVar(std::wstring source)
 {
     wchar_t d[BUFLEN];
     *d=0;
+    source=StripQuotes(source);
     ExpandEnvironmentStringsW(source.c_str(),d,BUFLEN);
     return d;
 }
@@ -611,13 +627,23 @@ int SystemImp::getcurver(const char *ptr)
     // driver pack in my list
     WStringShort bffw;
 
+    // ensure manager_g init has been run before this
+    if(manager_g->matcher==nullptr)
+    {
+        Log.print_err("Script Error : INIT has not been called.\n");
+        return 0;
+    }
+
     bffw.sprintf(L"%S",ptr);
     wchar_t *s=bffw.GetV();
     while(*s)
     {
+        // look for the version portion of the file name - ie _25081
         if(*s=='_'&&s[1]>='0'&&s[1]<='9')
         {
+            // truncate the version portion from the file name in bffw
             *s=0;
+            // see if i have any version of this file name
             s=const_cast<wchar_t *>(manager_g->matcher->finddrp(bffw.Get()));
             if(!s)return 0;
             while(*s)

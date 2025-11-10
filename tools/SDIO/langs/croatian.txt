@@ -271,6 +271,7 @@ STR_HINT_DRIVER               = "Drži tipku Ctrl za usporedbu instaliranog upra
 STR_SYS_WINVER                = "Verzija Windowsa"
 STR_SYS_32                    = "32-bit"
 STR_SYS_64                    = "64-bit"
+STR_SYS_DETECT                = "Detect OS version"
 STR_SYS_DEVICEMNG             = "Upravitelj uređaja"
 STR_SYS_DISINSTALL            = "Onemogući instalaciju"
 STR_SYS_DISRESTPNT            = "Onemogući točke vraćanja"
