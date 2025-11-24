@@ -7,6 +7,15 @@ www.glenn.delahoy.com
 
 Change Log
 
+Version 1.17.0.819
+24 November 2025
+
+* Sam Driver Packs 25.11.1
+* Much work on improving support for Windows 11
+* No longer looking for Win 10 drivers when Win 11 is detected.
+* Detect Win 11 Server.
+* I'm trying again with an SDIO driver pack.
+
 Version 1.16.0.818
 10 November 2025
 

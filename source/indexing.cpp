@@ -622,6 +622,12 @@ void Collection::populate()
     if(drp_count&&num_thr>1)num_thr=1;
     #endif
 
+    if(num_thr>1)
+    {
+        num_thr-=1;
+        num_thr_1-=1;
+    }
+
     Log.print_debug("Collection::populate::num_thr::%d\n",num_thr);
 
     drplist_t queuedriverpack;

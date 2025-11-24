@@ -18,8 +18,8 @@ along with Snappy Driver Installer.  If not, see <http://www.gnu.org/licenses/>.
 #ifndef MATCHER_H
 #define MATCHER_H
 
-#define NUM_DECS 14*4
-#define NUM_MARKERS 53
+#define NUM_DECS 37*6
+#define NUM_MARKERS 85
 #define NUM_FILTERS 22
 
 enum DRIVER_STATUS

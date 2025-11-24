@@ -566,10 +566,6 @@ void State::getWinVer(int *major,int *minor)const
 {
     *major=platform.dwMajorVersion;
     *minor=platform.dwMinorVersion;
-    // there are no win11 paths in the driver packs
-    // so look for win10
-    // this will change when win11 is supported
-    if(*major==11){*major=10;}
 }
 
 const wchar_t *State::getProduct()
@@ -1030,6 +1026,10 @@ void State::getsysinfo_fast()
         RegQueryValueEx(hkey,L"CurrentBuild",nullptr,nullptr,(LPBYTE)&currentbuild,&size);
         wchar_t* endString;
         DWORD build=wcstoul(currentbuild, &endString, 10);
+        // product type
+        wchar_t currentproducttype[MAX_PATH];
+        size=MAX_PATH;
+        RegQueryValueEx(hkey,L"InstallationType",nullptr, nullptr, (LPBYTE)&currentproducttype,&size);
         // windows 11 detected
         if((build>=22000))
         {
@@ -1038,6 +1038,10 @@ void State::getsysinfo_fast()
             platform.dwMajorVersion=(DWORD)11;
             // minor version
             platform.dwMinorVersion=0;
+            platform.wProductType=1;
+            // producttype = 2 or 3 is server - don't know which is which
+            if(_wcsicmp(currentproducttype,L"Server")||_wcsicmp(currentproducttype,L"Server Core"))
+                platform.wProductType=3;
         }
     }
     RegCloseKey(hkey);
@@ -1428,7 +1432,7 @@ int iswide(int x,int y)
 
 // https://msdn.microsoft.com/en-au/library/windows/desktop/ms724832(v=vs.85).aspx
 // see also enum.h
-const VER_STRUCT WinVersions::_versions[20]={{50, false,L"Windows 2000"},
+const VER_STRUCT WinVersions::_versions[22]={{50, false,L"Windows 2000"},
                                              {51, false,L"Windows XP"},
                                              {52, false,L"Windows XP 64"},
                                              {52, true, L"Windows Server 2003"},
@@ -1447,7 +1451,9 @@ const VER_STRUCT WinVersions::_versions[20]={{50, false,L"Windows 2000"},
                                              {100,true, L"Windows Server 2022"},
                                              {100,true, L"Windows Server 2025"},
                                              {100,false,L"Windows 10"},
-                                             {110,false,L"Windows 11"}};
+                                             {100,true, L"Windows 10 Server"},
+                                             {110,false,L"Windows 11"},
+                                             {110,true, L"Windows 11 Server"} };
 int WinVersions::GetEntry(int num)
 {
     // returns a version number
