@@ -1039,8 +1039,8 @@ void State::getsysinfo_fast()
             // minor version
             platform.dwMinorVersion=0;
             platform.wProductType=1;
-            // producttype = 2 or 3 is server - don't know which is which
-            if(_wcsicmp(currentproducttype,L"Server")||_wcsicmp(currentproducttype,L"Server Core"))
+            //1=VER_NT_WORKSTATION, 3=VER_NT_SERVER
+            if(wcsncmp(currentproducttype,L"Server", 6)==0)
                 platform.wProductType=3;
         }
     }
