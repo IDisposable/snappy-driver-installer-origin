@@ -20,6 +20,7 @@ Snappy Driver Installer Origin.  If not, see <http://www.gnu.org/licenses/>.
 #include <winuser.h>
 #include "resources.h"
 
+MAINICON        ICON        "iconorigin.ico"
 IDI_ICON1       ICON        "iconorigin.ico"
 IDR_UP          RESFILE     "up.webp"
 IDR_DOWN        RESFILE     "down.webp"

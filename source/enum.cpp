@@ -463,7 +463,17 @@ int Driver::isvalidcat(const State *state)const
     state->getWinVer(&major,&minor);
     wsprintfA(bufa,"2:%d.%d",major,minor);
     if(!*s)return 0;
-    return strstr(s,bufa)?1:0;
+    int res=strstr(s,bufa)?1:0;
+
+    // windows 11 - this assumes 2:10.0 is valid for win11
+    // because all drivers that claim to target win11 still quote 2:10.0 in the catalog
+    // see also matcher.cpp line 1231
+    if(res==0&&major==11&&minor==0)
+    {
+        wsprintfA(bufa,"2:%d.%d",10,0);
+        res=strstr(s,bufa)?1:0;
+    }
+    return res;
 }
 
 void Driver::print(const State *state)const
@@ -481,7 +491,7 @@ void Driver::print(const State *state)const
     Log.print_file("  HWID:     %S\n",txt->getw(MatchingDeviceId));
     Log.print_file("  inf:      %S%S,%S%S\n",txt->getw(state->getWindir()),txt->getw(InfPath),txt->getw(InfSection),txt->getw(InfSectionExt));
     Log.print_file("  Score:    %08X %04x\n",calc_score_h(state),identifierscore);
-    //Log.print_file("  Sign:     '%s'(%d)\n",txt->get(cat),catalogfile);
+    Log.print_file("  Signat:   '%s'(%d)\n",txt->get(cat),catalogfile);
 
     if(Log.isAllowed(LOG_VERBOSE_BATCH))
         Log.print_file("  Filter:   \"%S\"=a,%S\n",txt->getw(DriverDesc),txt->getw(MatchingDeviceId));
@@ -1432,7 +1442,7 @@ int iswide(int x,int y)
 
 // https://msdn.microsoft.com/en-au/library/windows/desktop/ms724832(v=vs.85).aspx
 // see also enum.h
-const VER_STRUCT WinVersions::_versions[22]={{50, false,L"Windows 2000"},
+const VER_STRUCT WinVersions::_versions[20]={{50, false,L"Windows 2000"},
                                              {51, false,L"Windows XP"},
                                              {52, false,L"Windows XP 64"},
                                              {52, true, L"Windows Server 2003"},
@@ -1449,11 +1459,9 @@ const VER_STRUCT WinVersions::_versions[22]={{50, false,L"Windows 2000"},
                                              {100,true, L"Windows Server 2016"},
                                              {100,true, L"Windows Server 2019"},
                                              {100,true, L"Windows Server 2022"},
-                                             {100,true, L"Windows Server 2025"},
                                              {100,false,L"Windows 10"},
-                                             {100,true, L"Windows 10 Server"},
                                              {110,false,L"Windows 11"},
-                                             {110,true, L"Windows 11 Server"} };
+                                             {110,true, L"Windows Server 2025"} };
 int WinVersions::GetEntry(int num)
 {
     // returns a version number

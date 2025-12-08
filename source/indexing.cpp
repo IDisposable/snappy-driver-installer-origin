@@ -775,8 +775,18 @@ void Collection::printstats()
     size_t sum=0;
     Log.print_file("Driverpacks\n");
     for(auto &drp:driverpack_list)
+    {
+        size_t siz=drp.printstats();
+        // looking for possible corrupted indexes
+        if(siz==0)
+        {
+            wchar_t buf1[BUFLEN];
+            drp.getindexfilename(index_bin_dir,L"bin",buf1);
+            if(wcsstr(buf1, L"unpacked.bin") == NULL)
+                Log.print_con("Index corrupted %S\n",buf1);
+        }
         sum+=drp.printstats();
-
+    }
     Log.print_file("  Sum: %d\n\n",sum);
 }
 
@@ -1955,10 +1965,13 @@ void Driverpack::print_index_hr()
     getindexfilename(col->getIndex_linear_dir(),L"txt",filename);
     f=_wfopen(filename,L"wt");
 
-    Log.print_con("Saving %s\n",filename);
+    Log.print_con("Saving %S\n",filename);
+    // first line: driver pack name (num inf files)
     fwprintf(f,L"%s\\%s (%d inf files)\n",getPath(),getFilename(),static_cast<int>(n));
+    // iterate inf files
     for(inffile_index=0;inffile_index<n;inffile_index++)
     {
+        // inf file line: path and file name (num bytes)
         d_i=&inffile[inffile_index];
         fprintf(f,"  %s%s (%d bytes)\n",text_ind.get(d_i->infpath),text_ind.get(d_i->inffilename),d_i->infsize);
         for(i=0;i<(int)n;i++)if(i!=(int)inffile_index&&d_i->infcrc==inffile[i].infcrc)
@@ -1967,8 +1980,8 @@ void Driverpack::print_index_hr()
         t=&d_i->version;
         t->str_date(date,true);
         t->str_version(vers);
-        fwprintf(f,L"    date\t\t\t%S\n",date.Get());
-        fwprintf(f,L"    version\t\t\t%S\n",vers.Get());
+        fwprintf(f,L"    date\t\t\t%s\n",date.Get());
+        fwprintf(f,L"    version\t\t\t%s\n",vers.Get());
         for(i=0;i<NUM_VER_NAMES;i++)
             if(d_i->fields[i])
             {
@@ -2008,6 +2021,8 @@ void Driverpack::print_index_hr()
                                     //fprintf(f,"*%s\n",get_manufacturer(&hwidmatch));
                                     //get_section(&hwidmatch,buf+500);
                                     //fprintf(f,"*%s,%s\n",buf+1000,buf+500);
+
+                                    // counting the number of each target os
                                     if(i>=0)cnts[i]++;
                                     if(pos==0&&i<0)plain++;
 
@@ -2031,10 +2046,10 @@ void Driverpack::print_index_hr()
             else if(manuf_index!=manuf_index_last)break;
 
         fprintf(f,"  Decors:\n");
-        fprintf(f,"    %-15s%d\n","plain",plain);
+        fprintf(f,"    %-25s%d\n","plain",plain);
         for(i=0;i<NUM_DECS;i++)
         {
-            if(cnts[i]>=0)fprintf(f,"    %-15s%d\n",nts[i],cnts[i]);
+            if(cnts[i]>=0)fprintf(f,"    %-25s%d\n",nts[i],cnts[i]);
         }
         fprintf(f,"\n");
     }

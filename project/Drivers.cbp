@@ -93,7 +93,7 @@
 				<Option type="1" />
 				<Option compiler="gcc_64" />
 				<Option use_console_runner="0" />
-				<Option parameters="-disableinstall -extractdir:temp1 -showconsole" />
+				<Option parameters='-disableinstall -extractdir:temp1 -showconsole -ls:&quot;D:\Archive\!TEST\2025_12_07__10_01_00__DESKTOP-RH46N0K_state.snp&quot;' />
 				<Compiler>
 					<Add option="-pg" />
 					<Add option="-m64" />
