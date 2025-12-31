@@ -1232,6 +1232,8 @@ int Hwidmatch::isvalidcat(const State *state)
     // windows 11 - this assumes 2:10.0 is valid for win11
     // because all drivers that claim to target win11 still quote 2:10.0 in the catalog
     // see also enum.cpp line 468
+    // a win11 box will say a driver is signed if signature is 2:11.0
+    // a win11 box will say a driver is signed if signature is 2:10.0 and marker is "11x"
     if(res==0&&major==11&&minor==0)
     {
         wsprintfA(bufa,"2:%d.%d",10,0);

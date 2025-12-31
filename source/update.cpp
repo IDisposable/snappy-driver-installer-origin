@@ -1013,7 +1013,7 @@ void UpdaterImp::updateTorrentStatus()
         t->status_strid=STR_TR_ST4;
     }
     // if torrent is seeding
-    else if((st.state==torrent_status::finished)&SeedMode)
+    else if((st.state==torrent_status::finished)&&SeedMode)
         t->status_strid=STR_TR_ST5;
     // if we're moving the downloaded files
     else if(movingfiles)
@@ -1030,7 +1030,7 @@ void UpdaterImp::updateTorrentStatus()
     else if(st.state==torrent_status::finished)
         t->status_strid=STR_TR_ST4;
     else if(st.state==torrent_status::seeding)
-        t->status_strid=STR_TR_ST5;
+        t->status_strid=STR_TR_ST5+torrent_status::seeding;
     else if(st.state==torrent_status::allocating)
         t->status_strid=STR_TR_ST6;
     else if(st.state==torrent_status::checking_resume_data)
@@ -1213,7 +1213,7 @@ void UpdaterImp::ShowProgress(wchar_t *buf)
         else if(st.state==torrent_status::downloading)
             wsprintf(buf,STR(STR_UPD_PROGRES),num1,num2,
                 (TorrentStatus.downloadsize)?TorrentStatus.downloaded*100/TorrentStatus.downloadsize:0);
-        else if((st.state==torrent_status::finished)&SeedMode)
+        else if((st.state==torrent_status::finished)&&SeedMode)
             wsprintf(buf,STR(STR_DWN_SEEDING),num3,num4);
         else if(st.state==torrent_status::finished)
             wsprintf(buf,STR(STR_TR_ST4));
@@ -1867,78 +1867,85 @@ unsigned int __stdcall UpdaterImp::thread_download(void *arg)
                 Log.print_con("Torrent: std::bad_cast");
             }
 
-            // process the downloads when finished and not seeding
-            if((TorrentStatus.status_strid==STR_TR_ST0+libtorrent::torrent_status::finished)&&!SeedMode)
+            // I seem to have lost control of when libtorrent switches to seeding after download is finished
+            if(!SeedMode)
             {
-                Log.print_con("Torrent: finished\n");
-                hSession->pause();
 
-                // Flash cache
-                Log.print_con("Torrent: flushing cache...");
-                hTorrent.flush_cache();
-                while(1)
+                if((TorrentStatus.status_strid==STR_TR_ST5+libtorrent::torrent_status::seeding) ||
+
+                   (TorrentStatus.status_strid==STR_TR_ST0+libtorrent::torrent_status::finished))
                 {
-                    alert const* a=hSession->wait_for_alert(seconds(60*2));
-                    if(!a)
+                    Log.print_con("Torrent: finished\n");
+                    hSession->pause();
+
+                    // Flash cache
+                    Log.print_con("Torrent: flushing cache...");
+                    hTorrent.flush_cache();
+                    while(1)
                     {
-                        Log.print_con("time out\n");
-                        break;
+                        alert const* a=hSession->wait_for_alert(seconds(60*2));
+                        if(!a)
+                        {
+                            Log.print_con("time out\n");
+                            break;
+                        }
+                        std::unique_ptr<alert> holder2=hSession->pop_alert();
+                        if(alert_cast<cache_flushed_alert>(a))
+                        {
+                            Log.print_con("done\n");
+                            break;
+                        }
                     }
-                    std::unique_ptr<alert> holder2=hSession->pop_alert();
-                    if(alert_cast<cache_flushed_alert>(a))
+
+                    // Move files
+                    movingfiles=1;
+                    Updater1->updateTorrentStatus();
+                    Updater1->moveNewFiles();
+                    movingfiles=0;
+                    Updater1->updateTorrentStatus();
+                    hTorrent.force_recheck();
+
+                    if(Settings.flags&FLAG_SCRIPTMODE)
                     {
-                        Log.print_con("done\n");
-                        break;
+                        downloadmangar_exitflag=DOWNLOAD_STATUS_FINISHED_DOWNLOADING;
+                        downloadmangar_event->raise();
                     }
+                    else
+                    {
+                        // Update list
+                        UpdateDialog.populate(0,true);
+
+                        // Execute user cmd
+                        if(*Settings.finish_upd)
+                        {
+                            WStringShort buf;
+                            buf.sprintf(L" /c %s",Settings.finish_upd);
+                            System.run_command(L"cmd",buf.Get(),SW_HIDE,0);
+                        }
+                        if((Settings.flags&FLAG_AUTOCLOSE)&&!(Settings.flags&FLAG_AUTOINSTALL))
+                            PostMessage(MainWindow.hMain,WM_CLOSE,0,0);
+
+                        downloadmangar_exitflag=DOWNLOAD_STATUS_FINISHED_DOWNLOADING;
+                        downloadmangar_event->raise();
+
+                        // Flash in taskbar
+                        MainWindow.ShowProgressInTaskbar(false);
+                        FLASHWINFO fi;
+                        fi.cbSize=sizeof(FLASHWINFO);
+                        fi.hwnd=MainWindow.hMain;
+                        fi.dwFlags=FLASHW_ALL|FLASHW_TIMERNOFG;
+                        fi.uCount=1;
+                        fi.dwTimeout=0;
+                        if(installmode==MODE_NONE)
+                        {
+                            FlashWindowEx(&fi);
+                            invalidate(INVALIDATE_INDEXES|INVALIDATE_MANAGER);
+                        }
+                    }// else script mode
                 }
-
-                // Move files
-                movingfiles=1;
-                Updater1->updateTorrentStatus();
-                Updater1->moveNewFiles();
-                movingfiles=0;
-                Updater1->updateTorrentStatus();
-                hTorrent.force_recheck();
-
-                if(Settings.flags&FLAG_SCRIPTMODE)
-                {
-                    downloadmangar_exitflag=DOWNLOAD_STATUS_FINISHED_DOWNLOADING;
-                    downloadmangar_event->raise();
-                }
-                else
-                {
-                    // Update list
-                    UpdateDialog.populate(0,true);
-
-                    // Execute user cmd
-                    if(*Settings.finish_upd)
-                    {
-                        WStringShort buf;
-                        buf.sprintf(L" /c %s",Settings.finish_upd);
-                        System.run_command(L"cmd",buf.Get(),SW_HIDE,0);
-                    }
-                    if((Settings.flags&FLAG_AUTOCLOSE)&&!(Settings.flags&FLAG_AUTOINSTALL))
-                        PostMessage(MainWindow.hMain,WM_CLOSE,0,0);
-
-                    downloadmangar_exitflag=DOWNLOAD_STATUS_FINISHED_DOWNLOADING;
-                    downloadmangar_event->raise();
-
-                    // Flash in taskbar
-                    MainWindow.ShowProgressInTaskbar(false);
-                    FLASHWINFO fi;
-                    fi.cbSize=sizeof(FLASHWINFO);
-                    fi.hwnd=MainWindow.hMain;
-                    fi.dwFlags=FLASHW_ALL|FLASHW_TIMERNOFG;
-                    fi.uCount=1;
-                    fi.dwTimeout=0;
-                    if(installmode==MODE_NONE)
-                    {
-                        FlashWindowEx(&fi);
-                        invalidate(INVALIDATE_INDEXES|INVALIDATE_MANAGER);
-                    }
-                }// else script mode
             }
         }
+
         // Download is completed
         finishedupdating=1;
         hSession->pause();

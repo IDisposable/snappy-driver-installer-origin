@@ -167,7 +167,10 @@ void findosattr(char *bufa,const char *adr,size_t len)
     {
         if(*p=='O'&&!memcmp(p,osatt,10))
         {
+            // skip to the start of the signature string
             int ofs=p[19]=='2'||p[19]=='1'?1:0;
+            // going for the longest signature string in the file
+            // include the preceding length byte and cast it to a widechar
             if(!*bufa||bufal<wcslen((wchar_t *)(p+18+ofs)))
             {
                 wsprintfA(bufa,"%ws",p+18+ofs);
@@ -785,7 +788,7 @@ void Collection::printstats()
             if(wcsstr(buf1, L"unpacked.bin") == NULL)
                 Log.print_con("Index corrupted %S\n",buf1);
         }
-        sum+=drp.printstats();
+        sum+=siz;
     }
     Log.print_file("  Sum: %d\n\n",sum);
 }
@@ -1206,12 +1209,14 @@ int Driverpack::genindex()
             }
             SzArEx_GetFileNameUtf16(&db,i,(UInt16 *)fullname);
 
+            // looking for *.inf, *.infdrp, *.cat files in the archive
             size_t namelen=wcslen(fullname)-4;
             if(_wcsicmp(fullname+namelen,L".inf")==0||
                 _wcsicmp(fullname+namelen,L".cat")==0)
             {
                 //Log.print_con("{");
 
+            // extract the file
             tryagain:
                 res=SzArEx_Extract(&db,&lookStream.vt,i,
                                    &blockIndex,&outBuffer,&outBufferSize,
@@ -1236,6 +1241,7 @@ int Driverpack::genindex()
                 cc++;
                 if(outSizeProcessed)
                 {
+                    // add the file to the index
                     if(StrStrIW(infname,L".infdrp"))
                         driverpack_indexinf_async(infpath.Get(),infname,outBuffer+offset,outSizeProcessed);
                     else if(StrStrIW(infname,L".inf"))
@@ -1274,6 +1280,11 @@ void Driverpack::driverpack_parsecat_async(wchar_t const *pathinf,wchar_t const 
 
 void Driverpack::driverpack_indexinf_async(wchar_t const *pathinf,wchar_t const *inffile1,const BYTE *adr,size_t len)
 {
+// inffile1 = file name
+// pathinf = relative path inside the archive
+// inf file contents
+// inf file length in bytes
+
     inffile_task data;
 
     data.drp=this;
@@ -1287,6 +1298,7 @@ void Driverpack::driverpack_indexinf_async(wchar_t const *pathinf,wchar_t const 
         return;
     }
 
+    // byte order marker?
     if(len>4&&((adr[0]==0xFF&&adr[3]==0)||adr[0]==0))
     {
         data.adr=new char[len+2];
@@ -1872,6 +1884,7 @@ void Driverpack::saveindex()
     }
     f=_wfopen(filename,L"wb");
 
+    // calculate size of all data
     sz=
         inffile.size()*sizeof(data_inffile_t)+
         manufacturer_list.size()*sizeof(data_manufacturer_t)+
@@ -1881,6 +1894,7 @@ void Driverpack::saveindex()
         indexes.getSize()*sizeof(Hashitem)+sizeof(int)+
         6*sizeof(int)*2;
 
+    // construct a buffer in memory of the entire index
     p=mem=new char[sz];
     fwrite("SDW",3,1,f);
     fwrite(&version,sizeof(int),1,f);
@@ -1892,6 +1906,7 @@ void Driverpack::saveindex()
     p=text_ind.savedata(p);
     p=indexes.savedata(p);
 
+    // compress the output and write
     if(Settings.flags&COLLECTION_USE_LZMA)
     {
         mem_pack=new char[sz];

@@ -281,17 +281,42 @@ void Settings_t::loginfo()
     if(Log.isAllowed(LOG_VERBOSE_ARGS))
     {
         Log.print_con("Settings\n");
-        Log.print_con("  drp_dir='%S'\n",drp_dir);
-        Log.print_con("  index_dir='%S'\n",index_dir);
-        Log.print_con("  output_dir='%S'\n",output_dir);
-        Log.print_con("  data_dir='%S'\n",data_dir);
-        Log.print_con("  log_dir='%S'\n",log_dir);
-        Log.print_con("  extractdir='%S'\n",extractdir);
+        Log.print_con("  drp_dir=%S\n",drp_dir);
+        Log.print_con("  index_dir=%S\n",index_dir);
+        Log.print_con("  output_dir=%S\n",output_dir);
+        Log.print_con("  data_dir=%S\n",data_dir);
+        Log.print_con("  log_dir=%S\n",log_dir);
+        Log.print_con("  extractdir=%S\n",extractdir);
         Log.print_con("  lang=%S\n",curlang);
         Log.print_con("  theme=%S\n",curtheme);
         Log.print_con("  scale=%d\n",scale);
         Log.print_con("  expertmode=%d\n",expertmode);
         Log.print_con("  filters=%d\n",filters);
+        if(filters&FILTER_SHOW_MISSING)
+            Log.print_con("    Show Not Installed\n");
+        if(filters&FILTER_SHOW_NEWER)
+            Log.print_con("    Show Newer\n");
+        if(filters&FILTER_SHOW_CURRENT)
+            Log.print_con("    Show Current\n");
+        if(filters&FILTER_SHOW_OLD)
+            Log.print_con("    Show Old\n");
+        if(filters&FILTER_SHOW_BETTER)
+            Log.print_con("    Show Better Match\n");
+        if(filters&FILTER_SHOW_WORSE_RANK)
+            Log.print_con("    Show Worse Match\n");
+        if(filters&FILTER_SHOW_NF_MISSING)
+            Log.print_con("    Show NF Missing\n");
+        if(filters&FILTER_SHOW_NF_UNKNOWN)
+            Log.print_con("    Show NF Unknown\n");
+        if(filters&FILTER_SHOW_NF_STANDARD)
+            Log.print_con("    Show NF Standard\n");
+        if(filters&FILTER_SHOW_ONE)
+            Log.print_con("    Show Only Best\n");
+        if(filters&FILTER_SHOW_DUP)
+            Log.print_con("    Show Duplicates\n");
+        if(filters&FILTER_SHOW_INVALID)
+            Log.print_con("    Show Invalid\n");
+
         Log.print_con("  autoinstall=%d\n",(flags&FLAG_AUTOINSTALL)?1:0);
         Log.print_con("  autoclose=%d\n",(flags&FLAG_AUTOCLOSE)?1:0);
         Log.print_con("  failsafe=%d\n",(flags&FLAG_FAILSAFE)?1:0);
