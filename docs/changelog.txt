@@ -7,6 +7,14 @@ www.glenn.delahoy.com
 
 Change Log
 
+Version 1.17.4.825
+13 January 2026
+* Sam Driver Packs 25.11.1
+* SDIO Driver Packs 26.01.03
+* More work on Windows 11 support. Added correct inf build number
+  handling starting with 10.0.14310.
+* Fixed an introduced bug with catalog target os comparisons
+
 Version 1.17.3.824
 01 January 2026
 * Sam Driver Packs 25.11.1

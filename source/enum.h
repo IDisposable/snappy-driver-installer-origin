@@ -257,7 +257,7 @@ public:
     ofst getTemp()const{return temp;}
     int getLocale()const{return locale;}
     int getArchitecture()const{return architecture;}
-    void getWinVer(int *major,int *minor)const;
+    void getWinVer(int *major,int *minor,int *build)const;
     const wchar_t *get_szCSDVersion()const{return platform.szCSDVersion;}
     std::vector<Device> *getDevices_list(){return &Devices_list;}
     const Driver *getCurrentDriver(const Device *dev)const{return (dev->getDriverIndex()>=0)?&Drivers_list[dev->getDriverIndex()]:nullptr;}

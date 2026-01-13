@@ -439,8 +439,8 @@ int calc_signature(int catalogfile,const State *state,int isnt)
 
 unsigned calc_score(int catalogfile,int feature,int rank,const State *state,int isnt)
 {
-    int major,minor;
-    state->getWinVer(&major,&minor);
+    int major,minor,build;
+    state->getWinVer(&major,&minor,&build);
     if(major>=6)
         return (calc_signature(catalogfile,state,isnt)<<16)+(feature<<16)+rank;
     else
@@ -459,20 +459,16 @@ int Driver::isvalidcat(const State *state)const
     if(!cat)return 0;
     const char *s=state->textas.get(cat);
 
-    int major,minor;
-    state->getWinVer(&major,&minor);
-    wsprintfA(bufa,"2:%d.%d",major,minor);
-    if(!*s)return 0;
-    int res=strstr(s,bufa)?1:0;
+    int major,minor,build;
+    state->getWinVer(&major,&minor,&build);
 
-    // windows 11 - this assumes 2:10.0 is valid for win11
-    // because all drivers that claim to target win11 still quote 2:10.0 in the catalog
-    // see also matcher.cpp line 1231
-    if(res==0&&major==11&&minor==0)
-    {
-        wsprintfA(bufa,"2:%d.%d",10,0);
-        res=strstr(s,bufa)?1:0;
-    }
+    if(!*s)return 0;
+
+    // for the purposes of matching with the inf file then 11 = 10
+    if(major==11)major=10;
+
+    wsprintfA(bufa,"2:%d.%d",major,minor);
+    int res=strstr(s,bufa)?1:0;
     return res;
 }
 
@@ -567,15 +563,17 @@ void State::fakeOSversion()
         bool serv=winVersions.GetEntryServer(Settings.virtual_os_version-ID_OS_ITEMS);
         platform.dwMajorVersion=ver/10;
         platform.dwMinorVersion=ver%10;
+        if(ver>=110)platform.dwBuildNumber=22000;
         if(serv)platform.wProductType=3;
         else platform.wProductType=1;
     }
 }
 
-void State::getWinVer(int *major,int *minor)const
+void State::getWinVer(int *major,int *minor,int *build)const
 {
     *major=platform.dwMajorVersion;
     *minor=platform.dwMinorVersion;
+    *build=platform.dwBuildNumber;
 }
 
 const wchar_t *State::getProduct()
@@ -1040,18 +1038,21 @@ void State::getsysinfo_fast()
         wchar_t currentproducttype[MAX_PATH];
         size=MAX_PATH;
         RegQueryValueEx(hkey,L"InstallationType",nullptr, nullptr, (LPBYTE)&currentproducttype,&size);
-        // windows 11 detected
-        if((build>=22000))
+        if(platform.dwMajorVersion>=10&&build>=14310)
         {
             platform.dwBuildNumber=build;
-            // major version
-            platform.dwMajorVersion=(DWORD)11;
-            // minor version
-            platform.dwMinorVersion=0;
-            platform.wProductType=1;
-            //1=VER_NT_WORKSTATION, 3=VER_NT_SERVER
-            if(wcsncmp(currentproducttype,L"Server", 6)==0)
-                platform.wProductType=3;
+            // windows 11 detected
+            if((build>=22000))
+            {
+                // major version
+                platform.dwMajorVersion=(DWORD)11;
+                // minor version
+                platform.dwMinorVersion=0;
+                platform.wProductType=1;
+                //1=VER_NT_WORKSTATION, 3=VER_NT_SERVER
+                if(wcsncmp(currentproducttype,L"Server", 6)==0)
+                    platform.wProductType=3;
+            }
         }
     }
     RegCloseKey(hkey);

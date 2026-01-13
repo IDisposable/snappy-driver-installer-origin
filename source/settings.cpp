@@ -278,6 +278,8 @@ void Settings_t::save()
 
 void Settings_t::loginfo()
 {
+    WinVersions winVersions;
+
     if(Log.isAllowed(LOG_VERBOSE_ARGS))
     {
         Log.print_con("Settings\n");
@@ -329,7 +331,11 @@ void Settings_t::loginfo()
 
         if(statemode==STATEMODE_EMUL)Log.print_con("Virtual system system config '%S'\n",state_file);
         if(virtual_arch_type)Log.print_con("Virtual Windows version: %d-bit\n",virtual_arch_type);
-        if(virtual_os_version)Log.print_con("Virtual Windows version: %d.%d\n",virtual_os_version/10,virtual_os_version%10);
+        if(virtual_os_version)
+        {
+            int ver=winVersions.GetEntry(Settings.virtual_os_version-ID_OS_ITEMS);
+            Log.print_con("Virtual Windows version: %d.%d\n",ver/10,ver%10);
+        }
         Log.print_con("\n");
     }
 }

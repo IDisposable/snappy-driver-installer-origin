@@ -663,8 +663,8 @@ int SystemImp::getcurver(const char *ptr)
 bool SystemImp::SystemProtectionEnabled(State *state)
 {
     // windows version
-    int vMajor, vMinor;
-    state->getWinVer(&vMajor,&vMinor);
+    int vMajor, vMinor, vBuild;
+    state->getWinVer(&vMajor,&vMinor,&vBuild);
     // windows less than XP not supported
     if(vMajor<5)return false;
 

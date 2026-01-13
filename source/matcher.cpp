@@ -52,6 +52,7 @@ Windows 11 25H2 10.0.26200
 
 Windows 10        10.0.10240
 Windows 10 (1511) 10.0.10586
+Windows 10 (1607) 10.0.14310
 Windows 10 (1607) 10.0.14393
 Windows 10 (1703) 10.0.15063
 Windows 10 (1709) 10.0.16299
@@ -94,6 +95,7 @@ const char *nts[NUM_DECS]=
     // https://en.wikipedia.org/wiki/List_of_Microsoft_Windows_versions                                                                             client              server
     "nt.10.0...10240",  "ntx86.10.0...10240",  "ntamd64.10.0...10240",  "ntia64.10.0...10240",  "ntarm.10.0...10240",  "ntarm64.10.0...10240", //   Win 10 v1507
     "nt.10.0...10586",  "ntx86.10.0...10586",  "ntamd64.10.0...10586",  "ntia64.10.0...10586",  "ntarm.10.0...10586",  "ntarm64.10.0...10586", //   Win 10 v1511        Server 2016 TP4
+    "nt.10.0...14310",  "ntx86.10.0...14310",  "ntamd64.10.0...14310",  "ntia64.10.0...14310",  "ntarm.10.0...14310",  "ntarm64.10.0...14310", //   Win 10 v1607
     "nt.10.0...14393",  "ntx86.10.0...14393",  "ntamd64.10.0...14393",  "ntia64.10.0...14393",  "ntarm.10.0...14393",  "ntarm64.10.0...14393", //   Win 10 v1607        Server 2016
     "nt.10.0...15063",  "ntx86.10.0...15063",  "ntamd64.10.0...15063",  "ntia64.10.0...15063",  "ntarm.10.0...15063",  "ntarm64.10.0...15063", //   Win 10 v1703
     "nt.10.0...16209",  "ntx86.10.0...16209",  "ntamd64.10.0...16209",  "ntia64.10.0...16209",  "ntarm.10.0...16209",  "ntarm64.10.0...16209", //   Win 10 creators update
@@ -119,6 +121,7 @@ const char *nts[NUM_DECS]=
     "nt.10.0...22000",  "ntx86.10.0...22000",  "ntamd64.10.0...22000",  "ntia64.10.0...22000",  "ntarm.10.0...22000",  "ntarm64.10.0...22000", //   Win 11 v21H2
     "nt.10.0...22621",  "ntx86.10.0...22621",  "ntamd64.10.0...22621",  "ntia64.10.0...22621",  "ntarm.10.0...22621",  "ntarm64.10.0...22621", //   Win 11 v22H2
     "nt.10.0...22631",  "ntx86.10.0...22631",  "ntamd64.10.0...22631",  "ntia64.10.0...22631",  "ntarm.10.0...22631",  "ntarm64.10.0...22631", //   Win 11 v23H2
+    "nt.10.0...25398",  "ntx86.10.0...25398",  "ntamd64.10.0...25398",  "ntia64.10.0...25398",  "ntarm.10.0...25398",  "ntarm64.10.0...25398", //   Win 11
     "nt.10.0...25952",  "ntx86.10.0...25952",  "ntamd64.10.0...25952",  "ntia64.10.0...25952",  "ntarm.10.0...25952",  "ntarm64.10.0...25952", //   Win 11
     "nt.10.0...26052",  "ntx86.10.0...26052",  "ntamd64.10.0...26052",  "ntia64.10.0...26052",  "ntarm.10.0...26052",  "ntarm64.10.0...26052", //   Win 11 insider preview
     "nt.10.0...26063",  "ntx86.10.0...26063",  "ntamd64.10.0...26063",  "ntia64.10.0...26063",  "ntarm.10.0...26063",  "ntarm64.10.0...26063", //   Win 11 insider preview
@@ -130,6 +133,8 @@ const char *nts[NUM_DECS]=
     "nt..",  "ntx86..",  "ntamd64..",  "ntia64..",  "ntarm..",  "ntarm64..",
 };
 
+// this represents the inf file target version = major * 10 + minor
+// where win11 = 10.0.22000 or later
 const int nts_version[NUM_DECS]=
 {
     50,    50,    50,    50,    50,   50, // 2000
@@ -146,6 +151,7 @@ const int nts_version[NUM_DECS]=
    //
    100,   100,   100,   100,   100,  100, // 10 (1507)
    100,   100,   100,   100,   100,  100, // 10 (1511)
+   100,   100,   100,   100,   100,  100, // 10 (1607) (14310)
    100,   100,   100,   100,   100,  100, // 10 (1607)
    100,   100,   100,   100,   100,  100, // 10 (1703)
    100,   100,   100,   100,   100,  100, // 10 (creators update)
@@ -168,18 +174,73 @@ const int nts_version[NUM_DECS]=
    100,   100,   100,   100,   100,  100, // 10 (?)
    100,   100,   100,   100,   100,  100, // 10 (insider preview)
    //
-   110,   110,   110,   110,   110,  110, // 11 (21H2)
-   110,   110,   110,   110,   110,  110, // 11 (22H2)
-   110,   110,   110,   110,   110,  110, // 11 (23H2)
-   110,   110,   110,   110,   110,  110, // 11 (?)
-   110,   110,   110,   110,   110,  110, // 11 (insider preview)
-   110,   110,   110,   110,   110,  110, // 11 (insider preview)
-   110,   110,   110,   110,   110,  110, // 11 (insider preview)
-   110,   110,   110,   110,   110,  110, // 11 (24H2 - Server 2025)
-   110,   110,   110,   110,   110,  110, // 11 (25H2)
+   100,   100,   100,   100,   100,  100, // 11 (21H2)
+   100,   100,   100,   100,   100,  100, // 11 (22H2)
+   100,   100,   100,   100,   100,  100, // 11 (23H2)
+   100,   100,   100,   100,   100,  100, // 11 (?)
+   100,   100,   100,   100,   100,  100, // 11 (?)
+   100,   100,   100,   100,   100,  100, // 11 (insider preview)
+   100,   100,   100,   100,   100,  100, // 11 (insider preview)
+   100,   100,   100,   100,   100,  100, // 11 (insider preview)
+   100,   100,   100,   100,   100,  100, // 11 (24H2 - Server 2025)
+   100,   100,   100,   100,   100,  100, // 11 (25H2)
    //
      0,     0,     0,     0,     0,    0,
      0,     0,     0,     0,     0,    0,
+};
+
+const int nts_build[NUM_DECS]=
+{
+    0,    0,    0,    0,    0,   0, // 2000
+    0,    0,    0,    0,    0,   0, // 2000
+    0,    0,    0,    0,    0,   0, // XP
+    0,    0,    0,    0,    0,   0, // Server 2003
+    0,    0,    0,    0,    0,   0, // Vista
+    0,    0,    0,    0,    0,   0, // Vista
+    0,    0,    0,    0,    0,   0, // 7
+    0,    0,    0,    0,    0,   0, // 8
+    0,    0,    0,    0,    0,   0, // 8.1
+    0,    0,    0,    0,    0,   0, // 10
+    0,    0,    0,    0,    0,   0, // 10
+   //
+   0,   0,   0,   0,   0,  0, // 10 (1507)
+   0,   0,   0,   0,   0,  0, // 10 (1511)
+   14310,   14310,   14310,   14310,   14310,  14310, // 10 (1607) (14310)
+   14393,   14393,   14393,   14393,   14393,  14393, // 10 (1607)
+   15063,   15063,   15063,   15063,   15063,  15063, // 10 (1703)
+   16209,   16209,   16209,   16209,   16209,  16209, // 10 (creators update)
+   16273,   16273,   16273,   16273,   16273,  16273, // 10 (insider preview)
+   16288,   16288,   16288,   16288,   16288,  16288, // 10 (insider preview)
+   16299,   16299,   16299,   16299,   16299,  16299, // 10 (1709)
+   17134,   17134,   17134,   17134,   17134,  17134, // 10 (1803)
+   17735,   17735,   17735,   17735,   17735,  17735, // 10 (insider preview)
+   17763,   17763,   17763,   17763,   17763,  17763, // 10 (1809)
+   18362,   18362,   18362,   18362,   18362,  18362, // 10 (1903)
+   18363,   18363,   18363,   18363,   18363,  18363, // 10 (1909)
+   19041,   19041,   19041,   19041,   19041,  19041, // 10 (20H1)
+   19042,   19042,   19042,   19042,   19042,  19042, // 10 (20H2)
+   19043,   19043,   19043,   19043,   19043,  19043, // 10 (21H1)
+   19044,   19044,   19044,   19044,   19044,  19044, // 10 (21H2)
+   19045,   19045,   19045,   19045,   19045,  19045, // 10 (22H2)
+   19586,   19586,   19586,   19586,   19586,  19586, // 10 (?)
+   20190,   20190,   20190,   20190,   20190,  20190, // 10 (insider preview)
+   20348,   20348,   20348,   20348,   20348,  20348, // 10 (Server 2022)
+   21250,   21250,   21250,   21250,   21250,  21250, // 10 (?)
+   21262,   21262,   21262,   21262,   21262,  21262, // 10 (insider preview)
+   //
+   22000,   22000,   22000,   22000,   22000,  22000, // 11 (21H2)
+   22621,   22621,   22621,   22621,   22621,  22621, // 11 (22H2)
+   22631,   22631,   22631,   22631,   22631,  22631, // 11 (23H2)
+   25398,   25398,   25398,   25398,   25398,  25398, // 11 (?)
+   25952,   25952,   25952,   25952,   25952,  25952, // 11 (?)
+   26052,   26052,   26052,   26052,   26052,  26052, // 11 (insider preview)
+   26063,   26063,   26063,   26063,   26063,  26063, // 11 (insider preview)
+   26080,   26080,   26080,   26080,   26080,  26080, // 11 (insider preview)
+   26100,   26100,   26100,   26100,   26100,  26100, // 11 (24H2 - Server 2025)
+   26200,   26200,   26200,   26200,   26200,  26200, // 11 (25H2)
+   //
+   0,   0,   0,   0,   0,  0,
+   0,   0,   0,   0,   0,  0,
 };
 
 // 0=unknown/don't care/ignore, 1=x86, 2=amd64, 3=ia64, 4=arm, 5=arm64
@@ -199,6 +260,7 @@ const int nts_arch[NUM_DECS]=
     //
     0,  1,  2,  3,  4,  5, // 10 (1507)
     0,  1,  2,  3,  4,  5, // 10 (1511)
+    0,  1,  2,  3,  4,  5, // 10 (1607)
     0,  1,  2,  3,  4,  5, // 10 (1607)
     0,  1,  2,  3,  4,  5, // 10 (1703)
     0,  1,  2,  3,  4,  5, // 10 (creators update)
@@ -224,6 +286,7 @@ const int nts_arch[NUM_DECS]=
     0,  1,  2,  3,  4,  5, // 11 (21H2)
     0,  1,  2,  3,  4,  5, // 11 (22H2)
     0,  1,  2,  3,  4,  5, // 11 (23H2)
+    0,  1,  2,  3,  4,  5, // 11 (?)
     0,  1,  2,  3,  4,  5, // 11 (?)
     0,  1,  2,  3,  4,  5, // 11 (insider preview)
     0,  1,  2,  3,  4,  5, // 11 (insider preview)
@@ -252,6 +315,7 @@ const int nts_score[NUM_DECS]=
     //
     64,   164,   164,   164,  164,  164, // 10 (1507)
     64,   164,   164,   164,  164,  164, // 10 (1511)
+    64,   164,   164,   164,  164,  164, // 10 (1607) (14310)
     64,   164,   164,   164,  164,  164, // 10 (1607)
     64,   164,   164,   164,  164,  164, // 10 (1703)
     64,   164,   164,   164,  164,  164, // 10 (creators update)
@@ -277,6 +341,7 @@ const int nts_score[NUM_DECS]=
     65,   165,   165,   165,  165,  165, // 11 (21H2)
     65,   165,   165,   165,  165,  165, // 11 (22H2)
     65,   165,   165,   165,  165,  165, // 11 (23H2)
+    65,   165,   165,   165,  165,  165, // 11 (?)
     65,   165,   165,   165,  165,  165, // 11 (?)
     65,   165,   165,   165,  165,  165, // 11 (insider preview)
     65,   165,   165,   165,  165,  165, // 11 (insider preview)
@@ -471,15 +536,29 @@ int Hwidmatch::calc_decorscore(int id,const State *state)
 {
     int major,
         minor,
+        build,
         arch=state->getArchitecture()+1;
-    state->getWinVer(&major,&minor);
+    state->getWinVer(&major,&minor,&build);
 
-    // id is the index into the nts, nts_version, nts_arch,nts_score arrays
+    // id is the index into the nts, nts_version, nts_build, nts_arch, nts_score arrays
     if(id<0)return 1;
-    // if the inf win version is greater than required then fail
+
+    // for the purposes of matching with the inf file then 11 = 10
+    if(major==11)major=10;
+
+    // if the inf win version is greater than current os then fail
     if(nts_version[id]&&major*10+minor<nts_version[id])return 0;
-    // if the inf win architecture is not what is required then fail
+    // if the inf win architecture is not current os then fail
     if(nts_arch[id]&&arch!=nts_arch[id])return 0;
+
+    // starting with 10.0.14310, if major and minor match exactly
+    // then nts_build is the minimum build number
+    // https://learn.microsoft.com/en-us/windows-hardware/drivers/install/inf-manufacturer-section
+    if(nts_version[id]&&nts_version[id]>=100&&nts_build[id]>=14310)
+    {
+        if(major*10+minor==nts_version[id]&&nts_build[id]>build)return 0;
+    }
+
     // return the assigned score
     return nts_score[id];
 }
@@ -489,11 +568,12 @@ int Hwidmatch::calc_markerscore(const State *state,const char *path)
     char buf[BUFLEN];
     int majver,
         minver,
+        build,
         arch=state->getArchitecture(),
         curmaj=-1,curmin=-1,curarch=-1;
     int i;
     int score_l=0;
-    state->getWinVer(&majver,&minver);
+    state->getWinVer(&majver,&minver,&build);
 
     strcpy(buf,path);
     strtolower(buf,strlen(buf));
@@ -863,8 +943,8 @@ int Hwidmatch::isblacklisted(const State *state,const wchar_t *hwid,const char *
 int Hwidmatch::isvalid_ver(const State *state)
 {
     Version *v;
-    int major,minor;
-    state->getWinVer(&major,&minor);
+    int major,minor,build;
+    state->getWinVer(&major,&minor,&build);
 
     v=getdrp_drvversion();
     switch(v->GetV1())
@@ -1223,27 +1303,16 @@ int Hwidmatch::isvalidcat(const State *state)
     const char *s=getdrp_drvcat(n);
     const std::string m=getdrp_infmarker();
 
-    int major,minor;
-    state->getWinVer(&major,&minor);
-    wsprintfA(bufa,"2:%d.%d",major,minor);
-    if(!*s)return 0;
-    int res=strstr(s,bufa)?1:0;
+    int major,minor,build;
+    state->getWinVer(&major,&minor,&build);
 
-    // windows 11 - this assumes 2:10.0 is valid for win11
-    // because all drivers that claim to target win11 still quote 2:10.0 in the catalog
-    // see also enum.cpp line 468
-    // a win11 box will say a driver is signed if signature is 2:11.0
-    // a win11 box will say a driver is signed if signature is 2:10.0 and marker is "11x"
-    if(res==0&&major==11&&minor==0)
-    {
-        wsprintfA(bufa,"2:%d.%d",10,0);
-        res=strstr(s,bufa)?1:0;
-        // if catalog reports 2:10.0 then confirm with inf marker
-        if(res==1&&m.find("11")==0)
-            res=1;
-        else
-            res=0;
-    }
+    if(!*s)return 0;
+
+    // for the purposes of matching with the inf file then 11 = 10
+    if(major==11)major=10;
+
+    wsprintfA(bufa,"2:%d.%d",major,minor);
+    int res=strstr(s,bufa)?1:0;
     return res;
 }
 
