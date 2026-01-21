@@ -458,11 +458,10 @@ int Driver::isvalidcat(const State *state)const
     char bufa[BUFLEN];
     if(!cat)return 0;
     const char *s=state->textas.get(cat);
+    if(!*s)return 0;
 
     int major,minor,build;
     state->getWinVer(&major,&minor,&build);
-
-    if(!*s)return 0;
 
     // for the purposes of matching with the inf file then 11 = 10
     if(major==11)major=10;

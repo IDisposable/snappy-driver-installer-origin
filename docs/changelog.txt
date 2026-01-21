@@ -7,6 +7,12 @@ www.glenn.delahoy.com
 
 Change Log
 
+Version 1.17.5.826
+22 January 2026
+* Sam Driver Packs 25.11.1
+* SDIO Driver Packs 26.01.4
+* Add some Windows builds
+
 Version 1.17.4.825
 13 January 2026
 * Sam Driver Packs 25.11.1

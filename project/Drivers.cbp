@@ -95,6 +95,9 @@
 				<Option use_console_runner="0" />
 				<Option parameters="-disableinstall -extractdir:temp1 -showconsole -v:110" />
 				<Compiler>
+					<Add option="-Wfatal-errors" />
+					<Add option="-Wextra" />
+					<Add option="-Wall" />
 					<Add option="-pg" />
 					<Add option="-m64" />
 					<Add option="-g" />
