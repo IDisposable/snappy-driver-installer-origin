@@ -135,7 +135,7 @@ const char *nts[NUM_DECS]=
     "nt",    "ntx86",    "ntamd64",    "ntia64",    "ntarm",    "ntarm64",              // NT specifies Win 2000 and later
     "nt..",  "ntx86..",  "ntamd64..",  "ntia64..",  "ntarm..",  "ntarm64..",
     //
-//    "---",   "---",      "---",        "---",       "---",      "---",
+//    "---",
 };
 
 // this represents the inf file target version = major * 10 + minor
@@ -197,7 +197,7 @@ const int nts_version[NUM_DECS]=
      0,     0,     0,     0,     0,    0,
      0,     0,     0,     0,     0,    0,
    //
-//     -1,   -1,    -1,    -1,    -1,    -1,
+//     -1,
 };
 
 const int nts_build[NUM_DECS]=
@@ -257,7 +257,7 @@ const int nts_build[NUM_DECS]=
    0,   0,   0,   0,   0,  0,
    0,   0,   0,   0,   0,  0,
    //
-//   -1, -1,  -1,  -1,  -1,  -1,
+//   -1,
 };
 
 // 0=unknown/don't care/ignore, 1=x86, 2=amd64, 3=ia64, 4=arm, 5=arm64
@@ -318,7 +318,7 @@ const int nts_arch[NUM_DECS]=
     0,  1,  2,  3,  4,  5,
     0,  1,  2,  3,  4,  5,
     //
-//    -1, -1, -1, -1, -1, -1,
+//    -1,
 };
 
 // d: 0=x86, 1=amd64, 2=ia64, 3=arm, 4=arm64, -1=ignore
@@ -379,7 +379,7 @@ const int nts_score[NUM_DECS]=
     10,   100,   100,   100,   100,  100,
     10,   100,   100,   100,   100,  100,
     //
-//    -1,    -1,    -1,    -1,    -1,   -1,
+//    -1,
 };
 
 const markers_t markers[NUM_MARKERS]=
@@ -486,6 +486,7 @@ const markers_t markers[NUM_MARKERS]=
     {"x64\\",   -1, -1, 1},
 
     {"winall", -1,-1,-1},
+//    ("", -1,-1,-1),
 };
 
 char marker[BUFLEN];
@@ -541,20 +542,50 @@ void State::genmarker()
 int calc_secttype(const char *s)
 {
     char buf[BUFLEN];
-    char *p=buf;
+//    char *p=buf;
 
     s=StrStrIA(s,".nt");
     if(!s)return -1;
-
+/*
     strcpy(buf,s);
+    // looking for a match in nts[]
 
-    // count the number of dots in the string '.ntamd64.10.0...10240'
     if((p=strchr(p+1,'.')))
         if((p=strchr(p+1,'.')))
             if((p=strchr(p+1,'.')))
                 if((p=strchr(p+1,'.')))
                     if((p=strchr(p+1,'.')))
                         if((p=strchr(p+1,'.')))*p=0;
+*/
+
+    // in order to get a match in nts[]
+    // i need to ignore the ProductType and SuiteMask fields
+    // but include the BuildNumber field
+    // NT[Architecture][.[OSMajorVersion][.[OSMinorVersion][.[ProductType][.[SuiteMask][.[BuildNumber]]]]]
+    std::string ss=s;
+    std::string sections[7];
+    std::string del=".";
+    int ndx=0;
+    auto pos=ss.find(del);
+    while(pos!=std::string::npos && ndx<7)
+    {
+        sections[ndx]=ss.substr(0,pos);
+        ss.erase(0,pos+del.length());
+        pos=ss.find(del);
+        ndx++;
+    }
+    if(ndx<7)sections[ndx]=ss;
+    ss="";
+    if(sections[1].size()>0)        // Architecture
+        ss+="."+sections[1];
+    if(sections[2].size()>0)        // OSMajorVersion
+        ss+="."+sections[2];
+    if(sections[3].size()>0)        // OSMinorVersion
+        ss+="."+sections[3];
+    if(sections[6].size()>0)        // BuildNumber
+        ss+="..."+sections[6];
+
+    strcpy(buf,ss.c_str());
 
     for(int i=0;i<NUM_DECS;i++)if(!_strcmpi(buf+3,nts[i]+2))return i;
     return -1;
@@ -572,7 +603,7 @@ int Hwidmatch::calc_decorscore(int id,const State *state)
     // id is the index into the nts, nts_version, nts_build, nts_arch, nts_score arrays
     if(id<0)return 1;
 
-    // for the purposes of matching with the inf file then 11 = 10
+    // for the purposes of matching with the inf file decorator then 11 = 10
     if(major==11)major=10;
 
     // if the inf win version is greater than current os then fail
@@ -684,19 +715,30 @@ Matcher *CreateMatcher()
 
 void MatcherImp::findHWIDs(Devicematch *devicematch,const wchar_t *hwidv,int dev_pos,int ishw)
 {
+    // this searches the driver packs for the given hwid
+    // each index has it's own HashTable
+    // which will handle hash collisions within an index
+    // but there is no accounting for possible hash collisions across indexes
+    // so: it's possible for the same hash to show up in different
+    // indexes for different device HWIDs with no collision handling
+
     char hwid[BUFLEN];
     wsprintfA(hwid,"%ws",hwidv);
 
+    // calc hash from hwid
 	size_t sz = strlen(hwid);
     strtoupper(hwid,sz);
 	int code = Hashtable::gethashcode(hwid, sz);
 
+	// iterate the driver packs
     for(auto &drp:*col->getList())
     {
         int isfound;
+        // look for the hash
         int val=drp.find((int)code,&isfound);
         while(isfound)
         {
+            // found a match - add it to a list
             hwidmatch_list.push_back(Hwidmatch(&drp,val,dev_pos,ishw,state,devicematch));
             devicematch->num_matches++;
             val=drp.findnext(&isfound);
@@ -896,20 +938,26 @@ Devicematch::Devicematch(Device *cur_device,const Driver *cur_driver,size_t item
     device(cur_device),
     driver(cur_driver)
 {
+    // this looks for a matching hardware id in the driver packs
+
     State *state=matcher->getState();
 
     if(device->getHardwareID())
     {
+        // p is the PBYTE pointing to a REG_MULTI_SZ
         const wchar_t *p=state->textas.getw(device->getHardwareID());
         int dev_pos=0;
+        // iterate the null terminated strings contained in the REG_MULTI_SZ
         while(*p)
         {
+            // look for this hwid string in the index
             matcher->findHWIDs(this,p,dev_pos,1);
             p+=wcslen(p)+1;
             dev_pos++;
         }
     }
 
+    // do the same for CompatibleIDs
     if(device->getCompatibleIDs())
     {
         const wchar_t *p=state->textas.getw(device->getCompatibleIDs());

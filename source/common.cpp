@@ -214,9 +214,27 @@ void Txt::shrink()
 }
 //}
 
+unsigned int Hashtable::APHash(const char* str, unsigned int length)
+{
+    // https://www.partow.net/programming/hashfunctions/index.html
+    unsigned int hash = 0xAAAAAAAA;
+    unsigned int i    = 0;
+
+    for (i = 0; i < length; ++str, ++i)
+    {
+      hash ^= ((i & 1) == 0) ? (  (hash <<  7) ^ (*str) * (hash >> 3)) :
+                               (~((hash << 11) + ((*str) ^ (hash >> 5))));
+    }
+
+    return hash;
+}
+
 //{ Hashtable
 unsigned Hashtable::gethashcode(const char *s,size_t sz)
 {
+    // testing a different hash algorithm
+    return APHash(s, sz);
+/*
     int h=5381;
 
     while(sz--)
@@ -224,7 +242,7 @@ unsigned Hashtable::gethashcode(const char *s,size_t sz)
         int ch=*s++;
         h=((h<<5)+h)^ch;
     }
-    return h;
+    return h; */
 }
 
 void Hashtable::reset(size_t size1)

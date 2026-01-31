@@ -182,6 +182,7 @@ class Hashtable
 public:
 	ofst getSize()const{ return static_cast<ofst>(items.size()); }
 
+    static unsigned int APHash(const char* str, unsigned int length);
     static unsigned gethashcode(const char *s,size_t sz);
     void reset(size_t size);
     char *savedata(char *p);

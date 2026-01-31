@@ -93,7 +93,7 @@
 				<Option type="1" />
 				<Option compiler="gcc_64" />
 				<Option use_console_runner="0" />
-				<Option parameters="-disableinstall -extractdir:temp1 -showconsole -v:110" />
+				<Option parameters='-disableinstall -extractdir:temp1 -showconsole -ls:&quot;D:\Development\Snappy Driver Installer Origin\customer\2025_12_23__22_02_57__COMPUTER_state.snp&quot;' />
 				<Compiler>
 					<Add option="-Wfatal-errors" />
 					<Add option="-Wextra" />

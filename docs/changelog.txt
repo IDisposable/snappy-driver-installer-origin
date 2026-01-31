@@ -7,6 +7,15 @@ www.glenn.delahoy.com
 
 Change Log
 
+Version 1.17.6.827
+1 February 2026
+* Samlab Driver Packs 26.00.0
+* SDIO Driver Packs 26.01.5
+* Experimenting with a different hash algorithm to try to
+  avoid collisions across indexes
+* Fixed bug not finding 10.0.1 type section names
+* Added Serbian language courtesy of Bojan Maksimovic
+
 Version 1.17.5.826
 22 January 2026
 * Sam Driver Packs 25.11.1
