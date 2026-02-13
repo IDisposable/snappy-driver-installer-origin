@@ -7,6 +7,14 @@ www.glenn.delahoy.com
 
 Change Log
 
+Version 1.17.7.828
+14 February 2026
+* SamLab Driver Packs 26.00.0
+* SDIO Driver Packs 26.02.2
+* Put Welcome screen on Tools menu
+* Update Win11 build numbers
+* Fixed SDIO packs on 32 bit
+
 Version 1.17.6.827
 1 February 2026
 * Samlab Driver Packs 26.00.0
