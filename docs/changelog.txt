@@ -7,6 +7,11 @@ www.glenn.delahoy.com
 
 Change Log
 
+Version 1.17.8.829
+07 March 2026
+* SamLab Driver Packs 26.02.2
+* SDIO Driver Packs 26.03.1
+
 Version 1.17.7.828
 14 February 2026
 * SamLab Driver Packs 26.00.0
