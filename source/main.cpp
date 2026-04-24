@@ -864,6 +864,12 @@ static BOOL CALLBACK DialogProc1(HWND hwnd,UINT msg,WPARAM wp,LPARAM lp)
 
                 str.sprintf(L"%d",Updater->torrentport);
                 SetWindowText(GetDlgItem(data.pages[1],IDD_P2_PORTE),str.Get());
+                str.sprintf(L"%d",Updater->outgoingport_min);
+                SetWindowText(GetDlgItem(data.pages[1],IDD_P2_MINPORTE),str.Get());
+                str.sprintf(L"%d",Updater->outgoingport_max);
+                SetWindowText(GetDlgItem(data.pages[1],IDD_P2_MAXPORTE),str.Get());
+
+
                 str.sprintf(L"%d",Updater->connections);
                 SetWindowText(GetDlgItem(data.pages[1],IDD_P2_CONE),str.Get());
                 str.sprintf(L"%d",Updater->downlimit);
@@ -942,6 +948,12 @@ static BOOL CALLBACK DialogProc1(HWND hwnd,UINT msg,WPARAM wp,LPARAM lp)
 
                     GetWindowText(GetDlgItem(data.pages[1],IDD_P2_PORTE),num,32);
                     Updater->torrentport=_wtoi_my(num);
+                    GetWindowText(GetDlgItem(data.pages[1],IDD_P2_MINPORTE),num,32);
+                    Updater->outgoingport_min=_wtoi_my(num);
+                    GetWindowText(GetDlgItem(data.pages[1],IDD_P2_MAXPORTE),num,32);
+                    Updater->outgoingport_max=_wtoi_my(num);
+
+
                     GetWindowText(GetDlgItem(data.pages[1],IDD_P2_CONE),num,32);
                     Updater->connections=_wtoi_my(num);
                     GetWindowText(GetDlgItem(data.pages[1],IDD_P2_DOWNE),num,32);

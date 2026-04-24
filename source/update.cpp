@@ -209,6 +209,8 @@ const std::wstring Updater_t::torrent_save_path=L"update";
 const std::wstring Updater_t::torrent2_save_path=L"update\\SDIO_Update";
 int Updater_t::activetorrent=1;
 int Updater_t::torrentport=50171;
+int Updater_t::outgoingport_min=0;
+int Updater_t::outgoingport_max=0;
 int Updater_t::downlimit=0;
 int Updater_t::uplimit=0;
 int Updater_t::connections=0;
@@ -1338,6 +1340,8 @@ int UpdaterImp::downloadTorrent()
     Log.print_con("Listen port: %d (%s)\nDownload limit: %dKb\nUpload limit: %dKb\n",
             hSession->listen_port(),hSession->is_listening()?"connected":"disconnected",
             downlimit,uplimit);
+    Log.print_con("Min outgoing port: %d\n",Updater->outgoingport_min);
+    Log.print_con("Max outgoing port: %d\n",Updater->outgoingport_max);
 
     // Session settings
     dht.privacy_lookups=true;
@@ -1363,6 +1367,7 @@ int UpdaterImp::downloadTorrent()
     settings.choking_algorithm=session_settings::auto_expand_choker;
     settings.disk_cache_algorithm=session_settings::avoid_readback;
     settings.volatile_read_cache=false;
+    settings.outgoing_ports=std::make_pair(outgoingport_min,outgoingport_max);
     hSession->set_settings(settings);
 
     // Setup path and URL
@@ -1993,6 +1998,8 @@ void UpdaterImp::OpenDialog(){UpdateDialog.openDialog();}
 
 Updater_t *Updater;
 int Updater_t::torrentport=50171;
+int Updater_t::outgoingport_min=0;
+int Updater_t::outgoingport_max=0;
 int Updater_t::downlimit=0;
 int Updater_t::uplimit=0;
 int Updater_t::connections=0;

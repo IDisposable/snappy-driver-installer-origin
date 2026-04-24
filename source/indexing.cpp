@@ -2096,10 +2096,10 @@ void Driverpack::fillinfo(const char *sect,const char *hwid,unsigned start_index
     }
     if(*inf_pos==-1)
     {
+        Log.print_err("ERROR: sect not found '%s (%s)'\n",sect,cat);
         *inf_pos=0;
         *cat=0;
         *feature=0xFF;
-        Log.print_err("ERROR: sect not found '%s'\n",sect);
     }
 }
 
@@ -2144,7 +2144,7 @@ void Driverpack::parsecat(wchar_t const *pathinf,wchar_t const *inffilename,cons
     }
     else
     {
-        Log.print_con("Not found signature in '%ws%ws'(%d)\n",pathinf,inffilename,len);
+//        Log.print_con("Not found signature in '%ws%ws'(%d)\n",pathinf,inffilename,len);
     }
 
 }

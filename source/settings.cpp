@@ -131,6 +131,8 @@ void Settings_t::parse(const wchar_t *str,size_t ind)
         if(argint(pr,L"-filters:",       &filters))continue;
 
         if(argint(pr,L"-port:",          &Updater->torrentport))continue;
+        if(argint(pr,L"-minport:",       &Updater->outgoingport_min))continue;
+        if(argint(pr,L"-maxport:",       &Updater->outgoingport_max))continue;
         if(argint(pr,L"-downlimit:",     &Updater->downlimit))continue;
         if(argint(pr,L"-uplimit:",       &Updater->uplimit))continue;
         if(argint(pr,L"-connections:",   &Updater->connections))continue;
@@ -254,12 +256,14 @@ void Settings_t::save()
               L"\"-finish_cmd:%ws\"\n\"-finishrb_cmd:%ws\"\n\"-finish_upd_cmd:%ws\"\n\n"
               L"\"-lang:%ws\"\n\"-theme:%ws\"\n-hintdelay:%d\n-license:%d\n"
               L"-wndwx:%d\n-wndwy:%d\n-wndsc:%d\n-scale:%d\n-filters:%d\n\n"
-              L"-port:%d\n-downlimit:%d\n-uplimit:%d\n-connections:%d\n\n",
+              L"-port:%d\n-minport:%d\n-maxport:%d\n\n"
+              L"-downlimit:%d\n-uplimit:%d\n-connections:%d\n\n",
             drp_dir,index_dir,output_dir,
             data_dir,logO_dir,
             finish,finish_rb,finish_upd,
             STR(STR_LANG_ID),curtheme,hintdelay,license?1:0,wndwx,wndwy,wndsc,autosized?savedscale:scale,filters,
-            Updater->torrentport,Updater->downlimit,Updater->uplimit,Updater->connections);
+            Updater->torrentport,Updater->outgoingport_min,Updater->outgoingport_max,
+            Updater->downlimit,Updater->uplimit,Updater->connections);
 
     if(expertmode)fwprintf(f,L"-expertmode ");
     if(flags&FLAG_SHOWCONSOLE)fwprintf(f,L"-showconsole ");

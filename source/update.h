@@ -39,7 +39,7 @@ class Updater_t
 public:
     int numfiles=0;
     static bool SeedMode;
-    static int torrentport,downlimit,uplimit,connections,activetorrent;
+    static int torrentport,outgoingport_min,outgoingport_max,downlimit,uplimit,connections,activetorrent;
     static const std::wstring torrent_url;
     static const std::wstring torrent2_url;
     static const std::wstring torrent_save_path;

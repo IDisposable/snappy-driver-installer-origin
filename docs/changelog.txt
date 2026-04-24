@@ -7,6 +7,15 @@ www.glenn.delahoy.com
 
 Change Log
 
+Version 1.18.0.830
+25 April 2026
+* SamLab Driver Packs 26.04.0
+* SDIO Driver Packs 26.04.04
+* Updated markers
+* Updated languages
+* Added torrent min/max outgoing port
+
+
 Version 1.17.8.829
 07 March 2026
 * SamLab Driver Packs 26.02.2
