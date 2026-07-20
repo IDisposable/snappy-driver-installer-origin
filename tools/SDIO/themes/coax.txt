@@ -83,7 +83,7 @@ PROGR_OUTLINE_ROUND = 0
 //PROGR_BITMAP_FILL = 0
 
 // ----------------------------------------------------------------
-// No updates (progress bar background)
+// updates (progress bar background)
 // ----------------------------------------------------------------
 DRVITEM_INSIDE_COLOR_IU = 0x999999
 DRVITEM_INSIDE_COLOR_IU_H = 0x888888
