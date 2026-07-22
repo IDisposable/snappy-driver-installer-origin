@@ -43,7 +43,7 @@ Task-oriented
                   and drivers
 
 ------------
-sdi.cfg
+sdio.cfg
 ------------
 -drp_dir:<dir>    Path to driverpacks.
 -index_dir:<dir>  Path to indexes.
@@ -65,8 +65,8 @@ sdi.cfg
 -showdrpnames1    Shows driverpack names on the right.
 -showdrpnames2    Shows driverpack names above.
 -oldstyle         Shows driver list using old style.
--preservecfg      Prevents updating of sdi.cfg.
--cfg:<FileName>   Loads <file> instead of "sdi.cfg".
+-preservecfg      Prevents updating of sdio.cfg.
+-cfg:<FileName>   Loads <file> instead of "sdio.cfg".
 
 -------
 Torrent
