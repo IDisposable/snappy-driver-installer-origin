@@ -31,7 +31,11 @@ Snappy Driver Installer Origin.  If not, see <http://www.gnu.org/licenses/>.
 #include "enum.h"
 #include "main.h"
 #include "model.h"
+
+#ifdef USE_TORRENT
 #include "update.h"
+#endif
+
 #include "install.h"
 #include <iostream>
 
@@ -164,9 +168,10 @@ bool Script::runscript()
 
     bool NeedReboot=false;
     Log.set_verbose(0);
+    #ifdef USE_TORRENT
     Updater=CreateUpdater();
     int torrentport=Updater->torrentport;
-
+    #endif
     // get the system drive
     wchar_t systemDrive[BUFLEN]={0};
     GetEnvironmentVariable(L"SystemDrive",systemDrive,BUFLEN);
@@ -215,11 +220,10 @@ bool Script::runscript()
             {
                 if(args.size()>1)
                 {
-                    Updater_t::activetorrent=std::stoi(args[1]);
-                    Log.print_debug("Argument: %d\n",Updater_t::activetorrent);
                     #ifdef USE_TORRENT
-                    delete Updater;
-                    Updater=CreateUpdater();
+                    int activetorrent=std::stoi(args[1]);
+                    Log.print_debug("Argument: %d\n",activetorrent);
+                    Updater->SetActiveTorrent(activetorrent);
                     #endif // USE_TORRENT
                 }
                 else
@@ -263,9 +267,11 @@ bool Script::runscript()
             }
             else if(StrStrIW(args[0].c_str(),L"checkupdates"))
             {
+                #ifdef USE_TORRENT
                 if(manager_g->matcher==nullptr)
                     initEngine();
                 LastExitCode=Updater->scriptInitUpdates(torrentport);
+                #endif
             }
             else if(_wcsicmp(args[0].c_str(),L"get")==0)
             {
@@ -275,13 +281,17 @@ bool Script::runscript()
                 {
                     if(_wcsicmp(args[1].c_str(),L"app")==0)
                     {
+                        #ifdef USE_TORRENT
                         LastExitCode=Updater->scriptDownloadApp();
+                        #endif
                         if(!LastExitCode)Log.print_con("Application downloaded successfully\n");
                         else Log.print_con("Application download failed\n");
                     }
                     else if(_wcsicmp(args[1].c_str(),L"indexes")==0)
                     {
+                        #ifdef USE_TORRENT
                         LastExitCode=Updater->scriptDownloadIndexes();
+                        #endif
                         if(!LastExitCode)Log.print_con("Indexes downloaded successfully\n");
                         else Log.print_con("Indexes download failed\n");
                     }
@@ -295,7 +305,9 @@ bool Script::runscript()
                                _wcsicmp(args[2].c_str(),L"selected")==0)
                             {
                                 Log.print_debug("Argument: %S\n",args[2].c_str());
+                                #ifdef USE_TORRENT
                                 LastExitCode=Updater->scriptDownloadDrivers(args[2]);
+                                #endif
                                 if(!LastExitCode)Log.print_con("Driver packs downloaded successfully\n");
                                 else Log.print_con("Driver packs download failed\n");
                             }
@@ -313,7 +325,9 @@ bool Script::runscript()
                     }
                     else if(_wcsicmp(args[1].c_str(),L"everything")==0)
                     {
+                        #ifdef USE_TORRENT
                         LastExitCode=Updater->scriptDownloadEverything();
+                        #endif
                         if(!LastExitCode)Log.print_con("Everything downloaded successfully\n");
                         else Log.print_con("Download failed\n");
                     }
@@ -331,7 +345,9 @@ bool Script::runscript()
             }
             else if(_wcsicmp(args[0].c_str(),L"install")==0)
             {
+                #ifdef USE_TORRENT
                 LastExitCode=Updater->scriptInstall();
+                #endif
                 NeedReboot=(ret_global>>24)&0x40;
                 unsigned int failed=(ret_global>>16)&255;
                 unsigned int installed=ret_global&65535;
@@ -476,8 +492,10 @@ bool Script::runscript()
             {
                 if(args.size()>1)
                 {
+                    #ifdef USE_TORRENT
                     torrentport=std::stoi(args[1]);
                     Log.print_debug("Argument: %d\n",torrentport);
+                    #endif
                 }
                 else
                 {
