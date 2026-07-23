@@ -36,7 +36,6 @@ Snappy Driver Installer Origin.  If not, see <http://www.gnu.org/licenses/>.
 #include "indexing.h"
 #include <shlobj.h>
 #include "theme.h"
-#include <stdio.h>
 #include <iostream>
 #include <fstream>
 
@@ -254,7 +253,8 @@ static void BuildFilesList(HWND hwnd)
             {
                 // network driver packs
                 std::wstring filename=drp.getFilename();
-                if(StrStrIW(filename.c_str(),L"_LAN_")||
+                if(StrStrIW(filename.c_str(),L"_Net_")||
+                   StrStrIW(filename.c_str(),L"_LAN_")||
                    StrStrIW(filename.c_str(),L"_WLAN-WiFi_")||
                    StrStrIW(filename.c_str(),L"_WWAN-4G_"))
                 {
