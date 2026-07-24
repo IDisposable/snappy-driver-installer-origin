@@ -86,7 +86,7 @@ int VaultImp::readvalue(const wchar_t *str)
     return p?wcstol(str,nullptr,16):_wtoi_my(str);
 }
 
-void VaultImp::parse()
+void VaultImp::parse(const wchar_t *filename)
 {
     wchar_t *lhs,*rhs,*le;
     le=lhs=datav_ptr.get();
@@ -113,7 +113,7 @@ void VaultImp::parse()
         int r=findvar(lhs);
         if(r<0)
         {
-            Log.print_err("ERROR: unknown var '%S'\n",lhs);
+            Log.print_err("ERROR: unknown var '%S' in %S\n",lhs,filename);
         }else
         {
             wchar_t *r1;
@@ -260,7 +260,7 @@ void VaultImp::loadFromFile(const wchar_t *filename)
         Log.print_err("ERROR in vault_loadfromfile(): failed to load '%S'\n",filename);
         return;
     }
-    parse();
+    parse(filename);
 
     for(size_t i=0;i<num;i++)
         if(entry[i].init>=10)entry[i].val=entry[entry[i].init-10].val;
@@ -280,7 +280,7 @@ void VaultImp::loadFromRes(int id)
         datav[i]=data1[i];
     }
     datav[sz]=0;
-    parse();
+    parse(L"resource");
     for(size_t i=0;i<num;i++)
         if(entry[i].init<1)Log.print_err("ERROR in vault_loadfromres: not initialized '%S'\n",entry[i].name);
 }

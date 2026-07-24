@@ -39,7 +39,7 @@ protected:
     int  findvar(wchar_t *str);
     wchar_t *findstr(wchar_t *str)const;
     int  readvalue(const wchar_t *str);
-    void parse();
+    void parse(const wchar_t *filename);
     bool loadFromEncodedFile(const wchar_t *filename);
     void loadFromFile(const wchar_t *filename);
     void loadFromRes(int id);
