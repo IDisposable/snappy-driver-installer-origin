@@ -33,13 +33,12 @@
 				<Option type="2" />
 				<Option compiler="gcc" />
 				<Compiler>
-					<Add option="-pg" />
-					<Add option="-g" />
 					<Add option="-m32" />
+					<Add option="-g" />
 					<Add option="-D_DEBUG" />
 				</Compiler>
 				<Linker>
-					<Add option="-pg -lgmon" />
+					<Add option="-m32" />
 				</Linker>
 			</Target>
 			<Target title="Win64 Release">
@@ -68,11 +67,13 @@
 				<Option type="2" />
 				<Option compiler="gcc_64" />
 				<Compiler>
-					<Add option="-pg" />
-					<Add option="-g" />
 					<Add option="-m64" />
+					<Add option="-g" />
 					<Add option="-D_DEBUG" />
 				</Compiler>
+				<Linker>
+					<Add option="-m64" />
+				</Linker>
 			</Target>
 			<Target title="Win32 Console">
 				<Option platforms="Windows;" />
@@ -113,6 +114,10 @@
 			<Add option="-D_NO_CRYPTO" />
 			<Add option="-DEXTRACT_ONLY" />
 			<Add option="-DPROG_VARIANT_R" />
+			<Add option="-D_WIN32_WINNT=0x0501" />
+			<Add option="-DWINVER=0x0501" />
+			<Add option="-DBOOST_USE_WINAPI_VERSION=0x0501" />
+			<Add option="-DBOOST_USE_NTDDI_VERSION=0x05010000" />
 			<Add directory="../../../" />
 		</Compiler>
 		<Unit filename="../../external/SevenZ/build/CPP/7zip/Archive/7z/7zCompressionMode.cpp" />
@@ -269,6 +274,7 @@
 		<Unit filename="../../external/SevenZ/build/CPP/7zip/UI/Common/ArchiveName.h" />
 		<Unit filename="../../external/SevenZ/build/CPP/7zip/UI/Common/ArchiveOpenCallback.cpp" />
 		<Unit filename="../../external/SevenZ/build/CPP/7zip/UI/Common/ArchiveOpenCallback.h" />
+		<Unit filename="../../external/SevenZ/build/CPP/7zip/UI/Common/Bench.cpp" />
 		<Unit filename="../../external/SevenZ/build/CPP/7zip/UI/Common/Bench.h" />
 		<Unit filename="../../external/SevenZ/build/CPP/7zip/UI/Common/DefaultName.cpp" />
 		<Unit filename="../../external/SevenZ/build/CPP/7zip/UI/Common/DefaultName.h" />
@@ -298,14 +304,20 @@
 		<Unit filename="../../external/SevenZ/build/CPP/7zip/UI/Common/StdAfx.h" />
 		<Unit filename="../../external/SevenZ/build/CPP/7zip/UI/Common/TempFiles.cpp" />
 		<Unit filename="../../external/SevenZ/build/CPP/7zip/UI/Common/TempFiles.h" />
+		<Unit filename="../../external/SevenZ/build/CPP/7zip/UI/Common/Update.cpp" />
 		<Unit filename="../../external/SevenZ/build/CPP/7zip/UI/Common/Update.h" />
+		<Unit filename="../../external/SevenZ/build/CPP/7zip/UI/Common/UpdateAction.cpp" />
 		<Unit filename="../../external/SevenZ/build/CPP/7zip/UI/Common/UpdateAction.h" />
+		<Unit filename="../../external/SevenZ/build/CPP/7zip/UI/Common/UpdateCallback.cpp" />
 		<Unit filename="../../external/SevenZ/build/CPP/7zip/UI/Common/UpdateCallback.h" />
+		<Unit filename="../../external/SevenZ/build/CPP/7zip/UI/Common/UpdatePair.cpp" />
 		<Unit filename="../../external/SevenZ/build/CPP/7zip/UI/Common/UpdatePair.h" />
+		<Unit filename="../../external/SevenZ/build/CPP/7zip/UI/Common/UpdateProduce.cpp" />
 		<Unit filename="../../external/SevenZ/build/CPP/7zip/UI/Common/UpdateProduce.h" />
 		<Unit filename="../../external/SevenZ/build/CPP/7zip/UI/Common/WorkDir.cpp" />
 		<Unit filename="../../external/SevenZ/build/CPP/7zip/UI/Common/WorkDir.h" />
 		<Unit filename="../../external/SevenZ/build/CPP/7zip/UI/Common/ZipRegistry.h" />
+		<Unit filename="../../external/SevenZ/build/CPP/7zip/UI/Console/BenchCon.cpp" />
 		<Unit filename="../../external/SevenZ/build/CPP/7zip/UI/Console/BenchCon.h" />
 		<Unit filename="../../external/SevenZ/build/CPP/7zip/UI/Console/ConsoleClose.cpp" />
 		<Unit filename="../../external/SevenZ/build/CPP/7zip/UI/Console/ConsoleClose.h" />
@@ -313,6 +325,7 @@
 		<Unit filename="../../external/SevenZ/build/CPP/7zip/UI/Console/ExtractCallbackConsole.h" />
 		<Unit filename="../../external/SevenZ/build/CPP/7zip/UI/Console/HashCon.cpp" />
 		<Unit filename="../../external/SevenZ/build/CPP/7zip/UI/Console/HashCon.h" />
+		<Unit filename="../../external/SevenZ/build/CPP/7zip/UI/Console/List.cpp" />
 		<Unit filename="../../external/SevenZ/build/CPP/7zip/UI/Console/List.h" />
 		<Unit filename="../../external/SevenZ/build/CPP/7zip/UI/Console/Main.cpp" />
 		<Unit filename="../../external/SevenZ/build/CPP/7zip/UI/Console/MainAr.cpp" />
@@ -350,6 +363,7 @@
 		<Unit filename="../../external/SevenZ/build/CPP/Common/MyUnknown.h" />
 		<Unit filename="../../external/SevenZ/build/CPP/Common/MyVector.cpp" />
 		<Unit filename="../../external/SevenZ/build/CPP/Common/MyVector.h" />
+		<Unit filename="../../external/SevenZ/build/CPP/Common/MyWindows.cpp" />
 		<Unit filename="../../external/SevenZ/build/CPP/Common/MyWindows.h" />
 		<Unit filename="../../external/SevenZ/build/CPP/Common/NewHandler.cpp" />
 		<Unit filename="../../external/SevenZ/build/CPP/Common/NewHandler.h" />
@@ -389,6 +403,7 @@
 		<Unit filename="../../external/SevenZ/build/CPP/Windows/PropVariant.h" />
 		<Unit filename="../../external/SevenZ/build/CPP/Windows/PropVariantConv.cpp" />
 		<Unit filename="../../external/SevenZ/build/CPP/Windows/PropVariantConv.h" />
+		<Unit filename="../../external/SevenZ/build/CPP/Windows/Registry.cpp" />
 		<Unit filename="../../external/SevenZ/build/CPP/Windows/SecurityUtils.cpp" />
 		<Unit filename="../../external/SevenZ/build/CPP/Windows/SecurityUtils.h" />
 		<Unit filename="../../external/SevenZ/build/CPP/Windows/StdAfx.h" />
@@ -396,6 +411,7 @@
 		<Unit filename="../../external/SevenZ/build/CPP/Windows/Synchronization.h" />
 		<Unit filename="../../external/SevenZ/build/CPP/Windows/System.cpp" />
 		<Unit filename="../../external/SevenZ/build/CPP/Windows/System.h" />
+		<Unit filename="../../external/SevenZ/build/CPP/Windows/SystemInfo.cpp" />
 		<Unit filename="../../external/SevenZ/build/CPP/Windows/Thread.h" />
 		<Unit filename="../../external/SevenZ/build/CPP/Windows/TimeUtils.cpp" />
 		<Unit filename="../../external/SevenZ/build/CPP/Windows/TimeUtils.h" />
@@ -549,10 +565,6 @@
 		<Unit filename="../../external/SevenZ/build/C/XzIn.c">
 			<Option compilerVar="CC" />
 		</Unit>
-		<Extensions>
-			<code_completion />
-			<envvars />
-			<debugger />
-		</Extensions>
+		<Extensions />
 	</Project>
 </CodeBlocks_project_file>
