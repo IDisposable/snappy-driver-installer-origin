@@ -96,8 +96,13 @@
 			<Add option="-m64" />
 			<Add option="-fno-exceptions" />
 			<Add option="-DUNICODE" />
+			<Add option="-D_WIN32_WINNT=0x0501" />
+			<Add option="-DWINVER=0x0501" />
+			<Add option="-DBOOST_USE_WINAPI_VERSION=0x0501" />
+			<Add option="-DBOOST_USE_NTDDI_VERSION=0x05010000" />
 		</Compiler>
 		<Linker>
+			<Add option="-m64" />
 			<Add library="user32" />
 			<Add library="kernel32" />
 			<Add library="newdev" />
@@ -106,9 +111,6 @@
 			<Option compilerVar="CC" />
 		</Unit>
 		<Extensions>
-			<code_completion />
-			<envvars />
-			<debugger />
 			<lib_finder disable_auto="1" />
 		</Extensions>
 	</Project>
