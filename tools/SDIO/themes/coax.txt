@@ -16,16 +16,16 @@ FONT_SIZE = 15
 MAINWND_TRANSPARENCY = 255
 MAINWND_TEXT_COLOR = 0xFFFF00
 MAINWND_WX = 1024
-MAINWND_WY = 870
+MAINWND_WY = 900
 MAINWND_MINX = 640
-MAINWND_MINY = 335
+MAINWND_MINY = 800
 MAINWND_INSIDE_COLOR = 0xE1E1E1
 MAINWND_OUTLINE_COLOR = 0xFF000000 // Transparent
 MAINWND_OUTLINE_WIDTH = 0
 MAINWND_OUTLINE_ROUND = 0
-//MAINWND_BITMAP_FILENAME = ""
-//MAINWND_BITMAP_ANCHOR = center
-//MAINWND_BITMAP_FILL = hstr_vstr
+MAINWND_BITMAP_FILENAME = ""
+MAINWND_BITMAP_ANCHOR = center
+MAINWND_BITMAP_FILL = hstr_vstr
 
 // ----------------------------------------------------------------
 // Popup
@@ -212,7 +212,7 @@ PANEL4_INSIDE_COLOR = 0xFF000000 // Transparent
 // Panel > Filters (found)
 // ----------------------------------------------------------------
 PANEL5_OFSX = PANEL_OFSX
-PANEL5_OFSY = 448
+PANEL5_OFSY = 466
 PANEL5_WX = PANEL_WX
 PANEL5_WY = PANEL_WY
 PANEL5_INSIDE_COLOR = PANEL_INSIDE_COLOR
@@ -221,14 +221,14 @@ PANEL5_INSIDE_COLOR = PANEL_INSIDE_COLOR
 // Panel > Filters (not found)
 // ----------------------------------------------------------------
 PANEL6_OFSX = PANEL_OFSX
-PANEL6_OFSY = 631
+PANEL6_OFSY = 641
 PANEL6_INSIDE_COLOR = PANEL_INSIDE_COLOR
 
 // ----------------------------------------------------------------
 // Panel > Filters (special)
 // ----------------------------------------------------------------
 PANEL7_OFSX = PANEL5_OFSX
-PANEL7_OFSY = 742
+PANEL7_OFSY = 750
 PANEL7_WX = PANEL_WX
 PANEL7_WY = PANEL_WY
 PANEL7_INSIDE_COLOR = PANEL_INSIDE_COLOR

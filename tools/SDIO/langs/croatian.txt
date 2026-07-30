@@ -46,6 +46,8 @@ STR_DRVDIR                    = "Odaberi mapu upravljačkih programa..."
 STR_DRVDIR_H                  = "Odaberi neku drugu mapu s upravljačkim paketima ili upravljačkim programima.\n\nOvo možeš koristiti za traženje upravljačkih programa na CD/DVD-u."
 STR_OPTIONS_BTN               = "Mogućnosti"
 STR_OPTIONS_BTN_H             = "Otvori dijaloški okvir s postavkama."
+STR_UPDATES_BTN               = "Updates"
+STR_UPDATES_BTN_H             = "Open updates dialog box."
 
 STR_SHOW_FOUND                = "Pronađeni u paketima"
 STR_SHOW_FOUND_H              = "Upravljački programi su pronađeni i mogu biti instalirani.\n\nSavjetujemo da instaliraš upravljačke programe iz sljedećih kategorija: nisu instalirani, noviji, bolji odabir."
@@ -178,6 +180,7 @@ STR_CONT_OPENINF              = "Otvori INF datoteke instaliranog upravljačkog 
 STR_CONT_LOCATEINF            = "Pronađi inf datoteku instaliranog upravljačkog programa"
 STR_CONT_HWID_SEARCH          = "Pretraži Internet za ID hardvera"
 STR_CONT_HWID_CLIP            = "Kopiraj ID hardvera u međuspremnik"
+STR_CONT_HWID_IGNORE          = "Add this Hardware ID to Ignore List"
 
 // Misc
 STR_OPENSNAPSHOT              = "Datoteke snimki (*.snp)/0*.snp/0Sve datoteke/0*.*/0/0"
@@ -194,7 +197,7 @@ STR_STATUS_STOPPED            = "Uređaj je trenutno zaustavljen"
 // Driver status
 STR_STATUS_INVALID            = "Nekompatibilan upravljački program"
 STR_STATUS_MISSING            = "Upravljački program je dostupan (ali nije instaliran)"
-STR_STATUS_NOTSIGNED          = "(nije potpisan)"
+STR_STATUS_NOTSIGNED          = " (nije potpisan)"
 
 STR_STATUS_BETTER_NEW         = "Noviji upravljački program je dostupan i bolji odabir od trenutnog"
 STR_STATUS_SAME_NEW           = "Dostupan je noviji upravljački program"
@@ -208,7 +211,7 @@ STR_STATUS_BETTER_OLD         = "Dostupan je bolji upravljački program, ali sta
 STR_STATUS_SAME_OLD           = "Stariji upravljački program"
 STR_STATUS_WORSE_OLD          = "Stariji upravljački program koji je lošiji"
 
-STR_STATUS_DUP                = "(duplikat)"
+STR_STATUS_DUP                = " (duplikat)"
 
 STR_STATUS_NF_MISSING         = "Uređaj zahtijeva upravljački program koji nije pronađen u paketima upravljačkih programa"
 STR_STATUS_NF_UNKNOWN         = "Uređaj radi ispravno bez upravljačkog programa koji je pronađen u paketima upravljačkih programa"
@@ -224,9 +227,9 @@ STR_VIRUS_HIDDEN              = "U korijenskoj mapi postoje skrivene mape"
 STR_VIRUS_HIDDEN_H            = "Korijenska mapa sadrži skrivene mape. Virusi isto mogu napraviti skrivene mape kako bi sakrili svoje prisustvo. Savjetujemo da provjeriš mape antivirusnim programom (pogledaj zapisnik za detalje).\n\nAko ste sigurni da je mapa ispravna, stvorite datoteku naziva not_a_virus.txt u svakoj mapi."
 
 // Status
-STR_CLOSE_SNAPSHOT            = "(Klikni ovdje za zaustavljanje emulacije)"
+STR_CLOSE_SNAPSHOT            = " (Klikni ovdje za zaustavljanje emulacije)"
 STR_EMPTYDRP                  = "Poveži se s Internetom za preuzimanje neraspakiranih paketa upravljačkih programa koji će biti spremljeni u mapu"
-STR_CLOSE_DRPEXT              = "(Klikni ovdje za povratak na zadanu mapu)"
+STR_CLOSE_DRPEXT              = " (Klikni ovdje za povratak na zadanu mapu)"
 STR_NOUPDATES                 = "Upravljački programi su aktualni"
 STR_INITIALIZING              = "Pokretanje..."
 
@@ -240,7 +243,7 @@ STR_INST_FAILED               = "Nemoguće instalirati, došlo je do greške"
 STR_INST_INSTALLING           = "Instaliram..."
 STR_INST_COMPLITED            = "Usnimavanje dovršeno"
 STR_INST_COMPLITED_RB         = "Usnimavanje dovršeno (potrebno ponovno pokretanje računača)"
-STR_INST_CLOSE                = "(Klikni da sakriješ usnimljene upravljačke programe)"
+STR_INST_CLOSE                = " (Klikni da sakriješ usnimljene upravljačke programe)"
 
 STR_EXTR_EXTRACTING           = "Otpakiravam..."
 STR_EXTR_OK                   = "Uspješno otpakirano"
@@ -281,27 +284,48 @@ STR_UPD_DIALOG_TITLE          = "Provjeravanje za nadogradnje"
 STR_UPD_DIALOG_MSG            = "Želiš li omogućiti automatsko provjeravanje na Internetu za nove verzije paketa upravljačkih programa i same aplikacije?"
 STR_UPD_DIALOG_INDEX          = "Želiš li preuzeti najnovije indekse kako bi se moglo odrediti koji paket upravljačkih programa treba preuzeti?"
 
+// Updates dialog
 STR_UPD_TITLE                 = "Nadogradnje"
+
 STR_UPD_SELECTION             = "Odabir"
 STR_UPD_BTN_ALL               = "Označi sve"
 STR_UPD_BTN_NONE              = "Isključi sve"
-STR_UPD_BTN_NETWORK           = "Samo mrežno"
 STR_UPD_BTN_THISPC            = "Samo ovo računalo"
 STR_UPD_BTN_THISPC_H          = "Kako bi mogli odrediti koje pakete upravljačkih programa trebaš, potrebno je prvo preuzeti indekse."
-STR_UPD_OPTIONS               = "Mogućnosti"
-STR_UPD_ONLYUPDATES           = "Prikaži samo nadogradnje, sakrij pakete koji nedostaju"
-STR_UPD_TOTALSIZE             = "Ukupno za preuzimanje: %d MB"
-STR_UPD_TOTALAVAIL            = "Ukupno raspoloživi prostor: %d MB"
-STR_UPD_BTN_OK                = "U redu"
-STR_UPD_BTN_CANCEL            = "Otkaži"
-STR_UPD_BTN_ACCEPT            = "Prihvati"
+STR_UPD_BTN_NETWORK           = "Samo mrežno"
+
+STR_UPD_SELECTED              = "Selected: %d / %d"
+STR_UPD_TOTALSIZE             = "Ukupno za preuzimanje: %s"
+STR_UPD_TOTALAVAIL            = "Ukupno raspoloživi prostor: %s"
+
+STR_UPD_STREAMSTATS           = "Torrent statistics"
+STR_UPD_STREAM_STATE          = "State: "
+STR_UPD_STREAM_COMPLETE       = "Complete: %s / %s (%d%%)"
+STR_UPD_STREAM_TIME           = "Remaining: %s"
+STR_UPD_STREAM_SESSDL         = "Session Downloads: %s (%s/s)"
+STR_UPD_STREAM_SESSUL         = "Session Uploads: %s (%s/s)"
+STR_UPD_STREAM_SEEDS          = "Seeds: %d (%d),  Peers: %d (%d)"
+STR_UPD_STREAM_ALERT          = "Alert: %s"
+
+STR_UPD_OPTIONS               = "Options"
+STR_UPD_ONLYUPDATES           = "Show only updates, hide missing driver packs."
+STR_UPD_KEEPSEEDING           = "Keep sharing after downloads are finished."
+
+STR_UPD_SPECIALMODE           = "Share Mode"
+STR_UPD_TXT_SHARE             = "You can help distribute our driver collection by sharing your 'drivers' folder."
+STR_UPD_BTN_SHARE             = "Share"
+
+STR_UPD_BTN_UPDATE            = "Start"
+STR_UPD_BTN_STOP              = "Stop"
+STR_UPD_BTN_CLOSE             = "Close"
+
 STR_UPD_COL_NAME              = "Paket upravljačkih programa"
 STR_UPD_COL_SIZE              = "Veličina"
 STR_UPD_COL_PER               = "%"
 STR_UPD_COL_NEW               = "Novo"
 STR_UPD_COL_CUR               = "Aktualno"
 STR_UPD_COL_THISPC            = "Za ovo računalo?"
-STR_UPD_WEBSTATUS             = "(Internet)"
+STR_UPD_WEBSTATUS             = " (Internet)"
 STR_UPD_YES                   = "Da"
 STR_UPD_NO                    = "Ne"
 STR_UPD_UNKNOWN               = "Nepoznato"
@@ -321,14 +345,23 @@ STR_UPD_INDEXES               = "Indeksi"
 STR_UPD_UPDATEHINT1           = "Savjet"
 STR_UPD_UPDATEHINT2           = "Prvo moraš nadograditi bazu za korištenje ove značajke."
 
+STR_UPD_PROMPT_01             = "Checking partial files. (%d%%) Download will start shortly..."
+STR_UPD_PROMPT_02             = "Downloading (%d%%)"
+STR_UPD_PROMPT_03             = "Sharing. Press Stop to end."
+STR_UPD_PROMPT_04             = "Download finished"
+STR_UPD_PROMPT_05             = "Checking resume data. Download will start shortly..."
+STR_UPD_PROMPT_06             = "You're up to date. Nothing to download."
+STR_UPD_PROMPT_07             = "Ready: Select the items you want and press Start."
+STR_UPD_PROMPT_08             = "Unable to get updates. Try again later."
+
 // Update hint
 STR_UPD_CHECKING              = "Provjeravanje za nadogradnje"
 STR_UPD_AVAIL1                = "Dostupne nadogradnje: SDIO R%d"
 STR_UPD_AVAIL2                = "Dostupne nadogradnje: %d paket(a) upravljačkih programa"
 STR_UPD_AVAIL3                = "Dostupne nadogradnje: SDIO R%d i %d paketa upravljačkih programa"
-STR_UPD_START                 = "(Klikni ovdje za početak preuzimanja)"
+STR_UPD_START                 = " (Klikni ovdje za početak preuzimanja)"
 STR_UPD_PROGRES               = "Preuzeto %s od %s (%d%%)"
-STR_UPD_MODIFY                = "(Klikni ovdje za odabir nadogradnji)"
+STR_UPD_MODIFY                = " (Klikni ovdje za odabir nadogradnji)"
 STR_UPD_CHECKINGFILES         = "Provjeravam datoteke %s od %s (%d%%)"
 
 STR_DWN_DOWNLOADED            = "Preuzeto"
@@ -337,7 +370,7 @@ STR_DWN_UPLOADED              = "Preneseno"
 STR_DWN_ELAPSED               = "Proteklo vrijeme"
 STR_DWN_REMAINING             = "Preostalo vrijeme"
 STR_DWN_SEEDING               = "Dijelim %s (%s)"
-STR_DWN_MODIFY                = "(Klikni ovdje da zaustaviš)"
+STR_DWN_MODIFY                = " (Klikni ovdje da zaustaviš)"
 STR_DWN_CLOSING               = "Zatvaranje sesije"
 
 STR_DWN_STATUS                = "Status"
@@ -363,6 +396,7 @@ STR_TR_ST5                    = "dijeljenje"
 STR_TR_ST6                    = "dodjeljivanje prostora"
 STR_TR_ST7                    = "Provjeravanje podataka za nastavak"
 STR_TR_ST8                    = "premještanje datoteka"
+STR_TR_ST9                    = "paused"
 
 // Options dialog
 STR_OPTION_TITLE              = "Mogućnosti"
@@ -370,8 +404,8 @@ STR_OPTION_VIEW_TAB           = "Prikaz"
 STR_OPTION_UPDATES_TAB        = "Nadogradnje"
 STR_OPTION_PATH_TAB           = "Putanje"
 STR_OPTION_ADVANCED_TAB       = "Napredno"
-STR_OPTION_OK_BUTTON          = STR_UPD_BTN_OK
-STR_OPTION_CANCEL_BUTTON      = STR_UPD_BTN_CANCEL
+STR_OPTION_OK_BUTTON          = "OK"
+STR_OPTION_CANCEL_BUTTON      = "Cancel"
 
 // View tab
 STR_OPTION_DRPNAMES           = "Naziv upravljačkog paketa"

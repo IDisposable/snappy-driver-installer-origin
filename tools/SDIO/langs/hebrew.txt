@@ -46,6 +46,8 @@ STR_DRVDIR                    = "בחר תיקיית מנהלי התקן....."
 STR_DRVDIR_H                  = "בחר תיקייה אחרת עם ערכות מנהל או מנהלי התקן מחולצים. הינך יכול להשתמש בזה כדי לחפש אחר מנהלי התקן במנהל CD/DVD."
 STR_OPTIONS_BTN               = "אפשרויות"
 STR_OPTIONS_BTN_H             = "פתח תיבת דו שיח עם ההגדרות"
+STR_UPDATES_BTN               = "Updates"
+STR_UPDATES_BTN_H             = "Open updates dialog box."
 
 STR_SHOW_FOUND                = "מצא בערכות המנהל"
 STR_SHOW_FOUND_H              = "מנהלי התקן נמצאו בערכות המנהל ומתאפשר להתקינם.\n\nאני ממליצים לך להתקין מנהלי התקן מהקטגוריות הללו: לא מותקן, יותר חדש, יותר מותאם."
@@ -178,6 +180,7 @@ STR_CONT_OPENINF              = "פתח את קובץ המידע של המנהל
 STR_CONT_LOCATEINF            = "אתר את קובץ המידע של המנהל התקן שהותקן"
 STR_CONT_HWID_SEARCH          = "חפש באינטרנט עבור מזהה החומרה"
 STR_CONT_HWID_CLIP            = "העתק את מזהה החומרה ללוח"
+STR_CONT_HWID_IGNORE          = "Add this Hardware ID to Ignore List"
 
 // Misc
 STR_OPENSNAPSHOT              = "קבצי תפיסת תמונה (*.snp)/0*.snp/0All files/0*.*/0/0"
@@ -194,7 +197,7 @@ STR_STATUS_STOPPED            = "מצב ההתקן הנוכחי לא מופעל"
 // Driver status
 STR_STATUS_INVALID            = "מנהל התקן לא מתאים"
 STR_STATUS_MISSING            = "מנהל התקן זמין (המנהל לא מותקן עדיין)"
-STR_STATUS_NOTSIGNED          = "(לא חתום)"
+STR_STATUS_NOTSIGNED          = " (לא חתום)"
 
 STR_STATUS_BETTER_NEW         = "עידכון מנהל התקן זמין אשר הוא גם יותר אופטימלי"
 STR_STATUS_SAME_NEW           = "עידכון מנהל התקן זמין"
@@ -208,7 +211,7 @@ STR_STATUS_BETTER_OLD         = "מנהל התקן יותר אופטימלי ז�
 STR_STATUS_SAME_OLD           = "מנהל התקן ישן"
 STR_STATUS_WORSE_OLD          = "מנהל התקן ישן ופחות אופטימלי"
 
-STR_STATUS_DUP                = "(שכפול)"
+STR_STATUS_DUP                = " (שכפול)"
 
 STR_STATUS_NF_MISSING         = "התקן מסוים דורש מנהל התקן, אך הוא לא נמצא בערכות המנהל."
 STR_STATUS_NF_UNKNOWN         = "ההתקן עובד מצוין אבל לא נמצא מנהל התקן עבורו בערכות המנהל."
@@ -224,9 +227,9 @@ STR_VIRUS_HIDDEN              = "ישנם תיקיות מוסתרות בתיקי
 STR_VIRUS_HIDDEN_H            = "תיקיית השורש מכילה תיקיות מוסתרות. וירוסים יכולים  ליצור תיקיות מוסתרות על מנת להחביא את המצאותם. עצה טובה לבדוק את אותם התיקיות (ראה את יומן הרישום לפרטים)  מוירוסים.  אם אתה בטוח שהם נקיים, צור קובץ טקסט ששמו not_a_virus.txt בתוך כל תיקייה."
 
 // Status
-STR_CLOSE_SNAPSHOT            = "(לחץ כאן כדי להפסיק את האימולציה)"
+STR_CLOSE_SNAPSHOT            = " (לחץ כאן כדי להפסיק את האימולציה)"
 STR_EMPTYDRP                  = "התחבר לרשת כדי להוריד את ערכות המנהל או הצב מנהלי התקן מחולצים בתייקיה דלהלן"
-STR_CLOSE_DRPEXT              = "(לחץ כאן כדי לחזור לתיקיית הברירת מחדל)"
+STR_CLOSE_DRPEXT              = " (לחץ כאן כדי לחזור לתיקיית הברירת מחדל)"
 STR_NOUPDATES                 = "המנהלי התקן מעודכנים"
 STR_INITIALIZING              = "מאתחל...."
 
@@ -240,7 +243,7 @@ STR_INST_FAILED               = "נכשלה ההתקנה, שגיאה"
 STR_INST_INSTALLING           = "מתקין..."
 STR_INST_COMPLITED            = "ההתקנה הושלמה"
 STR_INST_COMPLITED_RB         = "ההתקנה הושלמה (נדרשת הפעלה מחדש)"
-STR_INST_CLOSE                = "(לחץ כאן כדי להסתיר את מנהלי ההתקן המותקנים)"
+STR_INST_CLOSE                = " (לחץ כאן כדי להסתיר את מנהלי ההתקן המותקנים)"
 
 STR_EXTR_EXTRACTING           = "מחלץ...."
 STR_EXTR_OK                   = "חולץ בהצלחה"
@@ -281,27 +284,48 @@ STR_UPD_DIALOG_TITLE          = "בדיקת עידכון"
 STR_UPD_DIALOG_MSG            = "האם אתה מעוניין לאפשר בדיקת עדכונים מקוונת אוטומטית, עבור גרסאות חדשות של ערכות מנהל ואפליקציות?"
 STR_UPD_DIALOG_INDEX          = "האם אתה מעוניין להוריד את האינדקסים האחרונים על מנת שנוכל לקבוע איזה ערכת מנהל אתה צריך להוריד?"
 
+// Updates dialog
 STR_UPD_TITLE                 = "עידכון"
+
 STR_UPD_SELECTION             = "בְּחִירָה"
 STR_UPD_BTN_ALL               = "סמן הכל"
 STR_UPD_BTN_NONE              = "בטל סימון הכל"
 STR_UPD_BTN_NETWORK           = "רשת בלבד"
 STR_UPD_BTN_THISPC            = "סמן רק את אלה הנדרשים למחשב זה"
 STR_UPD_BTN_THISPC_H          = "על מנת שנוכל לקבוע איזה ערכת מנהל אתה צריך, עליך להוריד אינדקסים בתחילה."
-STR_UPD_OPTIONS               = "אפשרויות"
-STR_UPD_ONLYUPDATES           = "אל תידע אודות ערכות מנהל חסרות"
-STR_UPD_TOTALSIZE             = "גודל הורדה סך הכל: %d MB"
-STR_UPD_TOTALAVAIL            = "מקסימום שטח פנוי: %d MB"
-STR_UPD_BTN_OK                = "אישור"
-STR_UPD_BTN_CANCEL            = "ביטול"
-STR_UPD_BTN_ACCEPT            = "מסכים"
+
+STR_UPD_SELECTED              = "Selected: %d / %d"
+STR_UPD_TOTALSIZE             = "גודל הורדה סך הכל: %s"
+STR_UPD_TOTALAVAIL            = "מקסימום שטח פנוי: %s"
+
+STR_UPD_STREAMSTATS           = "Torrent statistics"
+STR_UPD_STREAM_STATE          = "State: "
+STR_UPD_STREAM_COMPLETE       = "Complete: %s / %s (%d%%)"
+STR_UPD_STREAM_TIME           = "Remaining: %s"
+STR_UPD_STREAM_SESSDL         = "Session Downloads: %s (%s/s)"
+STR_UPD_STREAM_SESSUL         = "Session Uploads: %s (%s/s)"
+STR_UPD_STREAM_SEEDS          = "Seeds: %d (%d),  Peers: %d (%d)"
+STR_UPD_STREAM_ALERT          = "Alert: %s"
+
+STR_UPD_OPTIONS               = "Options"
+STR_UPD_ONLYUPDATES           = "Show only updates, hide missing driver packs."
+STR_UPD_KEEPSEEDING           = "Keep sharing after downloads are finished."
+
+STR_UPD_SPECIALMODE           = "Share Mode"
+STR_UPD_TXT_SHARE             = "You can help distribute our driver collection by sharing your 'drivers' folder."
+STR_UPD_BTN_SHARE             = "Share"
+
+STR_UPD_BTN_UPDATE            = "Start"
+STR_UPD_BTN_STOP              = "Stop"
+STR_UPD_BTN_CLOSE             = "Close"
+
 STR_UPD_COL_NAME              = "ערכות מנהל"
 STR_UPD_COL_SIZE              = "גודל"
 STR_UPD_COL_PER               = "%"
 STR_UPD_COL_NEW               = "חדש"
 STR_UPD_COL_CUR               = "נוכחי"
 STR_UPD_COL_THISPC            = "עבור מחשב זה?"
-STR_UPD_WEBSTATUS             = "(אינטרנט)"
+STR_UPD_WEBSTATUS             = " (אינטרנט)"
 STR_UPD_YES                   = "כן"
 STR_UPD_NO                    = "לא"
 STR_UPD_UNKNOWN               = "לא מוכר"
@@ -321,14 +345,23 @@ STR_UPD_INDEXES               = "אינדקסים"
 STR_UPD_UPDATEHINT1           = "עצה"
 STR_UPD_UPDATEHINT2           = "עליך להתחיל בעדכון הבסיס על מנת להשתמש בתכונה הזה"
 
+STR_UPD_PROMPT_01             = "Checking partial files. (%d%%) Download will start shortly..."
+STR_UPD_PROMPT_02             = "Downloading (%d%%)"
+STR_UPD_PROMPT_03             = "Sharing. Press Stop to end."
+STR_UPD_PROMPT_04             = "Download finished"
+STR_UPD_PROMPT_05             = "Checking resume data. Download will start shortly..."
+STR_UPD_PROMPT_06             = "You're up to date. Nothing to download."
+STR_UPD_PROMPT_07             = "Ready: Select the items you want and press Start."
+STR_UPD_PROMPT_08             = "Unable to get updates. Try again later."
+
 // Update hint
 STR_UPD_CHECKING              = "מחפש עדכונים"
 STR_UPD_AVAIL1                = "עידכונים זמינים: SDIO R%d"
 STR_UPD_AVAIL2                = "עידכונים זמינים: %d ערכות מנהל"
 STR_UPD_AVAIL3                = "עידכונים זמינים: SDIO R%d ו- %d ערכות מנהל"
-STR_UPD_START                 = "(לחץ כאן כדי להתחיל להוריד)"
+STR_UPD_START                 = " (לחץ כאן כדי להתחיל להוריד)"
 STR_UPD_PROGRES               = "הורד %s מתוך %s (%d%%)"
-STR_UPD_MODIFY                = "(לחץ כאן כדי לבחור עידכונים)"
+STR_UPD_MODIFY                = " (לחץ כאן כדי לבחור עידכונים)"
 STR_UPD_CHECKINGFILES         = "בודק קבצים %s of %s (%d%%)"
 
 STR_DWN_DOWNLOADED            = "הורד"
@@ -337,7 +370,7 @@ STR_DWN_UPLOADED              = "הועלה"
 STR_DWN_ELAPSED               = "זמן שחלף"
 STR_DWN_REMAINING             = "זמן שנותר"
 STR_DWN_SEEDING               = "Seeding %s (%s)"
-STR_DWN_MODIFY                = "(לחץ כאן כדי לעצור)"
+STR_DWN_MODIFY                = " (לחץ כאן כדי לעצור)"
 STR_DWN_CLOSING               = "מושב סיום"
 
 STR_DWN_STATUS                = "מצב"
@@ -363,6 +396,7 @@ STR_TR_ST5                    = "seeding"
 STR_TR_ST6                    = "מקצה שטח"
 STR_TR_ST7                    = "בדיקת נתוני מקורות חיים"
 STR_TR_ST8                    = "מעביר קבצים"
+STR_TR_ST9                    = "paused"
 
 // Options dialog
 STR_OPTION_TITLE              = "אפשרויות"
@@ -370,8 +404,8 @@ STR_OPTION_VIEW_TAB           = "הצג"
 STR_OPTION_UPDATES_TAB        = "עידכונים"
 STR_OPTION_PATH_TAB           = "מיקומים"
 STR_OPTION_ADVANCED_TAB       = "מתקדם"
-STR_OPTION_OK_BUTTON          = STR_UPD_BTN_OK
-STR_OPTION_CANCEL_BUTTON      = STR_UPD_BTN_CANCEL
+STR_OPTION_OK_BUTTON          = "OK"
+STR_OPTION_CANCEL_BUTTON      = "Cancel"
 
 // View tab
 STR_OPTION_DRPNAMES           = "שמות ערכות מנהל"
@@ -392,8 +426,8 @@ STR_OPTION_ONLYUPDATES        = STR_UPD_ONLYUPDATES
 STR_OPTION_TORRENT            = "טורנט"
 STR_OPTION_PORT               = "יציאה"
 STR_OPTION_MAX_CON            = "מקס' חיבורים (0 - לא מוגבל)"
-STR_OPTION_MAX_DOWNLOAD       = "(0 - לא מוגבל) KB/s מקס' מהירות הורדה ב"
-STR_OPTION_MAX_UPLOAD         = "(0 - לא מוגבל) KB/s מקס' מהירות העלאה ב"
+STR_OPTION_MAX_DOWNLOAD       = " (0 - לא מוגבל) KB/s מקס' מהירות הורדה ב"
+STR_OPTION_MAX_UPLOAD         = " (0 - לא מוגבל) KB/s מקס' מהירות העלאה ב"
 
 // Paths tab
 STR_OPTION_DIR_DRIVERS        = "מנהלי התקן"

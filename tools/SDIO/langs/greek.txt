@@ -46,6 +46,8 @@ STR_DRVDIR                    = "Επιλέξτε φάκελο..."
 STR_DRVDIR_H                  = "Επιλέξτε το φάκελο με τα προγράμματα οδήγησης ή τους οδηγούς στη συμπιεσμένη μορφή .\n\nΜπορείτε επίσης να το χρησιμοποιήσετε για αναζήτηση προγραμμάτων οδήγησης σε έναν οδηγό CD/DVD."
 STR_OPTIONS_BTN               = "Επιλογές..."
 STR_OPTIONS_BTN_H             = "Ανοίξτε το παράθυρο με τις ρυθμίσεις."
+STR_UPDATES_BTN               = "Updates"
+STR_UPDATES_BTN_H             = "Open updates dialog box."
 
 STR_SHOW_FOUND                = "Βρέθηκε στο Driverpacks"
 STR_SHOW_FOUND_H              = "Οι οδηγοί βρίσκονται σε Driverpacks και μπορούν να εγκατασταθούν.\n\nΣυνιστούμε να εγκαταστήσετε τους οδηγούς από τις ακόλουθες κατηγορίες: Δεν έχει εγκατασταθεί,Νέα έκδοση,Καλύτερη επιλογή."
@@ -178,6 +180,7 @@ STR_CONT_OPENINF              = "Ανοίξτε το αρχείο inf από τ�
 STR_CONT_LOCATEINF            = "Εντοπίστε το αρχείο inf από το εγκατεστημένο πρόγραμμα οδήγησης"
 STR_CONT_HWID_SEARCH          = "Αναζήτηση στο Διαδίκτυο για HardwareID"
 STR_CONT_HWID_CLIP            = "Αντιγραφή HardwareID στο πρόχειρο"
+STR_CONT_HWID_IGNORE          = "Add this Hardware ID to Ignore List"
 
 // Misc
 STR_OPENSNAPSHOT              = "Αρχεία εικόνων (*.snp)/0*.snp/0Ολα αρχαια/0*.*/0/0"
@@ -194,7 +197,7 @@ STR_STATUS_STOPPED            = "Η συσκευή έχει σταματήσει
 // Driver status
 STR_STATUS_INVALID            = "Ασυμβίβαστη οδηγοι"
 STR_STATUS_MISSING            = "Το πρόγραμμα οδήγησης είναι διαθέσιμο για εγκατάσταση"
-STR_STATUS_NOTSIGNED          = "(δεν έχει υπογραφεί)"
+STR_STATUS_NOTSIGNED          = " (δεν έχει υπογραφεί)"
 
 STR_STATUS_BETTER_NEW         = "Υπάρχει διαθέσιμη ενημέρωση (πιο κατάλληλη)"
 STR_STATUS_SAME_NEW           = "Διαθέσιμη ενημέρωση"
@@ -208,7 +211,7 @@ STR_STATUS_BETTER_OLD         = "Υπάρχει διαθέσιμη ενημέρ�
 STR_STATUS_SAME_OLD           = "Παλαιότερη έκδοση"
 STR_STATUS_WORSE_OLD          = "Παλαιότερη έκδοση, και επίσης λιγότερο κατάλληλη από τη εγκατεσταμένη"
 
-STR_STATUS_DUP                = "(Διπλότυπο)"
+STR_STATUS_DUP                = " (Διπλότυπο)"
 
 STR_STATUS_NF_MISSING         = "Η συσκευή απαιτεί έναν οδηγό, αλλά δεν βρέθηκε σε Driverpacks"
 STR_STATUS_NF_UNKNOWN         = "Συσκευή λειτουργεί κανονικά αλλά χωρίς οδηγό σε Driverpacks"
@@ -224,9 +227,9 @@ STR_VIRUS_HIDDEN              = "Στη ρίζα του φακελου υπάρ�
 STR_VIRUS_HIDDEN_H            = "Στη ρίζα του φακελου υπάρχουν κρυφοί φακέλοι. Οι ιοί μπορούν να κρύβονται στους φακέλους για να κρύψουν την παρουσία τους. Είναι προτιμότερο να ελέγξτε τους φακέλους για ιούς.n\nΕάν είστε βέβαιοι ότι είναι καθαρό, δημιουργήστε ένα αρχείο με όνομα not_a_virus.txt μέσα σε κάθε φάκελο."
 
 // Status
-STR_CLOSE_SNAPSHOT            = "(Κάντε κλικ εδώ, για να ολοκληρώσει την εξομοίωση συστήματος)"
+STR_CLOSE_SNAPSHOT            = " (Κάντε κλικ εδώ, για να ολοκληρώσει την εξομοίωση συστήματος)"
 STR_EMPTYDRP                  = "Συνδεθείτε στο Internet για να κατεβάσετε driverpacks,ή τοποθετήστε τα προγράμματα οδήγησης στον ακόλουθο φάκελο"
-STR_CLOSE_DRPEXT              = "(Κάντε κλικ εδώ για να επιστρέψετε στον προεπιλεγμένο φάκελο)."
+STR_CLOSE_DRPEXT              = " (Κάντε κλικ εδώ για να επιστρέψετε στον προεπιλεγμένο φάκελο)."
 STR_NOUPDATES                 = "Οι οδηγοί έως σήμερα"
 STR_INITIALIZING              = "Αρχικοποίηση..."
 
@@ -240,7 +243,7 @@ STR_INST_FAILED               = "Δεν απεγινε εγκατασταση,σ
 STR_INST_INSTALLING           = "Εγκατάσταση ..."
 STR_INST_COMPLITED            = "Η εγκατάσταση ολοκληρώθηκε"
 STR_INST_COMPLITED_RB         = "Η εγκατάσταση ολοκληρώθηκε (απαιτεί επανεκκίνηση του συστήματος)"
-STR_INST_CLOSE                = "(Κάντε κλικ εδώ για να κρύψει τα εγκατεστημένα προγράμματα οδήγησης)"
+STR_INST_CLOSE                = " (Κάντε κλικ εδώ για να κρύψει τα εγκατεστημένα προγράμματα οδήγησης)"
 
 STR_EXTR_EXTRACTING           = "Aποσυμπιεση..."
 STR_EXTR_OK                   = "Επιτυχής αποσυμπιεση"
@@ -281,27 +284,48 @@ STR_UPD_DIALOG_TITLE          = "Έλεγχος για ενημερώσεις"
 STR_UPD_DIALOG_MSG            = "Θέλετε να ενεργοποιήσετε τον αυτόματο έλεγχο για ενημερώσεις του προγράμματος και Driverpacks μέσω του Διαδικτύου?"
 STR_UPD_DIALOG_INDEX          = "Θέλετε να πραγματοποιήσετε λήψη του πιο πρόσφατου δεικτών, η οποία θα καθορίσει το τι θα πρέπει να κατεβάσετε στα προγράμματα οδήγησης?"
 
+// Updates dialog
 STR_UPD_TITLE                 = "Ενημέρωση"
+
 STR_UPD_SELECTION             = "Επιλογή"
 STR_UPD_BTN_ALL               = "Επιλογή όλων"
 STR_UPD_BTN_NONE              = "Αφαίρεση"
 STR_UPD_BTN_NETWORK           = "Μόνο δίκτυο"
 STR_UPD_BTN_THISPC            = "Επιλέξτε μόνο για αυτόν τον υπολογιστή"
 STR_UPD_BTN_THISPC_H          = "Για να προσδιορίσει ποιοι είναι οι οδηγοί περιέχουν ενημερωμένες εκδόσεις για τον υπολογιστή σας, Θα πρέπει πρώτα να πραγματοποιήσετε λήψη δεικτών."
-STR_UPD_OPTIONS               = "Επιλογές"
-STR_UPD_ONLYUPDATES           = "Προσφέρουν ενημερώσεις μόνο για διαθέσιμα Driverpacks"
-STR_UPD_TOTALSIZE             = "Το συνολικο ποσο τον ενημερώσεων: %d MB"
-STR_UPD_TOTALAVAIL            = "Σύνολο διαθέσιμου χώρου: %d MB"
-STR_UPD_BTN_OK                = "ΟΚ"
-STR_UPD_BTN_CANCEL            = "Ακύρωση"
-STR_UPD_BTN_ACCEPT            = "Εφαρμογή"
+
+STR_UPD_SELECTED              = "Selected: %d / %d"
+STR_UPD_TOTALSIZE             = "Το συνολικο ποσο τον ενημερώσεων: %s"
+STR_UPD_TOTALAVAIL            = "Σύνολο διαθέσιμου χώρου: %s"
+
+STR_UPD_STREAMSTATS           = "Torrent statistics"
+STR_UPD_STREAM_STATE          = "State: "
+STR_UPD_STREAM_COMPLETE       = "Complete: %s / %s (%d%%)"
+STR_UPD_STREAM_TIME           = "Remaining: %s"
+STR_UPD_STREAM_SESSDL         = "Session Downloads: %s (%s/s)"
+STR_UPD_STREAM_SESSUL         = "Session Uploads: %s (%s/s)"
+STR_UPD_STREAM_SEEDS          = "Seeds: %d (%d),  Peers: %d (%d)"
+STR_UPD_STREAM_ALERT          = "Alert: %s"
+
+STR_UPD_OPTIONS               = "Options"
+STR_UPD_ONLYUPDATES           = "Show only updates, hide missing driver packs."
+STR_UPD_KEEPSEEDING           = "Keep sharing after downloads are finished."
+
+STR_UPD_SPECIALMODE           = "Share Mode"
+STR_UPD_TXT_SHARE             = "You can help distribute our driver collection by sharing your 'drivers' folder."
+STR_UPD_BTN_SHARE             = "Share"
+
+STR_UPD_BTN_UPDATE            = "Start"
+STR_UPD_BTN_STOP              = "Stop"
+STR_UPD_BTN_CLOSE             = "Close"
+
 STR_UPD_COL_NAME              = "Driverpacks"
 STR_UPD_COL_SIZE              = "Μέγεθος"
 STR_UPD_COL_PER               = "%"
 STR_UPD_COL_NEW               = "Νέα"
 STR_UPD_COL_CUR               = "Παλιά"
 STR_UPD_COL_THISPC            = "Για αυτόν τον υπολογιστή;"
-STR_UPD_WEBSTATUS             = "(Διαδίκτυο)"
+STR_UPD_WEBSTATUS             = " (Διαδίκτυο)"
 STR_UPD_YES                   = "Ναι"
 STR_UPD_NO                    = "Όχι"
 STR_UPD_UNKNOWN               = "Άγνωστο"
@@ -321,14 +345,23 @@ STR_UPD_INDEXES               = "Δείκτες των νέων πακέτων"
 STR_UPD_UPDATEHINT1           = "Συμβουλή"
 STR_UPD_UPDATEHINT2           = "Πρέπει πρώτα να αναβαθμίσετε το πρόγραμμα με τους δείκτες."
 
+STR_UPD_PROMPT_01             = "Checking partial files. (%d%%) Download will start shortly..."
+STR_UPD_PROMPT_02             = "Downloading (%d%%)"
+STR_UPD_PROMPT_03             = "Sharing. Press Stop to end."
+STR_UPD_PROMPT_04             = "Download finished"
+STR_UPD_PROMPT_05             = "Checking resume data. Download will start shortly..."
+STR_UPD_PROMPT_06             = "You're up to date. Nothing to download."
+STR_UPD_PROMPT_07             = "Ready: Select the items you want and press Start."
+STR_UPD_PROMPT_08             = "Unable to get updates. Try again later."
+
 // Update hint
 STR_UPD_CHECKING              = "Έλεγος για ενημερώσεις"
 STR_UPD_AVAIL1                = "Υπάρχουν διαθέσιμες ενημερώσεις στο Διαδίκτυο: SDIO R%d"
 STR_UPD_AVAIL2                = "Υπάρχουν διαθέσιμες ενημερώσεις στο Διαδίκτυο: %d Driverpacks"
 STR_UPD_AVAIL3                = "Υπάρχουν διαθέσιμες ενημερώσεις στο Διαδίκτυο: SDIO R%d και %d Driverpacks"
-STR_UPD_START                 = "(Κάντε κλικ εδώ για να ξεκινήσετε τη λήψη)"
+STR_UPD_START                 = " (Κάντε κλικ εδώ για να ξεκινήσετε τη λήψη)"
 STR_UPD_PROGRES               = "Ανέβηκε %s από %s (%d%%)"
-STR_UPD_MODIFY                = "(Κάντε κλικ εδώ, για να επιλέξετε τις ενημερώσεις)"
+STR_UPD_MODIFY                = " (Κάντε κλικ εδώ, για να επιλέξετε τις ενημερώσεις)"
 STR_UPD_CHECKINGFILES         = "Έλεγχος αρχείον %s από %s (%d%%)"
 
 STR_DWN_DOWNLOADED            = "Λήψη"
@@ -337,7 +370,7 @@ STR_DWN_UPLOADED              = "Αποστολή"
 STR_DWN_ELAPSED               = "Χρόνος που παρήλθε"
 STR_DWN_REMAINING             = "Χρόνος που απομένει"
 STR_DWN_SEEDING               = "Διαμοιρασμός %s (%s)"
-STR_DWN_MODIFY                = "(Κάντε κλικ εδώ για να σταματήσετε)"
+STR_DWN_MODIFY                = " (Κάντε κλικ εδώ για να σταματήσετε)"
 STR_DWN_CLOSING               = "Κλείσιμο συνεδρίας"
 
 STR_DWN_STATUS                = "Κατάσταση"
@@ -363,6 +396,7 @@ STR_TR_ST5                    = "Τροφοδοτείται"
 STR_TR_ST6                    = "Κατανομή χώρου"
 STR_TR_ST7                    = "Επανάληψη"
 STR_TR_ST8                    = "μετακίνηση αρχείων"
+STR_TR_ST9                    = "paused"
 
 // Options dialog
 STR_OPTION_TITLE              = "Επιλογές"
@@ -370,8 +404,8 @@ STR_OPTION_VIEW_TAB           = "Προβολή"
 STR_OPTION_UPDATES_TAB        = "Ενημερώσεις"
 STR_OPTION_PATH_TAB           = "Διεύθυνση"
 STR_OPTION_ADVANCED_TAB       = "Αλλο"
-STR_OPTION_OK_BUTTON          = STR_UPD_BTN_OK
-STR_OPTION_CANCEL_BUTTON      = STR_UPD_BTN_CANCEL
+STR_OPTION_OK_BUTTON          = "OK"
+STR_OPTION_CANCEL_BUTTON      = "Cancel"
 
 // View tab
 STR_OPTION_DRPNAMES           = "Ονόματα οδηγών"

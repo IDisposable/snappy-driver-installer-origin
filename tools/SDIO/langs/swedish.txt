@@ -46,6 +46,8 @@ STR_DRVDIR                    = "Välj drivrutinkatalog..."
 STR_DRVDIR_H                  = "Välj en annan mapp med drivrutinpaket eller opackade drivrutiner.\n\nDu kan även använda denna för att söka efter drivrutiner på CD/DVD."
 STR_OPTIONS_BTN               = "Alternativ..."
 STR_OPTIONS_BTN_H             = "Öppna dialogrutan med inställningar."
+STR_UPDATES_BTN               = "Updates"
+STR_UPDATES_BTN_H             = "Open updates dialog box."
 
 STR_SHOW_FOUND                = "Hittade i drivrutinpaket"
 STR_SHOW_FOUND_H              = "Drivrutiner finns i drivrutinpaket och kan installeras\n\nVi rekommenderar att du installerar drivrutinerna från följande kategorier:\nInte installerad - Nyare - Bättre matchning"
@@ -178,6 +180,7 @@ STR_CONT_OPENINF              = "Öppna inf-filen för den installerade drivruti
 STR_CONT_LOCATEINF            = "Leta upp inf-filen för den installerade drivrutinen"
 STR_CONT_HWID_SEARCH          = "Sök på Internet efter Hårdvaru-ID"
 STR_CONT_HWID_CLIP            = "Kopiera Hårdvaru-ID till Windows urklipp"
+STR_CONT_HWID_IGNORE          = "Add this Hardware ID to Ignore List"
 
 // Misc
 STR_OPENSNAPSHOT              = "Snapshot-filer (*.snp)/0*.snp/0All filer/0*.*/0/0"
@@ -194,7 +197,7 @@ STR_STATUS_STOPPED            = "Enheten är för närvarande stoppad"
 // Driver status
 STR_STATUS_INVALID            = "Inkompatibel drivrutin"
 STR_STATUS_MISSING            = "Drivrutin finns (drivrutinen är inte installerad ännu)"
-STR_STATUS_NOTSIGNED          = "(inte signerad)"
+STR_STATUS_NOTSIGNED          = " (inte signerad)"
 
 STR_STATUS_BETTER_NEW         = "Uppdaterad drivrutin tillgänglig som också är mer optimal"
 STR_STATUS_SAME_NEW           = "Uppdaterad drivrutin tillgänglig"
@@ -208,7 +211,7 @@ STR_STATUS_BETTER_OLD         = "Mer optimal drivrutin tillgänglig, men den är
 STR_STATUS_SAME_OLD           = "Gammal drivrutin"
 STR_STATUS_WORSE_OLD          = "Gammal drivrutin och även mindre optimal"
 
-STR_STATUS_DUP                = "(duplicera)"
+STR_STATUS_DUP                = " (duplicera)"
 
 STR_STATUS_NF_MISSING         = "Enheten kräver en drivrutin, men den fanns inte i något drivrutinpaket"
 STR_STATUS_NF_UNKNOWN         = "Enheten fungerar men ingen drivrutin finns i något drivrutinpaket"
@@ -224,9 +227,9 @@ STR_VIRUS_HIDDEN              = "Det finns dolda mappar i rotkatalogen"
 STR_VIRUS_HIDDEN_H            = "Rotmappen innehåller dolda mappar. Virus kan skapa dolda mappar för att dölja sin närvaro. Det rekommenderas att kontrollera mapparna (se log för detaljer) efter virus.\n\nOm du är säker på att det är rent, skapa en fil med namnet not_a_virus.txt inuti varje mapp."
 
 // Status
-STR_CLOSE_SNAPSHOT            = "(Klicka här för att stoppa emulering)"
+STR_CLOSE_SNAPSHOT            = " (Klicka här för att stoppa emulering)"
 STR_EMPTYDRP                  = "Anslut till Internet för att hämta drivrutinpaket eller placera uppackad drivrutin i följande mapp"
-STR_CLOSE_DRPEXT              = "(Klicka här för att återgå till standardmappen)"
+STR_CLOSE_DRPEXT              = " (Klicka här för att återgå till standardmappen)"
 STR_NOUPDATES                 = "Drivrutinerna är uppdaterade"
 STR_INITIALIZING              = "Initierar..."
 
@@ -240,7 +243,7 @@ STR_INST_FAILED               = "Det gick inte att installera, fel"
 STR_INST_INSTALLING           = "Installerar..."
 STR_INST_COMPLITED            = "Installationen slutförd"
 STR_INST_COMPLITED_RB         = "Installationen slutförd (Omstart av systemet krävs)"
-STR_INST_CLOSE                = "(Klicka här för att dölja installerade drivrutiner)"
+STR_INST_CLOSE                = " (Klicka här för att dölja installerade drivrutiner)"
 
 STR_EXTR_EXTRACTING           = "Extrahera..."
 STR_EXTR_OK                   = "Framgångsrikt extraherade"
@@ -281,27 +284,48 @@ STR_UPD_DIALOG_TITLE          = "Uppdateringskontroll"
 STR_UPD_DIALOG_MSG            = "Vill du aktivera automatisk kontroll online för nya versioner av drivrutinpaket och programmet?"
 STR_UPD_DIALOG_INDEX          = "Vill du ladda ner senaste index för att göra det möjligt att bestämma vilket drivrutinpaket du behöver ladda ner?"
 
+// Updates dialog
 STR_UPD_TITLE                 = "Uppdatera"
+
 STR_UPD_SELECTION             = "Markering"
 STR_UPD_BTN_ALL               = "Markera alla"
 STR_UPD_BTN_NONE              = "Avmarkera alla"
 STR_UPD_BTN_NETWORK           = "Endast Nätverk"
 STR_UPD_BTN_THISPC            = "Markera endast för denna PC"
 STR_UPD_BTN_THISPC_H          = "För att kunna avgöra vilka drivrutinpaket du behöver, så måste du ladda ner index först."
-STR_UPD_OPTIONS               = "Alternativ"
-STR_UPD_ONLYUPDATES           = "Meddela inte om saknade drivrutinpaket"
-STR_UPD_TOTALSIZE             = "Total hämtningsstorlek: %d MB"
-STR_UPD_TOTALAVAIL            = "Totalt tillgängligt utrymme: %d MB"
-STR_UPD_BTN_OK                = "OK"
-STR_UPD_BTN_CANCEL            = "Avbryt"
-STR_UPD_BTN_ACCEPT            = "Acceptera"
+
+STR_UPD_SELECTED              = "Selected: %d / %d"
+STR_UPD_TOTALSIZE             = "Total hämtningsstorlek: %s"
+STR_UPD_TOTALAVAIL            = "Totalt tillgängligt utrymme: %s"
+
+STR_UPD_STREAMSTATS           = "Torrent statistics"
+STR_UPD_STREAM_STATE          = "State: "
+STR_UPD_STREAM_COMPLETE       = "Complete: %s / %s (%d%%)"
+STR_UPD_STREAM_TIME           = "Remaining: %s"
+STR_UPD_STREAM_SESSDL         = "Session Downloads: %s (%s/s)"
+STR_UPD_STREAM_SESSUL         = "Session Uploads: %s (%s/s)"
+STR_UPD_STREAM_SEEDS          = "Seeds: %d (%d),  Peers: %d (%d)"
+STR_UPD_STREAM_ALERT          = "Alert: %s"
+
+STR_UPD_OPTIONS               = "Options"
+STR_UPD_ONLYUPDATES           = "Show only updates, hide missing driver packs."
+STR_UPD_KEEPSEEDING           = "Keep sharing after downloads are finished."
+
+STR_UPD_SPECIALMODE           = "Share Mode"
+STR_UPD_TXT_SHARE             = "You can help distribute our driver collection by sharing your 'drivers' folder."
+STR_UPD_BTN_SHARE             = "Share"
+
+STR_UPD_BTN_UPDATE            = "Start"
+STR_UPD_BTN_STOP              = "Stop"
+STR_UPD_BTN_CLOSE             = "Close"
+
 STR_UPD_COL_NAME              = "Drivrutinspaket"
 STR_UPD_COL_SIZE              = "Storlek"
 STR_UPD_COL_PER               = "%"
 STR_UPD_COL_NEW               = "Ny"
 STR_UPD_COL_CUR               = "Aktuell"
 STR_UPD_COL_THISPC            = "För denna dator?"
-STR_UPD_WEBSTATUS             = "(Internet)"
+STR_UPD_WEBSTATUS             = " (Internet)"
 STR_UPD_YES                   = "Ja"
 STR_UPD_NO                    = "Nej"
 STR_UPD_UNKNOWN               = "Okänd"
@@ -321,14 +345,23 @@ STR_UPD_INDEXES               = "Index"
 STR_UPD_UPDATEHINT1           = "Tips"
 STR_UPD_UPDATEHINT2           = "Du måste uppdatera databasens index först för att använda denna funktion."
 
+STR_UPD_PROMPT_01             = "Checking partial files. (%d%%) Download will start shortly..."
+STR_UPD_PROMPT_02             = "Downloading (%d%%)"
+STR_UPD_PROMPT_03             = "Sharing. Press Stop to end."
+STR_UPD_PROMPT_04             = "Download finished"
+STR_UPD_PROMPT_05             = "Checking resume data. Download will start shortly..."
+STR_UPD_PROMPT_06             = "You're up to date. Nothing to download."
+STR_UPD_PROMPT_07             = "Ready: Select the items you want and press Start."
+STR_UPD_PROMPT_08             = "Unable to get updates. Try again later."
+
 // Update hint
 STR_UPD_CHECKING              = "Söker efter uppdateringar"
 STR_UPD_AVAIL1                = "Uppdateringar finns: SDIO R%d"
 STR_UPD_AVAIL2                = "Uppdateringar finns: %d drivrutinpaket"
 STR_UPD_AVAIL3                = "Uppdateringar finns: SDIO R%d och %d drivrutinpaket"
-STR_UPD_START                 = "(Klicka här för att komma till nedladdning)"
+STR_UPD_START                 = " (Klicka här för att komma till nedladdning)"
 STR_UPD_PROGRES               = "Nedladdade %s utav %s (%d%%)"
-STR_UPD_MODIFY                = "(klicka här för att välja uppdateringar)"
+STR_UPD_MODIFY                = " (klicka här för att välja uppdateringar)"
 STR_UPD_CHECKINGFILES         = "Kontrollerar filer %s of %s (%d%%)"
 
 STR_DWN_DOWNLOADED            = "Nedladdade"
@@ -337,7 +370,7 @@ STR_DWN_UPLOADED              = "Uppladdning"
 STR_DWN_ELAPSED               = "Förfluten tid"
 STR_DWN_REMAINING             = "Återstående tid"
 STR_DWN_SEEDING               = "Distribuerar %s (%s)"
-STR_DWN_MODIFY                = "(Klicka här för att stoppa)"
+STR_DWN_MODIFY                = " (Klicka här för att stoppa)"
 STR_DWN_CLOSING               = "Stänger session"
 
 STR_DWN_STATUS                = "Status"
@@ -363,6 +396,7 @@ STR_TR_ST5                    = "distribuerar"
 STR_TR_ST6                    = "allokerar utrymme"
 STR_TR_ST7                    = "kontrollerar återupptagen data"
 STR_TR_ST8                    = "flyttar filer"
+STR_TR_ST9                    = "paused"
 
 // Options dialog
 STR_OPTION_TITLE              = "Alternativ"
@@ -370,8 +404,8 @@ STR_OPTION_VIEW_TAB           = "Visa"
 STR_OPTION_UPDATES_TAB        = "Uppdateringar"
 STR_OPTION_PATH_TAB           = "Sökväg"
 STR_OPTION_ADVANCED_TAB       = "Avancerad"
-STR_OPTION_OK_BUTTON          = STR_UPD_BTN_OK
-STR_OPTION_CANCEL_BUTTON      = STR_UPD_BTN_CANCEL
+STR_OPTION_OK_BUTTON          = "OK"
+STR_OPTION_CANCEL_BUTTON      = "Cancel"
 
 // View tab
 STR_OPTION_DRPNAMES           = "Drivrutinpaketets namn"

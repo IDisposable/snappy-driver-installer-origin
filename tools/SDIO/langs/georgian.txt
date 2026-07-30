@@ -46,6 +46,8 @@ STR_DRVDIR                    = "დასვით წყარო..."
 STR_DRVDIR_H                  = "აირჩიეთ ფოლდერი დრივერპაკებთან ან დრაივერებთან დაუფასოებელი ხედით.\n\nშეიძლება იყოს გამოყენებული დრაივერების შესარჩევად ოფიციალური დისკზე დრივერებთან ერთად, შეფუთული მოწყობილობის კომპლექტში."
 STR_OPTIONS_BTN               = "პარამეტრები..."
 STR_OPTIONS_BTN_H             = "გახსნა კონფიგურაციის დიალოგი."
+STR_UPDATES_BTN               = "Updates"
+STR_UPDATES_BTN_H             = "Open updates dialog box."
 
 STR_SHOW_FOUND                = "არიან დრივერპაკებში"
 STR_SHOW_FOUND_H              = "დრაივერები შემდეგ კატეგორიებში დრაივერპაკებტან იპოვეს, და შესაბამისად შეიძლება დაყენება.\n\nრეკომენდებულია დრაივერების დაყენება კატეგორიებიდან: არ დაყენებულები, ახალი ვერსიები და უფრო შესაფერისი."
@@ -178,6 +180,7 @@ STR_CONT_OPENINF              = "გახსნა inf ფაილი და�
 STR_CONT_LOCATEINF            = "გახსნა ფოლდერი inf ფაილით დაყენებულ დრაივერზე"
 STR_CONT_HWID_SEARCH          = "ძებნა დრაივერი ინტერნეტში"
 STR_CONT_HWID_CLIP            = "კოპირება მოწყობილობის კოდი გაცვლა ბუფერში"
+STR_CONT_HWID_IGNORE          = "Add this Hardware ID to Ignore List"
 
 // Misc
 STR_OPENSNAPSHOT              = "სურათების ფაილები (*.snp)/0*.snp/0ყველა ფაილი/0*.*/0/0"
@@ -194,7 +197,7 @@ STR_STATUS_STOPPED            = "მოწყობილობა შეჩე�
 // Driver status
 STR_STATUS_INVALID            = "შეუთავსებელი დრაივერი"
 STR_STATUS_MISSING            = "დრაივერი ხელმისაწვდომია დაყენებისთვის"
-STR_STATUS_NOTSIGNED          = "(არ არის ხელმოწერა)"
+STR_STATUS_NOTSIGNED          = " (არ არის ხელმოწერა)"
 
 STR_STATUS_BETTER_NEW         = "განახლება შესაძლებელია (უფრო შესაფერისი)"
 STR_STATUS_SAME_NEW           = "განახლება შესაძლებელია"
@@ -208,7 +211,7 @@ STR_STATUS_BETTER_OLD         = "განახლება შესაძლ�
 STR_STATUS_SAME_OLD           = "ძველი ვერსია"
 STR_STATUS_WORSE_OLD          = "ძველი ვერსია, და ასევე ნაკლებად შესაფერისი, ვიდრე დაყენებული"
 
-STR_STATUS_DUP                = "(დუბლიკატი)"
+STR_STATUS_DUP                = " (დუბლიკატი)"
 
 STR_STATUS_NF_MISSING         = "საჭირო დრაივერი არ არის დრაივერპაკებში"
 STR_STATUS_NF_UNKNOWN         = "დაყენებული დრაივერი, მაგრამ ის არ არის დრაივერპაკებში"
@@ -224,9 +227,9 @@ STR_VIRUS_HIDDEN              = "ჩაწერის საშუალოს 
 STR_VIRUS_HIDDEN_H            = "ჩაწერის საშუალოს ძირში არის ფარული დირექტორიები. ისენები ხშირად ვირუსებით გამოიყენება, და ასე რომ მიზანშეწონილია ანტივირუსით შემოწმება.\n\nთუ ეს დირექტორიები არის უსაფრთხო, მაშინ ამ გაფრთხილებას დაფარვა შესადზლებელია რომ იყოს შექმნილი ყოველ დირექტორიის შიგნით ფაილი სახელით not_a_virus.txt."
 
 // Status
-STR_CLOSE_SNAPSHOT            = "(დააჭირეთ აქ, სისტემის ემულაცია დასრულდეს)"
+STR_CLOSE_SNAPSHOT            = " (დააჭირეთ აქ, სისტემის ემულაცია დასრულდეს)"
 STR_EMPTYDRP                  = "დაკავშირდით ინტერნეტი, დრაივერპაკების ჩამოსატვირთად ან დადეთ დრაივერები შემდეგ ფოლდერში"
-STR_CLOSE_DRPEXT              = "(დააჭირეთ აქ, რომ დაბრუნდეს სტანდარტული დრაივერებთან)"
+STR_CLOSE_DRPEXT              = " (დააჭირეთ აქ, რომ დაბრუნდეს სტანდარტული დრაივერებთან)"
 STR_NOUPDATES                 = "დრაივერები აქტუალურ მდგომარეობაშია"
 STR_INITIALIZING              = "ინიციალიზაცია..."
 
@@ -240,7 +243,7 @@ STR_INST_FAILED               = "ინსტალაცია ვერ ხე
 STR_INST_INSTALLING           = "დაყენება..."
 STR_INST_COMPLITED            = "ინსტალაცია დასრულებულია"
 STR_INST_COMPLITED_RB         = "ინსტალაცია დასრულებულია (ის მოითხოვს სისტემის გადატვირთვა)"
-STR_INST_CLOSE                = "(დააჭირეთ მაუს, დამალვე დაყენებული დრაივერები)"
+STR_INST_CLOSE                = " (დააჭირეთ მაუს, დამალვე დაყენებული დრაივერები)"
 
 STR_EXTR_EXTRACTING           = "ამოაარქივდება..."
 STR_EXTR_OK                   = "წარმატებით ამოაარქივდა"
@@ -281,27 +284,48 @@ STR_UPD_DIALOG_TITLE          = "განახლებების შეა�
 STR_UPD_DIALOG_MSG            = "გსურთ, ჩართვა ავტომატური შემოწმება პროგრამის და დრაივერპაკების განახლებები ინტერნეტში?"
 STR_UPD_DIALOG_INDEX          = "გსურთ ჩამოტვირთოთ უახლესი ინდექსები, რომელიც განსაზღვრავს, თუ რა დრაივერპაკები უნდა ჩამოტვირთოთ?"
 
+// Updates dialog
 STR_UPD_TITLE                 = "განახლება"
+
 STR_UPD_SELECTION             = "შერჩევა"
 STR_UPD_BTN_ALL               = "მონიშნო ყველა"
 STR_UPD_BTN_NONE              = "მონიშნის გააუქმება"
 STR_UPD_BTN_NETWORK           = "მხოლოდ ქსელი"
 STR_UPD_BTN_THISPC            = "გამოყოფა მხოლოდ ამ კომპიუტერში"
 STR_UPD_BTN_THISPC_H          = "იმისათვის, რომ დადგინდეს, თუ რა დრაივერპაკები შეიცავს განახლება თქვენ კომპიუტერში, თქვენ ჯერ უნდა ჩამოტვირთოთ ინდექსები."
-STR_UPD_OPTIONS               = "Პარამეტრები"
-STR_UPD_ONLYUPDATES           = "გთავაზობთ მხოლოდ დრაივერპაკების განახლებებს"
-STR_UPD_TOTALSIZE             = "განახლებების საერთო მოცულობა: %d მბ"
-STR_UPD_TOTALAVAIL            = "სულ ხელმისაწვდომი სივრცე: %d მბ"
-STR_UPD_BTN_OK                = "OK"
-STR_UPD_BTN_CANCEL            = "გაუქმება"
-STR_UPD_BTN_ACCEPT            = "მიმართვა"
+
+STR_UPD_SELECTED              = "Selected: %d / %d"
+STR_UPD_TOTALSIZE             = "განახლებების საერთო მოცულობა: %s"
+STR_UPD_TOTALAVAIL            = "სულ ხელმისაწვდომი სივრცე: %s"
+
+STR_UPD_STREAMSTATS           = "Torrent statistics"
+STR_UPD_STREAM_STATE          = "State: "
+STR_UPD_STREAM_COMPLETE       = "Complete: %s / %s (%d%%)"
+STR_UPD_STREAM_TIME           = "Remaining: %s"
+STR_UPD_STREAM_SESSDL         = "Session Downloads: %s (%s/s)"
+STR_UPD_STREAM_SESSUL         = "Session Uploads: %s (%s/s)"
+STR_UPD_STREAM_SEEDS          = "Seeds: %d (%d),  Peers: %d (%d)"
+STR_UPD_STREAM_ALERT          = "Alert: %s"
+
+STR_UPD_OPTIONS               = "Options"
+STR_UPD_ONLYUPDATES           = "Show only updates, hide missing driver packs."
+STR_UPD_KEEPSEEDING           = "Keep sharing after downloads are finished."
+
+STR_UPD_SPECIALMODE           = "Share Mode"
+STR_UPD_TXT_SHARE             = "You can help distribute our driver collection by sharing your 'drivers' folder."
+STR_UPD_BTN_SHARE             = "Share"
+
+STR_UPD_BTN_UPDATE            = "Start"
+STR_UPD_BTN_STOP              = "Stop"
+STR_UPD_BTN_CLOSE             = "Close"
+
 STR_UPD_COL_NAME              = "დრაივერპაკი"
 STR_UPD_COL_SIZE              = "ზომა"
 STR_UPD_COL_PER               = "%"
 STR_UPD_COL_NEW               = "ახალი"
 STR_UPD_COL_CUR               = "ძველი"
 STR_UPD_COL_THISPC            = "ამ კომპიუტერის?"
-STR_UPD_WEBSTATUS             = "(ინტერნეტი)"
+STR_UPD_WEBSTATUS             = " (ინტერნეტი)"
 STR_UPD_YES                   = "კი"
 STR_UPD_NO                    = "არა"
 STR_UPD_UNKNOWN               = "უცნობია"
@@ -321,14 +345,23 @@ STR_UPD_INDEXES               = "ახალი პაკების ინდ
 STR_UPD_UPDATEHINT1           = "შენიშვნა"
 STR_UPD_UPDATEHINT2           = "თქვენ უნდა გააკეთოთ ინდექსიტ პროგრამის განახლება."
 
+STR_UPD_PROMPT_01             = "Checking partial files. (%d%%) Download will start shortly..."
+STR_UPD_PROMPT_02             = "Downloading (%d%%)"
+STR_UPD_PROMPT_03             = "Sharing. Press Stop to end."
+STR_UPD_PROMPT_04             = "Download finished"
+STR_UPD_PROMPT_05             = "Checking resume data. Download will start shortly..."
+STR_UPD_PROMPT_06             = "You're up to date. Nothing to download."
+STR_UPD_PROMPT_07             = "Ready: Select the items you want and press Start."
+STR_UPD_PROMPT_08             = "Unable to get updates. Try again later."
+
 // Update hint
 STR_UPD_CHECKING              = "მიმდინარეობს განახლებების შემოწმება"
 STR_UPD_AVAIL1                = "განახლებები ხელმისაწვდომია ინტერნეტიდან: SDIO R%d"
 STR_UPD_AVAIL2                = "განახლებები ხელმისაწვდომია ინტერნეტიდან: %d დრაივერპაკები"
 STR_UPD_AVAIL3                = "განახლებები ხელმისაწვდომია ინტერნეტიდან: SDIO R%d და %d დრაივერპაკები"
-STR_UPD_START                 = "(დააჭირეთ აქ, რათა დაიწყოს ჩამოტვირთვა)"
+STR_UPD_START                 = " (დააჭირეთ აქ, რათა დაიწყოს ჩამოტვირთვა)"
 STR_UPD_PROGRES               = "ატვირთულია %s %s დან (%d%%)"
-STR_UPD_MODIFY                = "(დააჭირეთ აქ, რათა აირჩიოთ განახლებები)"
+STR_UPD_MODIFY                = " (დააჭირეთ აქ, რათა აირჩიოთ განახლებები)"
 STR_UPD_CHECKINGFILES         = "ფაილების შემოწმება %s of %s (%d%%)"
 
 STR_DWN_DOWNLOADED            = "ატვირთულია"
@@ -337,7 +370,7 @@ STR_DWN_UPLOADED              = "მოცემულია"
 STR_DWN_ELAPSED               = "წავიდა"
 STR_DWN_REMAINING             = "დარჩენილი"
 STR_DWN_SEEDING               = "Seeding %s (%s)"
-STR_DWN_MODIFY                = "(დააჭირეთ აქ, რომ გაჩერდეთ)"
+STR_DWN_MODIFY                = " (დააჭირეთ აქ, რომ გაჩერდეთ)"
 STR_DWN_CLOSING               = "დასკვნითი სხდომა"
 
 STR_DWN_STATUS                = "სტატუსი"
@@ -363,6 +396,7 @@ STR_TR_ST5                    = "გავრცელება"
 STR_TR_ST6                    = "ადგილის დაცულება"
 STR_TR_ST7                    = "განახლება"
 STR_TR_ST8                    = "ფაილების გადაადგილება"
+STR_TR_ST9                    = "paused"
 
 // Options dialog
 STR_OPTION_TITLE              = "პარამეტრები"
@@ -370,8 +404,8 @@ STR_OPTION_VIEW_TAB           = "ტიპი"
 STR_OPTION_UPDATES_TAB        = "განახლებები"
 STR_OPTION_PATH_TAB           = "გზები"
 STR_OPTION_ADVANCED_TAB       = "სხვა"
-STR_OPTION_OK_BUTTON          = STR_UPD_BTN_OK
-STR_OPTION_CANCEL_BUTTON      = STR_UPD_BTN_CANCEL
+STR_OPTION_OK_BUTTON          = "OK"
+STR_OPTION_CANCEL_BUTTON      = "Cancel"
 
 // View tab
 STR_OPTION_DRPNAMES           = "დრაივერპაკების სახელები"

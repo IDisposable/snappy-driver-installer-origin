@@ -46,6 +46,8 @@ STR_DRVDIR                    = "Նշել աղբյուրը..."
 STR_DRVDIR_H                  = "Ընտրեք դրայվերպակի կամ բացված դրայվերներով պանակը:\n\nՈրորնման համակար կարելի է օգտագործել սարքավորման հետ նախատեսված օրիգինալ դիսկը:"
 STR_OPTIONS_BTN               = "Ընտրանքներ"
 STR_OPTIONS_BTN_H             = "Բացել պարամետրերի երկխոսության պատուհան:"
+STR_UPDATES_BTN               = "Updates"
+STR_UPDATES_BTN_H             = "Open updates dialog box."
 
 STR_SHOW_FOUND                = "Դրայվ-րի փաթ-մ առկա"
 STR_SHOW_FOUND_H              = "Ստորև ներկայացված դրայվերները հայտնաբերված են դրայվերպակում, համատեղելի են և կարելի է տեղադրվել:\n\nԽորհուրդ է տրվում տեղադրել հետևյալ բաժիններից. չտեղադրվածներ, նոր տարբերակներ և առավել համապատասխան:"
@@ -178,6 +180,7 @@ STR_CONT_OPENINF              = "Բացել տեղադրված դրայվերի 
 STR_CONT_LOCATEINF            = "Տեղավորել տեղադրված դրայվերի inf ֆայլի պանակը"
 STR_CONT_HWID_SEARCH          = "Փնտրել սարքավորման կոդը համացանցում"
 STR_CONT_HWID_CLIP            = "Պատճենել սարքի կոդը փոխանցման բուֆեր"
+STR_CONT_HWID_IGNORE          = "Add this Hardware ID to Ignore List"
 
 // Misc
 STR_OPENSNAPSHOT              = "Պատկերումների ֆայլերը (*.snp)/0*.snp/0Բոլոր ֆայլերը/0*.*/0/0"
@@ -194,7 +197,7 @@ STR_STATUS_STOPPED            = "Սարքավորումը կանգնեցված �
 // Driver status
 STR_STATUS_INVALID            = "Անհամատեղելի դրայվեր"
 STR_STATUS_MISSING            = "Դրայվերը հասանելի է(դեռ տեղադրված չէ)"
-STR_STATUS_NOTSIGNED          = "(գրանցում չկա)"
+STR_STATUS_NOTSIGNED          = " (գրանցում չկա)"
 
 STR_STATUS_BETTER_NEW         = "Հասանելի է դրայվերի առավել օպտիմալ թարմացում"
 STR_STATUS_SAME_NEW           = "Հասանելի է դրայվերի թարմացում"
@@ -208,7 +211,7 @@ STR_STATUS_BETTER_OLD         = "Հասանելի է առավել օպտիմալ
 STR_STATUS_SAME_OLD           = "Հին դրայվեր"
 STR_STATUS_WORSE_OLD          = "Հին բայց և օպտիմալ դրայվեր"
 
-STR_STATUS_DUP                = "(Կրկնօրինակ)"
+STR_STATUS_DUP                = " (Կրկնօրինակ)"
 
 STR_STATUS_NF_MISSING         = "Անհրաժեշտ դրայվերը բացակայում է դրայվերների փաթեթում"
 STR_STATUS_NF_UNKNOWN         = "Դրայվերը աշխատում է նորմալ, բայց բացակայում է դրայվերների փաթեթում"
@@ -224,9 +227,9 @@ STR_VIRUS_HIDDEN              = "Կրիչի արմատում առկա են թա�
 STR_VIRUS_HIDDEN_H            = "Կրիչի արմատում առկա են թաքնված պանակներ: Դրանք հաճախ օգտագործվում են վիրուսների կողմից և խորհուրդ է տրվում ստուգել վիրուսներից:\n\nԵթե այդ պանակը անվտանգ է, ապա այդ պանակում ստեղծեք ֆայլ not_a_virus.txt անունով:"
 
 // Status
-STR_CLOSE_SNAPSHOT            = "(Սեղմեք այստեղ էմուլիացիան կանգնեցնելու համար)"
+STR_CLOSE_SNAPSHOT            = " (Սեղմեք այստեղ էմուլիացիան կանգնեցնելու համար)"
 STR_EMPTYDRP                  = "Միացեք ինտերնետին դրայվերները բեռնելու համար կամ բացազատեք դրայվերները հետևյալ պանակում"
-STR_CLOSE_DRPEXT              = "(Սեղմեք այստեղ, լռելյայն պանակին վերադառնալու համար)"
+STR_CLOSE_DRPEXT              = " (Սեղմեք այստեղ, լռելյայն պանակին վերադառնալու համար)"
 STR_NOUPDATES                 = "Դրայվերները ակտուալ կարգավիճակում են"
 STR_INITIALIZING              = "Սկզբնարժեքավորում..."
 
@@ -240,7 +243,7 @@ STR_INST_FAILED               = "Չստացվեծ տեղադրել, սխալ"
 STR_INST_INSTALLING           = "Տեղադրում..."
 STR_INST_COMPLITED            = "Տեղադրումը ավարտվեց"
 STR_INST_COMPLITED_RB         = "Տեղադրումն ավարտվեց (անհրաժեշտ է համակարգի վերաբեռնավորում)"
-STR_INST_CLOSE                = "(Սեղմեք մկնիկով,  տեղադրված դրայվերները թաքցնելու համար)"
+STR_INST_CLOSE                = " (Սեղմեք մկնիկով,  տեղադրված դրայվերները թաքցնելու համար)"
 
 STR_EXTR_EXTRACTING           = "Բացազատում..."
 STR_EXTR_OK                   = "Հաջող բացազատվեց"
@@ -281,27 +284,47 @@ STR_UPD_DIALOG_TITLE          = "Թարմացման ստուգում"
 STR_UPD_DIALOG_MSG            = "Դուք ցանկանում եք միացնել ծրագրերի ու դրայվերների փաթեթների ինքնուրույն թարմացման ստուգումը?"
 STR_UPD_DIALOG_INDEX          = "Դուք ցանկանում եք բեռնել նոր ինդեքսներ, որոնք կօգնեն կողմնորոշվել որ դրայվերների փաթեթն է Ձեր ահամար անհրաժեշտ?"
 
+// Updates dialog
 STR_UPD_TITLE                 = "Թարմացում"
+
 STR_UPD_SELECTION             = "Ընտրություն"
 STR_UPD_BTN_ALL               = "Նշել բոլորը"
 STR_UPD_BTN_NONE              = "Հանել նշումները"
 STR_UPD_BTN_NETWORK           = "Միայն ցանց"
 STR_UPD_BTN_THISPC            = "Տարբերակել միայն նշված համակարգչի համար"
 STR_UPD_BTN_THISPC_H          = "Որպեսզի տարբերակեք դրայվերների փաթեթի որ դրայվերներն են անհրաժեշտ այս համակարգչի համար, առաջնահերթ հարկավոր է բեռնել ինդեքսները:"
-STR_UPD_OPTIONS               = "Ընտրանքներ"
-STR_UPD_ONLYUPDATES           = "Չտեղեկացնել բացակայող դրայվերների փաթեթի մասին"
-STR_UPD_TOTALSIZE             = "Բեռնման գումարային ծավալը. %d МБ"
-STR_UPD_TOTALAVAIL            = "Ընդամենը մնացել է %d MB"
-STR_UPD_BTN_OK                = "Օկ"
-STR_UPD_BTN_CANCEL            = "Չեղյալ"
-STR_UPD_BTN_ACCEPT            = "Ընդունել"
+
+STR_UPD_SELECTED              = "Selected: %d / %d"
+STR_UPD_TOTALSIZE             = "Բեռնման գումարային ծավալը. %s"
+STR_UPD_TOTALAVAIL            = "Ընդամենը մնացել է %s"
+
+STR_UPD_STREAMSTATS           = "Torrent statistics"
+STR_UPD_STREAM_STATE          = "State: "
+STR_UPD_STREAM_COMPLETE       = "Complete: %s / %s (%d%%)"
+STR_UPD_STREAM_TIME           = "Remaining: %s"
+STR_UPD_STREAM_SESSDL         = "Session Downloads: %s (%s/s)"
+STR_UPD_STREAM_SESSUL         = "Session Uploads: %s (%s/s)"
+STR_UPD_STREAM_SEEDS          = "Seeds: %d (%d),  Peers: %d (%d)"
+STR_UPD_STREAM_ALERT          = "Alert: %s"
+
+STR_UPD_OPTIONS               = "Options"
+STR_UPD_ONLYUPDATES           = "Show only updates, hide missing driver packs."
+STR_UPD_KEEPSEEDING           = "Keep sharing after downloads are finished."
+
+STR_UPD_SPECIALMODE           = "Share Mode"
+STR_UPD_TXT_SHARE             = "You can help distribute our driver collection by sharing your 'drivers' folder."
+STR_UPD_BTN_SHARE             = "Share"
+
+STR_UPD_BTN_UPDATE            = "Start"
+STR_UPD_BTN_STOP              = "Stop"
+STR_UPD_BTN_CLOSE             = "Close"
 STR_UPD_COL_NAME              = "Դրայվերների փաթեթ"
 STR_UPD_COL_SIZE              = "Չափ"
 STR_UPD_COL_PER               = "%"
 STR_UPD_COL_NEW               = "Նոր"
 STR_UPD_COL_CUR               = "Ընթացիկ"
 STR_UPD_COL_THISPC            = "Այս համ-ի համար?"
-STR_UPD_WEBSTATUS             = "(Համացանց)"
+STR_UPD_WEBSTATUS             = " (Համացանց)"
 STR_UPD_YES                   = "Այո"
 STR_UPD_NO                    = "Ոչ"
 STR_UPD_UNKNOWN               = "Անհայտ"
@@ -321,14 +344,23 @@ STR_UPD_INDEXES               = "Ինդեքսներ"
 STR_UPD_UPDATEHINT1           = "Ակնարկ"
 STR_UPD_UPDATEHINT2           = "Դուք առաջնահերթ պետք է թարմացնեք բազան, այս հնարավորությունից օգտվելու համար:"
 
+STR_UPD_PROMPT_01             = "Checking partial files. (%d%%) Download will start shortly..."
+STR_UPD_PROMPT_02             = "Downloading (%d%%)"
+STR_UPD_PROMPT_03             = "Sharing. Press Stop to end."
+STR_UPD_PROMPT_04             = "Download finished"
+STR_UPD_PROMPT_05             = "Checking resume data. Download will start shortly..."
+STR_UPD_PROMPT_06             = "You're up to date. Nothing to download."
+STR_UPD_PROMPT_07             = "Ready: Select the items you want and press Start."
+STR_UPD_PROMPT_08             = "Unable to get updates. Try again later."
+
 // Update hint
 STR_UPD_CHECKING              = "Թարմացումների ստուգում"
 STR_UPD_AVAIL1                = "Հասանելի են թարմացումներ. SDIO R%d"
 STR_UPD_AVAIL2                = "Հասանելի են թարմացումներ. %d դրայվերների փաթեթ"
 STR_UPD_AVAIL3                = "Հասանելի են թարմացումներ. SDIO R%d ից %d դրայվերների փաթեթ"
-STR_UPD_START                 = "(Սեղմեք այստեղ, որպեսզի բեռնումը սկսվի)"
+STR_UPD_START                 = " (Սեղմեք այստեղ, որպեսզի բեռնումը սկսվի)"
 STR_UPD_PROGRES               = "Բեռնված է %s ից %s (%d%%)"
-STR_UPD_MODIFY                = "(Սեղմեք այստեղ, որպեսզի ընտրեք թարմացումը)"
+STR_UPD_MODIFY                = " (Սեղմեք այստեղ, որպեսզի ընտրեք թարմացումը)"
 STR_UPD_CHECKINGFILES         = "Ֆայլերի ստուգում %s of %s (%d%%)"
 
 STR_DWN_DOWNLOADED            = "Բեռնված է"
@@ -337,7 +369,7 @@ STR_DWN_UPLOADED              = "Տրված է"
 STR_DWN_ELAPSED               = "Անցել է"
 STR_DWN_REMAINING             = "Մնաց"
 STR_DWN_SEEDING               = "Սերմնացան %s (%s)"
-STR_DWN_MODIFY                = "(Կանգնեցնելու համար սեղմեք այստեղ)"
+STR_DWN_MODIFY                = " (Կանգնեցնելու համար սեղմեք այստեղ)"
 STR_DWN_CLOSING               = "Փակման նիստ"
 
 STR_DWN_STATUS                = "Կարգավիճակ"
@@ -363,6 +395,7 @@ STR_TR_ST5                    = "տրվում է"
 STR_TR_ST6                    = "Տարածքի հատկացում"
 STR_TR_ST7                    = "Ստուգել ամփոփ տվյալները"
 STR_TR_ST8                    = "ֆայլերի տեղափոխություն"
+STR_TR_ST9                    = "paused"
 
 // Options dialog
 STR_OPTION_TITLE              = "Տարբերակներ"
@@ -370,8 +403,8 @@ STR_OPTION_VIEW_TAB           = "Տեսարան"
 STR_OPTION_UPDATES_TAB        = "Թարմացումներ"
 STR_OPTION_PATH_TAB           = "Ուղիները"
 STR_OPTION_ADVANCED_TAB       = "Լրացուցիչ"
-STR_OPTION_OK_BUTTON          = STR_UPD_BTN_OK
-STR_OPTION_CANCEL_BUTTON      = STR_UPD_BTN_CANCEL
+STR_OPTION_OK_BUTTON          = "OK"
+STR_OPTION_CANCEL_BUTTON      = "Cancel"
 
 // View tab
 STR_OPTION_DRPNAMES           = "Driverpack անուները"

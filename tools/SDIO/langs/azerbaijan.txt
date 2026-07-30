@@ -46,6 +46,8 @@ STR_DRVDIR                    = "Mənbəni qeyd etmək..."
 STR_DRVDIR_H                  = "Açılmış formada drayverlər və drayverpack olan qovluqu seçmək.\n\nQurğunun komplektində olan rəsmi diski drayverin axtarış mənbəsi kimi seçmək mümkündür."
 STR_OPTIONS_BTN               = "Seçimlər ..."
 STR_OPTIONS_BTN_H             = "Ayarları olan informasiya qutusunu açın."
+STR_UPDATES_BTN               = "Updates"
+STR_UPDATES_BTN_H             = "Open updates dialog box."
 
 STR_SHOW_FOUND                = "Driverpackda tapıldı"
 STR_SHOW_FOUND_H              = "Aşağıda göstərilən drayver kateqoriyaları tapıldı və müvafiq olaraq quraşdırıla bilər.\n\nQuraşdırılmayay, Yeni versiya və Daha uyğun kateqoriyalardan olan drayverləri quraşdırmaq tövsiyyə olunur.."
@@ -178,6 +180,7 @@ STR_CONT_OPENINF              = "Quraşdırılmış drayverin inf faylını açm
 STR_CONT_LOCATEINF            = "Quraşdırılmış drayverin inf faylı olan qovluqu açmaq"
 STR_CONT_HWID_SEARCH          = "Drayveri İnternet şəbəkədə axtarmaq"
 STR_CONT_HWID_CLIP            = "Qurğunun kodunu mübadilə buferinə kopyalamaq"
+STR_CONT_HWID_IGNORE          = "Add this Hardware ID to Ignore List"
 
 // Misc
 STR_OPENSNAPSHOT              = "Şəkillərin faylları (*.snp)/0*.snp/0Bütün fayllar/0*.*/0/0"
@@ -194,7 +197,7 @@ STR_STATUS_STOPPED            = "Qurğu quraşdırılıb"
 // Driver status
 STR_STATUS_INVALID            = "Uyğun olmayan drayver"
 STR_STATUS_MISSING            = "Qurğuya drayver tələb olunur - drayver quraşdırmaq üçün hazırdı"
-STR_STATUS_NOTSIGNED          = "(imza yoxdur)"
+STR_STATUS_NOTSIGNED          = " (imza yoxdur)"
 
 STR_STATUS_BETTER_NEW         = "Yenilənmiş drayver var, həm də daha uyğun olan"
 STR_STATUS_SAME_NEW           = "Yenilənmiş drayver var"
@@ -208,7 +211,7 @@ STR_STATUS_BETTER_OLD         = "Daha uyğun lakin quraşdırılan drayverdən d
 STR_STATUS_SAME_OLD           = "Drayverin köhnə versiyası"
 STR_STATUS_WORSE_OLD          = "Drayverin köhnə versiyası, həm də quraşdırılan drayverdən daha az uyğun olan"
 
-STR_STATUS_DUP                = "(dublikat)"
+STR_STATUS_DUP                = " (dublikat)"
 
 STR_STATUS_NF_MISSING         = "Qurğuya driver tələb olunur, lakin o driverpackda tapılmadı"
 STR_STATUS_NF_UNKNOWN         = "Drayver artıq quraşdırılıb, lakin buna oxşar drayver drayverpakda yoxdur"
@@ -224,9 +227,9 @@ STR_VIRUS_HIDDEN              = "Daşıyıcının kökündə gizli qovluqlar var
 STR_VIRUS_HIDDEN_H            = "Daşıyıcının kökündə gizli qovluqlar var. Onlar çox vaxtı viruslarla istfadə olunur və bu qovluqu antivirusla toxlamağı tövsiyyə olunur.\n\nƏgər bu qovluqlar təhlükəsizdirsə onda bildirişi hər qovluqun içində not_a_virus.txt faylı yaradaraq söndürmək olar."
 
 // Status
-STR_CLOSE_SNAPSHOT            = "(Özgə sistemin emulyasıyasını dayandırmaq üçün bura klik edin)"
+STR_CLOSE_SNAPSHOT            = " (Özgə sistemin emulyasıyasını dayandırmaq üçün bura klik edin)"
 STR_EMPTYDRP                  = "Drayver paketlərini və ya ayrılmış draverləri göstərilən qovluğa yerləşdirin"
-STR_CLOSE_DRPEXT              = "(Sabit drayverlərə qayıtmaq üçün buraya basın)"
+STR_CLOSE_DRPEXT              = " (Sabit drayverlərə qayıtmaq üçün buraya basın)"
 STR_NOUPDATES                 = "Yenilənmə yoxdur, sistem aktual vəziyyətdədir"
 STR_INITIALIZING              = "İnisiallaşdırma..."
 
@@ -240,7 +243,7 @@ STR_INST_FAILED               = "Səhv, quraşdırmaq mümkün olmadı"
 STR_INST_INSTALLING           = "Quraşdırma..."
 STR_INST_COMPLITED            = "Quraşdırma bitmişdir"
 STR_INST_COMPLITED_RB         = "Quraşdırma bitmişdir (sistemə restart verin)"
-STR_INST_CLOSE                = "(Quraşdırılmış drayverləri gizlətmək üçün siçanla klik edin)"
+STR_INST_CLOSE                = " (Quraşdırılmış drayverləri gizlətmək üçün siçanla klik edin)"
 
 STR_EXTR_EXTRACTING           = "Açılış..."
 STR_EXTR_OK                   = "Ağurla açıldı"
@@ -281,27 +284,47 @@ STR_UPD_DIALOG_TITLE          = "Yenilənmələrin yoxlanılması"
 STR_UPD_DIALOG_MSG            = "Siz istərdizmi proqramların və drayverpakların internet vasitəsi ilə avtomatik yoxlanılmasını işə salmaq?"
 STR_UPD_DIALOG_INDEX          = "Siz istərdizmi ən yeni indeksləri yükləmək, hansılar ki imkan yaradardı təyin etmək hansı drayverpackları sizə yükləmək lazım?"
 
+// Updates dialog
 STR_UPD_TITLE                 = "Yenilənmə"
+
 STR_UPD_SELECTION             = "Seçim"
 STR_UPD_BTN_ALL               = "Hamısını qeyd etmək"
 STR_UPD_BTN_NONE              = "Qeydləri çıxartmaq"
 STR_UPD_BTN_NETWORK           = "Yalnız şəbəkə"
 STR_UPD_BTN_THISPC            = "Yalnız bu PK üçün qeyd etmək"
 STR_UPD_BTN_THISPC_H          = "Drayverpacda bu PK üçün hansı yenilənmələr var təyin etmək üçün ilk növbədə indeksləri yükləmək lazım."
-STR_UPD_OPTIONS               = "Seçimlər"
-STR_UPD_ONLYUPDATES           = "Olmayan drayverlər haqqında xəbər verməmək"
-STR_UPD_TOTALSIZE             = "Yenilənmələrin ümumi həcmi: %d MB"
-STR_UPD_TOTALAVAIL            = "Mövcud boşluq: %d MB"
-STR_UPD_BTN_OK                = "OK"
-STR_UPD_BTN_CANCEL            = "Təxirə salınma"
-STR_UPD_BTN_ACCEPT            = "Qəbul etmək"
+
+STR_UPD_SELECTED              = "Selected: %d / %d"
+STR_UPD_TOTALSIZE             = "Yenilənmələrin ümumi həcmi: %s"
+STR_UPD_TOTALAVAIL            = "Mövcud boşluq: %s"
+
+STR_UPD_STREAMSTATS           = "Torrent statistics"
+STR_UPD_STREAM_STATE          = "State: "
+STR_UPD_STREAM_COMPLETE       = "Complete: %s / %s (%d%%)"
+STR_UPD_STREAM_TIME           = "Remaining: %s"
+STR_UPD_STREAM_SESSDL         = "Session Downloads: %s (%s/s)"
+STR_UPD_STREAM_SESSUL         = "Session Uploads: %s (%s/s)"
+STR_UPD_STREAM_SEEDS          = "Seeds: %d (%d),  Peers: %d (%d)"
+STR_UPD_STREAM_ALERT          = "Alert: %s"
+
+STR_UPD_OPTIONS               = "Options"
+STR_UPD_ONLYUPDATES           = "Show only updates, hide missing driver packs."
+STR_UPD_KEEPSEEDING           = "Keep sharing after downloads are finished."
+
+STR_UPD_SPECIALMODE           = "Share Mode"
+STR_UPD_TXT_SHARE             = "You can help distribute our driver collection by sharing your 'drivers' folder."
+STR_UPD_BTN_SHARE             = "Share"
+
+STR_UPD_BTN_UPDATE            = "Start"
+STR_UPD_BTN_STOP              = "Stop"
+STR_UPD_BTN_CLOSE             = "Close"
 STR_UPD_COL_NAME              = "Drayverpack"
 STR_UPD_COL_SIZE              = "Ölçü"
 STR_UPD_COL_PER               = "%"
 STR_UPD_COL_NEW               = "Yeni"
 STR_UPD_COL_CUR               = "Köhnə"
 STR_UPD_COL_THISPC            = "Bu PC üçün?"
-STR_UPD_WEBSTATUS             = "(İnternet)"
+STR_UPD_WEBSTATUS             = " (İnternet)"
 STR_UPD_YES                   = "Hə"
 STR_UPD_NO                    = "Yox"
 STR_UPD_UNKNOWN               = "Bəlli deyil"
@@ -321,14 +344,23 @@ STR_UPD_INDEXES               = "Yeni packların indeksləri"
 STR_UPD_UPDATEHINT1           = "Məsləhət"
 STR_UPD_UPDATEHINT2           = "Siz ilk növbədə indekslə olan prıqramı yeniləməlisiz."
 
+STR_UPD_PROMPT_01             = "Checking partial files. (%d%%) Download will start shortly..."
+STR_UPD_PROMPT_02             = "Downloading (%d%%)"
+STR_UPD_PROMPT_03             = "Sharing. Press Stop to end."
+STR_UPD_PROMPT_04             = "Download finished"
+STR_UPD_PROMPT_05             = "Checking resume data. Download will start shortly..."
+STR_UPD_PROMPT_06             = "You're up to date. Nothing to download."
+STR_UPD_PROMPT_07             = "Ready: Select the items you want and press Start."
+STR_UPD_PROMPT_08             = "Unable to get updates. Try again later."
+
 // Update hint
 STR_UPD_CHECKING              = "Güncellemeler yoxlanılır"
 STR_UPD_AVAIL1                = "İnternetdən olan yenilənmə açıqdır: SDIO R%d"
 STR_UPD_AVAIL2                = "İnternetdən yenilənmələr var: %d drayver paketi"
 STR_UPD_AVAIL3                = "İnternetdən yenilənmələr var: SDIO R%d və %d drayver paketi"
-STR_UPD_START                 = "(Yükləmək üçün bura klikləyin)"
+STR_UPD_START                 = " (Yükləmək üçün bura klikləyin)"
 STR_UPD_PROGRES               = "Yüklənib %s / %s (%d%%)"
-STR_UPD_MODIFY                = "(Yenilənməni seçmək üçün bura klik edin)"
+STR_UPD_MODIFY                = " (Yenilənməni seçmək üçün bura klik edin)"
 STR_UPD_CHECKINGFILES         = "Faylları yoxlayır %s of %s (%d%%)"
 
 STR_DWN_DOWNLOADED            = "Yüklənib"
@@ -337,7 +369,7 @@ STR_DWN_UPLOADED              = "Verilib"
 STR_DWN_ELAPSED               = "Keçib"
 STR_DWN_REMAINING             = "Qalıb"
 STR_DWN_SEEDING               = "Toxum %s (%s)"
-STR_DWN_MODIFY                = "(Dayandırmaq üçün buraya basın)"
+STR_DWN_MODIFY                = " (Dayandırmaq üçün buraya basın)"
 STR_DWN_CLOSING               = "Sessiyanın bağlanması"
 
 STR_DWN_STATUS                = "Vəziyyət"
@@ -363,6 +395,7 @@ STR_TR_ST5                    = "paylanır"
 STR_TR_ST6                    = "yer rezervasiya olunur"
 STR_TR_ST7                    = "bərpa"
 STR_TR_ST8                    = "faylları hərəkət etdirir"
+STR_TR_ST9                    = "paused"
 
 // Options dialog
 STR_OPTION_TITLE              = "Seçimlər"
@@ -370,8 +403,8 @@ STR_OPTION_VIEW_TAB           = "Görünüş"
 STR_OPTION_UPDATES_TAB        = "Yeniləmələr"
 STR_OPTION_PATH_TAB           = "Yollar"
 STR_OPTION_ADVANCED_TAB       = "Ətraflı"
-STR_OPTION_OK_BUTTON          = STR_UPD_BTN_OK
-STR_OPTION_CANCEL_BUTTON      = STR_UPD_BTN_CANCEL
+STR_OPTION_OK_BUTTON          = "OK"
+STR_OPTION_CANCEL_BUTTON      = "Cancel"
 
 // View tab
 STR_OPTION_DRPNAMES           = "Driverpack names"

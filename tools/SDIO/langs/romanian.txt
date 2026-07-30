@@ -46,6 +46,8 @@ STR_DRVDIR                    = "Selectează folderul cu drivere..."
 STR_DRVDIR_H                  = "Alege alt folder ce conține pachete de drivere.\n\nSe poate folosi pentru a căuta drivere pe o unitate externă (USB/CD/DVD)."
 STR_OPTIONS_BTN               = "Opțiuni..."
 STR_OPTIONS_BTN_H             = "Deschideți caseta de dialog cu setări."
+STR_UPDATES_BTN               = "Updates"
+STR_UPDATES_BTN_H             = "Open updates dialog box."
 
 STR_SHOW_FOUND                = "Găsit în pachetele de drivere"
 STR_SHOW_FOUND_H              = "Driverele au fost găsite în pachete și pot fi instalate.\n\nVă recomandăm să instalați driverele din categoriile: neinstalat, mai nou, potrivire mai bună."
@@ -178,6 +180,7 @@ STR_CONT_OPENINF              = "Deschide fișierul inf al driverului instalat"
 STR_CONT_LOCATEINF            = "Localizează fișierul inf al driverului instalat"
 STR_CONT_HWID_SEARCH          = "Caută pe internet după Id-ul Hardware"
 STR_CONT_HWID_CLIP            = "Copiază Id-ul Hardware în clipboard"
+STR_CONT_HWID_IGNORE          = "Add this Hardware ID to Ignore List"
 
 // Misc
 STR_OPENSNAPSHOT              = "Fișiere imagini (*.snp)/0*.snp/0Toate fișierele/0*.*/0/0"
@@ -194,7 +197,7 @@ STR_STATUS_STOPPED            = "Dispozitivul este oprit"
 // Driver status
 STR_STATUS_INVALID            = "Driver incompatibil"
 STR_STATUS_MISSING            = "Driver disponibil (dar neinstalat)"
-STR_STATUS_NOTSIGNED          = "(nesemnat digital)"
+STR_STATUS_NOTSIGNED          = " (nesemnat digital)"
 
 STR_STATUS_BETTER_NEW         = "Este disponibil un driver actualizat mai optim"
 STR_STATUS_SAME_NEW           = "Este disponibil un driver actualizat"
@@ -208,7 +211,7 @@ STR_STATUS_BETTER_OLD         = "Este disponibil un driver mai optim, dar mai ve
 STR_STATUS_SAME_OLD           = "Driver vechi"
 STR_STATUS_WORSE_OLD          = "Driver vechi și mai puțin optim"
 
-STR_STATUS_DUP                = "(duplicat)"
+STR_STATUS_DUP                = " (duplicat)"
 
 STR_STATUS_NF_MISSING         = "Dispozitivul necesită un driver, dar acesta nu există în pachete"
 STR_STATUS_NF_UNKNOWN         = "Dispozitivul funcționează corect, dar nu s-au găsit drivere în pachete"
@@ -224,9 +227,9 @@ STR_VIRUS_HIDDEN              = "Există foldere ascunse în rădăcina unităț
 STR_VIRUS_HIDDEN_H            = "Folderul rădăcină al unității conține foldere ascunse. Pot exista viruși. Este recomandată o scanare de viruși.\n\nDacă nu sunteți sigur, creați un fișier not_a_virus.txt în fiecare folder."
 
 // Status
-STR_CLOSE_SNAPSHOT            = "(Apăsați aici pentru a opri simularea)"
+STR_CLOSE_SNAPSHOT            = " (Apăsați aici pentru a opri simularea)"
 STR_EMPTYDRP                  = "Puneți pachete de drivere sau drivere în folderul următor"
-STR_CLOSE_DRPEXT              = "(Apăsați aici pentru a vă întoarce la folderul inițial)"
+STR_CLOSE_DRPEXT              = " (Apăsați aici pentru a vă întoarce la folderul inițial)"
 STR_NOUPDATES                 = "Driverele sunt actualizate"
 STR_INITIALIZING              = "Inițializare..."
 
@@ -240,7 +243,7 @@ STR_INST_FAILED               = "Instalarea a eșuat datorită unei erori"
 STR_INST_INSTALLING           = "Se instalează..."
 STR_INST_COMPLITED            = "Instalare completă"
 STR_INST_COMPLITED_RB         = "Instalare completă (este necesară o repornire a sistemului)"
-STR_INST_CLOSE                = "(Apăsați aici pentru a ascunde driverele instalate)"
+STR_INST_CLOSE                = " (Apăsați aici pentru a ascunde driverele instalate)"
 
 STR_EXTR_EXTRACTING           = "Se extrage..."
 STR_EXTR_OK                   = "S-a extras cu succes"
@@ -281,27 +284,48 @@ STR_UPD_DIALOG_TITLE          = "Se caută o actualizare"
 STR_UPD_DIALOG_MSG            = "Doriți să activați actualizarea automată a pachetelor de drivere și a aplicației?"
 STR_UPD_DIALOG_INDEX          = "Doriți să descărcați cei mai recenți indecși pentru a determina pachetele de drivere necesare?"
 
+// Updates dialog
 STR_UPD_TITLE                 = "Actualizează"
+
 STR_UPD_SELECTION             = "Izvēle"
 STR_UPD_BTN_ALL               = "Selectează tot"
 STR_UPD_BTN_NONE              = "Deselectează tot"
 STR_UPD_BTN_NETWORK           = "Tikai tīklā"
 STR_UPD_BTN_THISPC            = "Selectează necesarul pentru acest PC"
 STR_UPD_BTN_THISPC_H          = "Pentru a determina driverele necesare, trebuiesc descărcați cei mai noi indecși."
-STR_UPD_OPTIONS               = "Iespējas"
-STR_UPD_ONLYUPDATES           = "Nu avertiza despre lipsa pachetelor de drivere"
-STR_UPD_TOTALSIZE             = "Dimensiune de descărcat: %d MB"
-STR_UPD_TOTALAVAIL            = "Kopējā pieejamā telpa: %d MB"
-STR_UPD_BTN_OK                = "OK"
-STR_UPD_BTN_CANCEL            = "Anulează"
-STR_UPD_BTN_ACCEPT            = "Acceptă"
+
+STR_UPD_SELECTED              = "Selected: %d / %d"
+STR_UPD_TOTALSIZE             = "Dimensiune de descărcat: %s"
+STR_UPD_TOTALAVAIL            = "Kopējā pieejamā telpa: %s"
+
+STR_UPD_STREAMSTATS           = "Torrent statistics"
+STR_UPD_STREAM_STATE          = "State: "
+STR_UPD_STREAM_COMPLETE       = "Complete: %s / %s (%d%%)"
+STR_UPD_STREAM_TIME           = "Remaining: %s"
+STR_UPD_STREAM_SESSDL         = "Session Downloads: %s (%s/s)"
+STR_UPD_STREAM_SESSUL         = "Session Uploads: %s (%s/s)"
+STR_UPD_STREAM_SEEDS          = "Seeds: %d (%d),  Peers: %d (%d)"
+STR_UPD_STREAM_ALERT          = "Alert: %s"
+
+STR_UPD_OPTIONS               = "Options"
+STR_UPD_ONLYUPDATES           = "Show only updates, hide missing driver packs."
+STR_UPD_KEEPSEEDING           = "Keep sharing after downloads are finished."
+
+STR_UPD_SPECIALMODE           = "Share Mode"
+STR_UPD_TXT_SHARE             = "You can help distribute our driver collection by sharing your 'drivers' folder."
+STR_UPD_BTN_SHARE             = "Share"
+
+STR_UPD_BTN_UPDATE            = "Start"
+STR_UPD_BTN_STOP              = "Stop"
+STR_UPD_BTN_CLOSE             = "Close"
+
 STR_UPD_COL_NAME              = "Pachet drivere"
 STR_UPD_COL_SIZE              = "Dimensiune"
 STR_UPD_COL_PER               = "%"
 STR_UPD_COL_NEW               = "Nou"
 STR_UPD_COL_CUR               = "Existent"
 STR_UPD_COL_THISPC            = "Pentru acest PC?"
-STR_UPD_WEBSTATUS             = "(Internet)"
+STR_UPD_WEBSTATUS             = " (Internet)"
 STR_UPD_YES                   = "Da"
 STR_UPD_NO                    = "Nu"
 STR_UPD_UNKNOWN               = "Necunoscut"
@@ -321,14 +345,23 @@ STR_UPD_INDEXES               = "Indecși"
 STR_UPD_UPDATEHINT1           = "Pont"
 STR_UPD_UPDATEHINT2           = "Trebuie actualizată baza de date mai întâi."
 
+STR_UPD_PROMPT_01             = "Checking partial files. (%d%%) Download will start shortly..."
+STR_UPD_PROMPT_02             = "Downloading (%d%%)"
+STR_UPD_PROMPT_03             = "Sharing. Press Stop to end."
+STR_UPD_PROMPT_04             = "Download finished"
+STR_UPD_PROMPT_05             = "Checking resume data. Download will start shortly..."
+STR_UPD_PROMPT_06             = "You're up to date. Nothing to download."
+STR_UPD_PROMPT_07             = "Ready: Select the items you want and press Start."
+STR_UPD_PROMPT_08             = "Unable to get updates. Try again later."
+
 // Update hint
 STR_UPD_CHECKING              = "Verificarea actualizărilor"
 STR_UPD_AVAIL1                = "Sunt actualizări disponibile: SDIO R%d"
 STR_UPD_AVAIL2                = "Sunt actualizări disponibile: %d pachete drivere"
 STR_UPD_AVAIL3                = "Sunt actualizări disponibile: SDIO R%d și %d pachete drivere"
-STR_UPD_START                 = "(Apasă pentru a porni descărarea)"
+STR_UPD_START                 = " (Apasă pentru a porni descărarea)"
 STR_UPD_PROGRES               = "Descărcat %s din %s (%d%%)"
-STR_UPD_MODIFY                = "(Apasă aici pentru a selecta actualizările)"
+STR_UPD_MODIFY                = " (Apasă aici pentru a selecta actualizările)"
 STR_UPD_CHECKINGFILES         = "Verificarea fișierelor %s of %s (%d%%)"
 
 STR_DWN_DOWNLOADED            = "Descărcat"
@@ -337,7 +370,7 @@ STR_DWN_UPLOADED              = "Încărcat"
 STR_DWN_ELAPSED               = "Timp trecut"
 STR_DWN_REMAINING             = "Timp rămas"
 STR_DWN_SEEDING               = "însămânțarea %s (%s)"
-STR_DWN_MODIFY                = "(Faceți clic aici pentru a opri)"
+STR_DWN_MODIFY                = " (Faceți clic aici pentru a opri)"
 STR_DWN_CLOSING               = "Închiderea sesiunii"
 
 STR_DWN_STATUS                = "Stare"
@@ -363,6 +396,7 @@ STR_TR_ST5                    = "însămânțare"
 STR_TR_ST6                    = "alocă spațiu"
 STR_TR_ST7                    = "verifică date reluare"
 STR_TR_ST8                    = "mutarea fișierelor"
+STR_TR_ST9                    = "paused"
 
 // Options dialog
 STR_OPTION_TITLE              = "Opțiuni"
@@ -370,8 +404,8 @@ STR_OPTION_VIEW_TAB           = "Vedere"
 STR_OPTION_UPDATES_TAB        = "Actualizări"
 STR_OPTION_PATH_TAB           = "Căi"
 STR_OPTION_ADVANCED_TAB       = "Avansat"
-STR_OPTION_OK_BUTTON          = STR_UPD_BTN_OK
-STR_OPTION_CANCEL_BUTTON      = STR_UPD_BTN_CANCEL
+STR_OPTION_OK_BUTTON          = "OK"
+STR_OPTION_CANCEL_BUTTON      = "Cancel"
 
 // View tab
 STR_OPTION_DRPNAMES           = "Numele pachetului de drivere"

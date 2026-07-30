@@ -46,6 +46,8 @@ STR_DRVDIR                    = "اختيار مجلد التعريفات..."
 STR_DRVDIR_H                  = "اختر مجلد اخر او قم بفك ضغط التعريفات.\n\nتستخدم هذه الخاصيه في حال وجود التعريقات على قرص صلب او في كرت الذاكرة."
 STR_OPTIONS_BTN               = "الاختيارات..."
 STR_OPTIONS_BTN_H             = "أفتح مربع الحوار باستخدام الإعدادات."
+STR_UPDATES_BTN               = "Updates"
+STR_UPDATES_BTN_H             = "Open updates dialog box."
 
 STR_SHOW_FOUND                = "وجدت في تعريفات"
 STR_SHOW_FOUND_H              = "تم العثور على تعريفات في حزمة التعريفات ويمكن تثبيتهم.\n\nننصح بتثبيت التعريفات من الفئات التالية: غير مثبت، أحدث، أفضل تطابق."
@@ -178,6 +180,7 @@ STR_CONT_OPENINF              = "أفتح ملف الـinf للتعريف الم
 STR_CONT_LOCATEINF            = "حدد موقع ملف الـinf للتعريف المثبت"
 STR_CONT_HWID_SEARCH          = "ابحث بالانترنت عن طريق رقم القطعه"
 STR_CONT_HWID_CLIP            = "انسخ  رقم القطعه"
+STR_CONT_HWID_IGNORE          = "Add this Hardware ID to Ignore List"
 
 // Misc
 STR_OPENSNAPSHOT              = "ملفات اللقطات بامتداد  (*.snp)/0*.snp/0All files/0*.*/0/0"
@@ -194,7 +197,7 @@ STR_STATUS_STOPPED            = "الجهاز حاليا متوقف"
 // Driver status
 STR_STATUS_INVALID            = "تعريف غير متوافق"
 STR_STATUS_MISSING            = "التعريف متاح (التعريف غير مثبت بعد)"
-STR_STATUS_NOTSIGNED          = "(غير موثق) غير موقع"
+STR_STATUS_NOTSIGNED          = " (غير موثق) غير موقع"
 
 STR_STATUS_BETTER_NEW         = "تعريف محدث متوفر وأيضا أفضل من الأمثل"
 STR_STATUS_SAME_NEW           = "تعريف محدث متوفر"
@@ -208,7 +211,7 @@ STR_STATUS_BETTER_OLD         = "يوجد تعريف متوفر أفضل من ا
 STR_STATUS_SAME_OLD           = "تعريف قديم"
 STR_STATUS_WORSE_OLD          = "تعريف قديم و ايضاً أقل من الأمثل"
 
-STR_STATUS_DUP                = "(مكرر)"
+STR_STATUS_DUP                = " (مكرر)"
 
 STR_STATUS_NF_MISSING         = "الجهاز يتطلب تعريف ولكن لم يتم العثور عليها في حزمة التعريفات"
 STR_STATUS_NF_UNKNOWN         = "الجهاز يعمل بشكل صحيح ولكن لم يتم العثور على التعريف في حزمة التعريفات"
@@ -224,9 +227,9 @@ STR_VIRUS_HIDDEN              = "هناك مجلدات مخفية في جذر ا
 STR_VIRUS_HIDDEN_H            = "يحتوي جذر المجلد علي مجلدات مخفية. يمكن للفيروسات جعل المجلدات مخفية لإخفاء وجودهم. ينصح لفحص هذه المجلدات (انظر لملف log للحصول على تفاصيل) بخصوص الفيروسات.\n\nإذا كنت على يقين من انها نظيفة، قم بإنشاء ملف يسمى not_a_virus.txt داخل كل مجلد."
 
 // Status
-STR_CLOSE_SNAPSHOT            = "(انقر هنا لوقف المحاكاة)"
+STR_CLOSE_SNAPSHOT            = " (انقر هنا لوقف المحاكاة)"
 STR_EMPTYDRP                  = "أتصل بالإنترنت لتحميل حزمة التعريفات أو ضع حزم  التعريفات في المجلد التالي"
-STR_CLOSE_DRPEXT              = "(انقر هنا للعودة إلى المجلد الافتراضي)"
+STR_CLOSE_DRPEXT              = " (انقر هنا للعودة إلى المجلد الافتراضي)"
 STR_NOUPDATES                 = "التعريفات محدثة الى اخر اصدار"
 STR_INITIALIZING              = "يتم التهيئة..."
 
@@ -240,7 +243,7 @@ STR_INST_FAILED               = "فشل في التثبيت، خطأ"
 STR_INST_INSTALLING           = "يتم التثبيت"
 STR_INST_COMPLITED            = "أكتمل التثبيت"
 STR_INST_COMPLITED_RB         = "اكتمل التثبيت (إعادة تشغيل النظام مطلوبة)"
-STR_INST_CLOSE                = "(انقر هنا لإخفاء التعريفات المثبتة)"
+STR_INST_CLOSE                = " (انقر هنا لإخفاء التعريفات المثبتة)"
 
 STR_EXTR_EXTRACTING           = "إستخراج..."
 STR_EXTR_OK                   = "أستخرج بنجاح"
@@ -281,27 +284,47 @@ STR_UPD_DIALOG_TITLE          = "يتم التحقيق من التثبيت"
 STR_UPD_DIALOG_MSG            = "هل ترغب في تفعيل الفحص التلقائي على الانترنت للبحث عن الإصدارات الجديدة من حزمة التعريفات والتطبيق؟"
 STR_UPD_DIALOG_INDEX          = "هل ترغب في تحميل أحدث الفهارس لكي نتمكن من تحديد حزمة التعريفات التي تحتاج إلى تحميلها؟"
 
+// Updates dialog
 STR_UPD_TITLE                 = "تحديث"
+
 STR_UPD_SELECTION             = "اختيار"
 STR_UPD_BTN_ALL               = "أختيار الكل"
 STR_UPD_BTN_NONE              = "إلغاء أختيار الكل"
-STR_UPD_BTN_NETWORK           = "الشبكة فقط"
 STR_UPD_BTN_THISPC            = "أختار فقط الذي يحتاجه هذا الحاسب الشخصي"
 STR_UPD_BTN_THISPC_H          = "من أجل تحديد أي حزمة تعريفات التي تحتاج إليها، يجب عليك تحميل الفهارس أولا."
-STR_UPD_OPTIONS               = "خيارات"
-STR_UPD_ONLYUPDATES           = "لا تبلغ عن حزمة التعريفات الناقصة"
-STR_UPD_TOTALSIZE             = "إجمالي حجم التحميل: %d ميجا بايت"
-STR_UPD_TOTALAVAIL            = "إجمالي المساحة المتاحة: %d MB"
-STR_UPD_BTN_OK                = "حسنا"
-STR_UPD_BTN_CANCEL            = "إلغاء"
-STR_UPD_BTN_ACCEPT            = "موافق"
+STR_UPD_BTN_NETWORK           = "الشبكة فقط"
+
+STR_UPD_SELECTED              = "Selected: %d / %d"
+STR_UPD_TOTALSIZE             = "إجمالي حجم التحميل: %s"
+STR_UPD_TOTALAVAIL            = "إجمالي المساحة المتاحة: %s"
+
+STR_UPD_STREAMSTATS           = "Torrent statistics"
+STR_UPD_STREAM_STATE          = "State: "
+STR_UPD_STREAM_COMPLETE       = "Complete: %s / %s (%d%%)"
+STR_UPD_STREAM_TIME           = "Remaining: %s"
+STR_UPD_STREAM_SESSDL         = "Session Downloads: %s (%s/s)"
+STR_UPD_STREAM_SESSUL         = "Session Uploads: %s (%s/s)"
+STR_UPD_STREAM_SEEDS          = "Seeds: %d (%d),  Peers: %d (%d)"
+STR_UPD_STREAM_ALERT          = "Alert: %s"
+
+STR_UPD_OPTIONS               = "Options"
+STR_UPD_ONLYUPDATES           = "Show only updates, hide missing driver packs."
+STR_UPD_KEEPSEEDING           = "Keep sharing after downloads are finished."
+
+STR_UPD_SPECIALMODE           = "Share Mode"
+STR_UPD_TXT_SHARE             = "You can help distribute our driver collection by sharing your 'drivers' folder."
+STR_UPD_BTN_SHARE             = "Share"
+
+STR_UPD_BTN_UPDATE            = "Start"
+STR_UPD_BTN_STOP              = "Stop"
+STR_UPD_BTN_CLOSE             = "Close"
 STR_UPD_COL_NAME              = "حزمة التعريفات"
 STR_UPD_COL_SIZE              = "الحجم"
 STR_UPD_COL_PER               = "%"
 STR_UPD_COL_NEW               = "جديد"
 STR_UPD_COL_CUR               = "الحالية"
 STR_UPD_COL_THISPC            = "لهذا الحاسب الشخصي ؟"
-STR_UPD_WEBSTATUS             = "(الانترنت)"
+STR_UPD_WEBSTATUS             = " (الانترنت)"
 STR_UPD_YES                   = "نعم"
 STR_UPD_NO                    = "لا"
 STR_UPD_UNKNOWN               = "غير معروف"
@@ -321,14 +344,24 @@ STR_UPD_INDEXES               = "الفهارس"
 STR_UPD_UPDATEHINT1           = "تلميح"
 STR_UPD_UPDATEHINT2           = "يجب عليك تحديث القاعدة أولاً حتي تتمكن من استخدام هذه الميزة."
 
+STR_UPD_PROMPT_01             = "Checking partial files. (%d%%) Download will start shortly..."
+STR_UPD_PROMPT_02             = "Downloading (%d%%)"
+STR_UPD_PROMPT_03             = "Sharing. Press Stop to end."
+STR_UPD_PROMPT_04             = "Download finished"
+STR_UPD_PROMPT_05             = "Checking resume data. Download will start shortly..."
+STR_UPD_PROMPT_06             = "You're up to date. Nothing to download."
+STR_UPD_PROMPT_07             = "Ready: Select the items you want and press Start."
+STR_UPD_PROMPT_08             = "Unable to get updates. Try again later."
+
+
 // Update hint
 STR_UPD_CHECKING              = "البحث عن تحديثات"
 STR_UPD_AVAIL1                = "التحديثات المتوفرة: SDIO R%d"
 STR_UPD_AVAIL2                = "التحديثات المتوفرة: %d حزمة تعريفات"
 STR_UPD_AVAIL3                = "التحديثات المتوفرة: SDIO R%d و %d حزمة تعريفات"
-STR_UPD_START                 = "(انقر هنا لبدء التحميل)"
+STR_UPD_START                 = " (انقر هنا لبدء التحميل)"
 STR_UPD_PROGRES               = "تم التحميل %s من %s (%d%%)"
-STR_UPD_MODIFY                = "(انقر هنا لتحديد التحديثات)"
+STR_UPD_MODIFY                = " (انقر هنا لتحديد التحديثات)"
 STR_UPD_CHECKINGFILES         = "فحص الملفات %s of %s (%d%%)"
 
 STR_DWN_DOWNLOADED            = "تم التحميل"
@@ -337,7 +370,7 @@ STR_DWN_UPLOADED              = "تم الرفع"
 STR_DWN_ELAPSED               = "الوقت المنقضي"
 STR_DWN_REMAINING             = "الوقت المتبقي"
 STR_DWN_SEEDING               = "Seeding %s (%s)"
-STR_DWN_MODIFY                = "(انقر هنا لإيقاف)"
+STR_DWN_MODIFY                = " (انقر هنا لإيقاف)"
 STR_DWN_CLOSING               = "الجلسة الختامية"
 
 STR_DWN_STATUS                = "الحالة"
@@ -363,6 +396,7 @@ STR_TR_ST5                    = "يتم رفع البذور"
 STR_TR_ST6                    = "يتم تخصيص مساحة"
 STR_TR_ST7                    = "التحقق من تكملة البيانات"
 STR_TR_ST8                    = "يتم نقل الملفات"
+STR_TR_ST9                    = "paused"
 
 // Options dialog
 STR_OPTION_TITLE              = "الخيارات"
@@ -370,8 +404,8 @@ STR_OPTION_VIEW_TAB           = "عرض"
 STR_OPTION_UPDATES_TAB        = "التحديثات"
 STR_OPTION_PATH_TAB           = "المسارات"
 STR_OPTION_ADVANCED_TAB       = "متقدم"
-STR_OPTION_OK_BUTTON          = STR_UPD_BTN_OK
-STR_OPTION_CANCEL_BUTTON      = STR_UPD_BTN_CANCEL
+STR_OPTION_OK_BUTTON          = "OK"
+STR_OPTION_CANCEL_BUTTON      = "Cancel"
 
 // View tab
 STR_OPTION_DRPNAMES           = "أسم حزمة التعريفات"

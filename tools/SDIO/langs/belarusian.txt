@@ -46,6 +46,8 @@ STR_DRVDIR                    = "Задаць крыніцу..."
 STR_DRVDIR_H                  = "Абраць тэчку з драйверпакамі ці драйверамі ў распакаваным выглядзе.\n\nМожна выкарыстоўваць для выбару пошуку драйвераў на афіцыйным дыску з драйверамі, які ідзе ў камплекце з прыладай."
 STR_OPTIONS_BTN               = "Опцыі"
 STR_OPTIONS_BTN_H             = "Адкрыць дыялог з наладамі."
+STR_UPDATES_BTN               = "Updates"
+STR_UPDATES_BTN_H             = "Open updates dialog box."
 
 STR_SHOW_FOUND                = "Знайшліся ў драйверпаках"
 STR_SHOW_FOUND_H              = "Драйверы ніжэйпрыведзеных катэгорый былі знойдзены ў драйверпаках і, адпаведна, могуць быць усталяваны.\n\nРэкамендуецца ўсталёўваць драйверы з катэгорый: не ўсталяваныя, новыя версіі і больш падыходныя."
@@ -178,6 +180,7 @@ STR_CONT_OPENINF              = "Адкрыць inf файл усталяван�
 STR_CONT_LOCATEINF            = "Адкрыць тэчку з inf файлам усталяванага драйвера"
 STR_CONT_HWID_SEARCH          = "Шукаць у драйвер у Інтэрнэце"
 STR_CONT_HWID_CLIP            = "Скапіяваць код прылады ў буфер абмену"
+STR_CONT_HWID_IGNORE          = "Add this Hardware ID to Ignore List"
 
 // Misc
 STR_OPENSNAPSHOT              = "Файлы здымкаў (*.snp)/0*.snp/0Усе файлы/0*.*/0/0"
@@ -194,7 +197,7 @@ STR_STATUS_STOPPED            = "Прылада спынена"
 // Driver status
 STR_STATUS_INVALID            = "Несумяшчальны драйвер"
 STR_STATUS_MISSING            = "Драйвер даступны для ўсталёўкі"
-STR_STATUS_NOTSIGNED          = "(няма подпісу)"
+STR_STATUS_NOTSIGNED          = " (няма подпісу)"
 
 STR_STATUS_BETTER_NEW         = "Даступна абнаўленне (больш падыходнае)"
 STR_STATUS_SAME_NEW           = "Даступна абнаўленне"
@@ -208,7 +211,7 @@ STR_STATUS_BETTER_OLD         = "Даступна абнаўленне (боль
 STR_STATUS_SAME_OLD           = "Старая версія драйвера"
 STR_STATUS_WORSE_OLD          = "Старая версія драйвера, прычым таксама меней падыходная чым ва ўжо ўсталяванага"
 
-STR_STATUS_DUP                = "(дублікат)"
+STR_STATUS_DUP                = " (дублікат)"
 
 STR_STATUS_NF_MISSING         = "Патрабаваны драйвер адсутнічае у драйверпаках"
 STR_STATUS_NF_UNKNOWN         = "Усталяваны драйвер, але яго няма ў драйверпаках"
@@ -224,9 +227,9 @@ STR_VIRUS_HIDDEN              = "У корані носьбіта маюцца �
 STR_VIRUS_HIDDEN_H            = "У корані носьбіта маюцца ўтоеныя тэчкі. Яны часта выкарыстоўваецца вірусамі, і таму рэкамендуецца праверыць іх антывірусам.\n\nКалі гэтыя тэчкі бяспечныя, тое загасіць гэта папярэджанне можна стварыўшы ўсярэдзіне кожнай тэчкі файл з імем not_a_virus.txt."
 
 // Status
-STR_CLOSE_SNAPSHOT            = "(Клікніце тут, для завяршэння эмуляцыі сістэмы)"
+STR_CLOSE_SNAPSHOT            = " (Клікніце тут, для завяршэння эмуляцыі сістэмы)"
 STR_EMPTYDRP                  = "Падлучыцеся да Інтэрнэту, каб запампаваць драйверпакі ці пакладзіце драйверы ў наступную тэчку"
-STR_CLOSE_DRPEXT              = "(Клікніце тут, каб вярнуцца да драйвераў па змаўчанні)"
+STR_CLOSE_DRPEXT              = " (Клікніце тут, каб вярнуцца да драйвераў па змаўчанні)"
 STR_NOUPDATES                 = "Драйверы ў актуальным стане"
 STR_INITIALIZING              = "Ініцыялізацыя..."
 
@@ -240,7 +243,7 @@ STR_INST_FAILED               = "Не атрымалася ўсталяваць,
 STR_INST_INSTALLING           = "Усталёўка..."
 STR_INST_COMPLITED            = "Усталёўка завершана"
 STR_INST_COMPLITED_RB         = "Усталёўка завершана (патрабуецца перазагрузка сістэмы)"
-STR_INST_CLOSE                = "(Клікніце мышшу, каб схаваць усталяваныя драйверы)"
+STR_INST_CLOSE                = " (Клікніце мышшу, каб схаваць усталяваныя драйверы)"
 
 STR_EXTR_EXTRACTING           = "Распакаванне..."
 STR_EXTR_OK                   = "Паспяхова распакавалася"
@@ -281,27 +284,47 @@ STR_UPD_DIALOG_TITLE          = "Праверка абнаўленняў"
 STR_UPD_DIALOG_MSG            = "Вы б жадалі ўключыць аўтаматычную праверку абнаўлення праграмы і драйверпакаў праз Інтэрнэт?"
 STR_UPD_DIALOG_INDEX          = "Вы б жадалі загрузіць найновыя індэксы, якія дазволілі б вызначыць якія драйверпакі вам патрабуецца запампаваць?"
 
+// Updates dialog
 STR_UPD_TITLE                 = "Абнаўленне"
+
 STR_UPD_SELECTION             = "Адбор"
 STR_UPD_BTN_ALL               = "Вылучыць усё"
 STR_UPD_BTN_NONE              = "Зняць вылучэнне"
 STR_UPD_BTN_NETWORK           = "Толькі сетка"
 STR_UPD_BTN_THISPC            = "Вылучыць толькі для гэтага ПК"
 STR_UPD_BTN_THISPC_H          = "Для таго каб вызначыць якія драйверпакі утрымоўваюць абнаўленні для гэтага ПК, трэба спачатку запампаваць індэксы."
-STR_UPD_OPTIONS               = "Варыянты"
-STR_UPD_ONLYUPDATES           = "Не апавяшчаць пра адсутныя драйверпаках"
-STR_UPD_TOTALSIZE             = "Сумарны аб'ём абнаўленняў: %d МБ"
-STR_UPD_TOTALAVAIL            = "Усяго даступна месцы: %d МБ"
-STR_UPD_BTN_OK                = "OK"
-STR_UPD_BTN_CANCEL            = "Адмена"
-STR_UPD_BTN_ACCEPT            = "Ужыць"
+
+STR_UPD_SELECTED              = "Selected: %d / %d"
+STR_UPD_TOTALSIZE             = "Сумарны аб'ём абнаўленняў: %s"
+STR_UPD_TOTALAVAIL            = "Усяго даступна месцы: %s"
+
+STR_UPD_STREAMSTATS           = "Torrent statistics"
+STR_UPD_STREAM_STATE          = "State: "
+STR_UPD_STREAM_COMPLETE       = "Complete: %s / %s (%d%%)"
+STR_UPD_STREAM_TIME           = "Remaining: %s"
+STR_UPD_STREAM_SESSDL         = "Session Downloads: %s (%s/s)"
+STR_UPD_STREAM_SESSUL         = "Session Uploads: %s (%s/s)"
+STR_UPD_STREAM_SEEDS          = "Seeds: %d (%d),  Peers: %d (%d)"
+STR_UPD_STREAM_ALERT          = "Alert: %s"
+
+STR_UPD_OPTIONS               = "Options"
+STR_UPD_ONLYUPDATES           = "Show only updates, hide missing driver packs."
+STR_UPD_KEEPSEEDING           = "Keep sharing after downloads are finished."
+
+STR_UPD_SPECIALMODE           = "Share Mode"
+STR_UPD_TXT_SHARE             = "You can help distribute our driver collection by sharing your 'drivers' folder."
+STR_UPD_BTN_SHARE             = "Share"
+
+STR_UPD_BTN_UPDATE            = "Start"
+STR_UPD_BTN_STOP              = "Stop"
+STR_UPD_BTN_CLOSE             = "Close"
 STR_UPD_COL_NAME              = "Драйверпак"
 STR_UPD_COL_SIZE              = "Памер"
 STR_UPD_COL_PER               = "%"
 STR_UPD_COL_NEW               = "Новы"
 STR_UPD_COL_CUR               = "Стары"
 STR_UPD_COL_THISPC            = "Для гэтага ПК?"
-STR_UPD_WEBSTATUS             = "(Інтэрнэт)"
+STR_UPD_WEBSTATUS             = " (Інтэрнэт)"
 STR_UPD_YES                   = "Так"
 STR_UPD_NO                    = "Не"
 STR_UPD_UNKNOWN               = "Невядома"
@@ -321,14 +344,23 @@ STR_UPD_INDEXES               = "Індэксы новых пакаў"
 STR_UPD_UPDATEHINT1           = "Парада"
 STR_UPD_UPDATEHINT2           = "Вы павінны спачатку абнавіць праграму з індэксамі."
 
+STR_UPD_PROMPT_01             = "Checking partial files. (%d%%) Download will start shortly..."
+STR_UPD_PROMPT_02             = "Downloading (%d%%)"
+STR_UPD_PROMPT_03             = "Sharing. Press Stop to end."
+STR_UPD_PROMPT_04             = "Download finished"
+STR_UPD_PROMPT_05             = "Checking resume data. Download will start shortly..."
+STR_UPD_PROMPT_06             = "You're up to date. Nothing to download."
+STR_UPD_PROMPT_07             = "Ready: Select the items you want and press Start."
+STR_UPD_PROMPT_08             = "Unable to get updates. Try again later."
+
 // Update hint
 STR_UPD_CHECKING              = "Праверка наяўнасці абнаўленняў"
 STR_UPD_AVAIL1                = "Даступныя абнаўленні з Інтэрнэту: SDIO R%d"
 STR_UPD_AVAIL2                = "Даступныя абнаўленні з Інтэрнэту: %d драйверпакаў"
 STR_UPD_AVAIL3                = "Даступныя абнаўленні з Інтэрнэту: SDIO R%d і %d драйверпакаў"
-STR_UPD_START                 = "(Клікніце тут, каб пачаць загрузку)"
+STR_UPD_START                 = " (Клікніце тут, каб пачаць загрузку)"
 STR_UPD_PROGRES               = "Загружана %s з %s (%d%%)"
-STR_UPD_MODIFY                = "(Клікніце тут, каб абраць абнаўленні)"
+STR_UPD_MODIFY                = " (Клікніце тут, каб абраць абнаўленні)"
 STR_UPD_CHECKINGFILES         = "Праверка файлаў %s of %s (%d%%)"
 
 STR_DWN_DOWNLOADED            = "Загружана"
@@ -337,7 +369,7 @@ STR_DWN_UPLOADED              = "Аддадзена"
 STR_DWN_ELAPSED               = "Прайшло"
 STR_DWN_REMAINING             = "Засталося"
 STR_DWN_SEEDING               = "Seeding %s (%s)"
-STR_DWN_MODIFY                = "(Націсніце тут, каб спыніць)"
+STR_DWN_MODIFY                = " (Націсніце тут, каб спыніць)"
 STR_DWN_CLOSING               = "Заключная сесія"
 
 STR_DWN_STATUS                = "Статут"
@@ -363,6 +395,7 @@ STR_TR_ST5                    = "раздаецца"
 STR_TR_ST6                    = "рэзервуецца месца"
 STR_TR_ST7                    = "аднаўленне"
 STR_TR_ST8                    = "перасоўванне файлаў"
+STR_TR_ST9                    = "paused"
 
 // Options dialog
 STR_OPTION_TITLE              = "Опцыі"
@@ -370,8 +403,8 @@ STR_OPTION_VIEW_TAB           = "выгляд"
 STR_OPTION_UPDATES_TAB        = "Абнаўленні"
 STR_OPTION_PATH_TAB           = "Шляхі"
 STR_OPTION_ADVANCED_TAB       = "Іншае"
-STR_OPTION_OK_BUTTON          = STR_UPD_BTN_OK
-STR_OPTION_CANCEL_BUTTON      = STR_UPD_BTN_CANCEL
+STR_OPTION_OK_BUTTON          = "OK"
+STR_OPTION_CANCEL_BUTTON      = "Cancel"
 
 // View tab
 STR_OPTION_DRPNAMES           = "Назвы драйверпакаў"

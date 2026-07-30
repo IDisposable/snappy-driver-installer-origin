@@ -46,6 +46,8 @@ STR_DRVDIR                    = "انتخاب پوشه درایور ..."
 STR_DRVDIR_H                  = "انتخاب کردن پوشه حاوی بسته‌های درایور یا درایورهای بازشده.\n\nاز این می‌توانید برای جستجوی درايورهای رو CD/DVD استفاده کنید."
 STR_OPTIONS_BTN               = "تنظیمات..."
 STR_OPTIONS_BTN_H             = "باز کردن کادر محاوره با تنظیمات."
+STR_UPDATES_BTN               = "Updates"
+STR_UPDATES_BTN_H             = "Open updates dialog box."
 
 STR_SHOW_FOUND                = "درایورهای پیداشده"
 STR_SHOW_FOUND_H              = "درایورها دربسته‌های درایور پیداشده و می‌توانند نصب شوند\n\nما به شما توصیه می‌کنیم این دسته‌ها را انتخاب کنید : نصب نشده جدیدتر و همسازتر"
@@ -178,6 +180,7 @@ STR_CONT_OPENINF              = "باز کردن فایل inf درایور نص�
 STR_CONT_LOCATEINF            = "تعیین محل فایل inf درایور نصب‌شده."
 STR_CONT_HWID_SEARCH          = "جست‌وجوی شناسه سخت‌افزار در اینترنت"
 STR_CONT_HWID_CLIP            = "کپی کردن شناسه سخت‌افزار در کلیپ بورد"
+STR_CONT_HWID_IGNORE          = "Add this Hardware ID to Ignore List"
 
 // Misc
 STR_OPENSNAPSHOT              = "Snapshot فایل‌های (*.snp)/0*.snp/0همه فایل‌ها/0*.*/0/0"
@@ -194,7 +197,7 @@ STR_STATUS_STOPPED            = "دستگاه در حال حاضر متوقف‌
 // Driver status
 STR_STATUS_INVALID            = "درایور ناسازگار"
 STR_STATUS_MISSING            = "درایور موجود است اما هنوز نصب نشده است"
-STR_STATUS_NOTSIGNED          = "(بدون امضاء)"
+STR_STATUS_NOTSIGNED          = " (بدون امضاء)"
 
 STR_STATUS_BETTER_NEW         = "درایور جدیدتر و مناسب‌تر موجود است."
 STR_STATUS_SAME_NEW           = "به‌روزرسانی درایور موجود است."
@@ -208,7 +211,7 @@ STR_STATUS_BETTER_OLD         = "درایور هرچند قدیمی‌تر ام�
 STR_STATUS_SAME_OLD           = "درایور قدیمی"
 STR_STATUS_WORSE_OLD          = "درایور قدیمی و همچنین نامناسب"
 
-STR_STATUS_DUP                = "(همسان)"
+STR_STATUS_DUP                = " (همسان)"
 
 STR_STATUS_NF_MISSING         = "دستگاه به یک درایور نیاز دارد اما در بسته‌های درایور پیدا نشد."
 STR_STATUS_NF_UNKNOWN         = "دستگاه درست کار می‌کند اما درایور آن در بسته‌های درایور پیدا نشد."
@@ -224,9 +227,9 @@ STR_VIRUS_HIDDEN              = "پوشه مخفی در ریشه وجود دار
 STR_VIRUS_HIDDEN_H            = "پوشه مخفی در ریشه ممکن است توسط ویروس برای مقاصد پنهان‌کاری ایجاد شده باشد. مطمئن شوید که آلوده نباشد\n\nاگر مطمئن هستید که آلوده نیست فایل not_a_virus.txt را در پوشه ایجاد کنید."
 
 // Status
-STR_CLOSE_SNAPSHOT            = "(برای متوقف کردن شبیه‌سازی اینجا را کلیک کنید.)"
+STR_CLOSE_SNAPSHOT            = " (برای متوقف کردن شبیه‌سازی اینجا را کلیک کنید.)"
 STR_EMPTYDRP                  = "اتصال به اینترنت برای دانلود بسته های درایور یا گذاشتن درایورهای غیر فشرده در پوشه های ذیل."
-STR_CLOSE_DRPEXT              = "(برای بازگشت به پوشه پیش‌فرض اینجا را کلیک کنید.)"
+STR_CLOSE_DRPEXT              = " (برای بازگشت به پوشه پیش‌فرض اینجا را کلیک کنید.)"
 STR_NOUPDATES                 = "درایورها بروز هستند"
 STR_INITIALIZING              = "آماده‌سازی ..."
 
@@ -240,7 +243,7 @@ STR_INST_FAILED               = "نصب ناموفق٬ خطا"
 STR_INST_INSTALLING           = "در حال نصب ..."
 STR_INST_COMPLITED            = "نصب کامل شد"
 STR_INST_COMPLITED_RB         = "نصب کامل شد (احتیاج به راه‌اندازی مجدد سیستم)"
-STR_INST_CLOSE                = "(برای مخفی کردن درایور های نصب شده اینجا را کلیک کنید)"
+STR_INST_CLOSE                = " (برای مخفی کردن درایور های نصب شده اینجا را کلیک کنید)"
 
 STR_EXTR_EXTRACTING           = "استخراج..."
 STR_EXTR_OK                   = "با موفقیت استخراج شد"
@@ -281,27 +284,49 @@ STR_UPD_DIALOG_TITLE          = "بررسی به‌روزرسانی"
 STR_UPD_DIALOG_MSG            = "آیا می‌خواهید بررسی خودکار به‌روزرسانی درایورها و برنامه فعال شود؟"
 STR_UPD_DIALOG_INDEX          = "آیا می‌خواهید نمایه‌ها دانلود شوند تا امکان تشخیص درایورهای موردنیاز برای دانلود مهیا شود؟"
 
+// Updates dialog
 STR_UPD_TITLE                 = "به‌روزرسانی"
+
 STR_UPD_SELECTION             = "انتخاب"
 STR_UPD_BTN_ALL               = "انتخاب همه"
 STR_UPD_BTN_NONE              = "انتخاب هیچ‌کدام"
 STR_UPD_BTN_NETWORK           = "فقط شبکه"
 STR_UPD_BTN_THISPC            = "فقط انتخاب موارد موردنیاز این سیستم"
 STR_UPD_BTN_THISPC_H          = "برای تشخیص درایورهای موردنیاز اول باید نمایه‌ها را دانلود کنید."
-STR_UPD_OPTIONS               = "گزینه‌ها"
-STR_UPD_ONLYUPDATES           = "برای درایورهای گم‌شده اخطار نده"
-STR_UPD_TOTALSIZE             = "مجموع اندازه دانلود شده: %d مگابایت"
-STR_UPD_TOTALAVAIL            = "مجموع فضای در دسترس: %d مگابایت"
-STR_UPD_BTN_OK                = "تأیید"
-STR_UPD_BTN_CANCEL            = "لغو"
-STR_UPD_BTN_ACCEPT            = "می‌پذیرم"
+
+
+STR_UPD_SELECTED              = "Selected: %d / %d"
+STR_UPD_TOTALSIZE             = "مجموع اندازه دانلود شده: %s"
+STR_UPD_TOTALAVAIL            = "مجموع فضای در دسترس: %s"
+
+STR_UPD_STREAMSTATS           = "Torrent statistics"
+STR_UPD_STREAM_STATE          = "State: "
+STR_UPD_STREAM_COMPLETE       = "Complete: %s / %s (%d%%)"
+STR_UPD_STREAM_TIME           = "Remaining: %s"
+STR_UPD_STREAM_SESSDL         = "Session Downloads: %s (%s/s)"
+STR_UPD_STREAM_SESSUL         = "Session Uploads: %s (%s/s)"
+STR_UPD_STREAM_SEEDS          = "Seeds: %d (%d),  Peers: %d (%d)"
+STR_UPD_STREAM_ALERT          = "Alert: %s"
+
+STR_UPD_OPTIONS               = "Options"
+STR_UPD_ONLYUPDATES           = "Show only updates, hide missing driver packs."
+STR_UPD_KEEPSEEDING           = "Keep sharing after downloads are finished."
+
+STR_UPD_SPECIALMODE           = "Share Mode"
+STR_UPD_TXT_SHARE             = "You can help distribute our driver collection by sharing your 'drivers' folder."
+STR_UPD_BTN_SHARE             = "Share"
+
+STR_UPD_BTN_UPDATE            = "Start"
+STR_UPD_BTN_STOP              = "Stop"
+STR_UPD_BTN_CLOSE             = "Close"
+
 STR_UPD_COL_NAME              = "بسته درایورها"
 STR_UPD_COL_SIZE              = "اندازه"
 STR_UPD_COL_PER               = "%"
 STR_UPD_COL_NEW               = "جدید"
 STR_UPD_COL_CUR               = "فعلی"
 STR_UPD_COL_THISPC            = "برای این کامپیوتر؟"
-STR_UPD_WEBSTATUS             = "(اینترنت)"
+STR_UPD_WEBSTATUS             = " (اینترنت)"
 STR_UPD_YES                   = "بله"
 STR_UPD_NO                    = "نه"
 STR_UPD_UNKNOWN               = "ناشناخته"
@@ -321,14 +346,23 @@ STR_UPD_INDEXES               = "نمایه‌ها"
 STR_UPD_UPDATEHINT1           = "تذکر"
 STR_UPD_UPDATEHINT2           = "برای استفاده از این ویژگی باید اول موارد اساسی را به‌روزرسانی کنید."
 
+STR_UPD_PROMPT_01             = "Checking partial files. (%d%%) Download will start shortly..."
+STR_UPD_PROMPT_02             = "Downloading (%d%%)"
+STR_UPD_PROMPT_03             = "Sharing. Press Stop to end."
+STR_UPD_PROMPT_04             = "Download finished"
+STR_UPD_PROMPT_05             = "Checking resume data. Download will start shortly..."
+STR_UPD_PROMPT_06             = "You're up to date. Nothing to download."
+STR_UPD_PROMPT_07             = "Ready: Select the items you want and press Start."
+STR_UPD_PROMPT_08             = "Unable to get updates. Try again later."
+
 // Update hint
 STR_UPD_CHECKING              = "برسی برای به‌روزرسانی"
 STR_UPD_AVAIL1                = "به‌روزرسانی موجود است: SDIO R%d"
 STR_UPD_AVAIL2                = "به‌روزرسانی موجود است: %d بسته‌ درایور"
 STR_UPD_AVAIL3                = "به‌روزرسانی موجود است SDIO R%d و %d بسته‌ درایور"
-STR_UPD_START                 = "(برای شروع دانلود اینجا را کلیک کنید)"
+STR_UPD_START                 = " (برای شروع دانلود اینجا را کلیک کنید)"
 STR_UPD_PROGRES               = "دانلود شده %s از %s (%d%%)"
-STR_UPD_MODIFY                = "(برای انتخاب به‌روزرسانی‌ها اینجا را کلیک کنید)"
+STR_UPD_MODIFY                = " (برای انتخاب به‌روزرسانی‌ها اینجا را کلیک کنید)"
 STR_UPD_CHECKINGFILES         = "برسی فایل %s از %s فایل (%d%%)"
 
 STR_DWN_DOWNLOADED            = "دانلود شده"
@@ -337,7 +371,7 @@ STR_DWN_UPLOADED              = "آپلود شده"
 STR_DWN_ELAPSED               = "زمان سپری‌شده"
 STR_DWN_REMAINING             = "زمان باقی‌مانده"
 STR_DWN_SEEDING               = "در حال سید کردن %s (%s)"
-STR_DWN_MODIFY                = "(جهت توقف اینجا کلیک کنید)"
+STR_DWN_MODIFY                = " (جهت توقف اینجا کلیک کنید)"
 STR_DWN_CLOSING               = "در حال بستن اتصال"
 
 STR_DWN_STATUS                = "وضعیت"
@@ -363,6 +397,7 @@ STR_TR_ST5                    = "کاشتن"
 STR_TR_ST6                    = "فضای اختصاص‌یافته"
 STR_TR_ST7                    = "بررسی خلاصه داده"
 STR_TR_ST8                    = "در حال انتقال فایلها"
+STR_TR_ST9                    = "paused"
 
 // Options dialog
 STR_OPTION_TITLE              = "تنظیمات"
@@ -370,8 +405,8 @@ STR_OPTION_VIEW_TAB           = "مشاهده"
 STR_OPTION_UPDATES_TAB        = "به‌روزرسانی‌ها"
 STR_OPTION_PATH_TAB           = "مسیرها"
 STR_OPTION_ADVANCED_TAB       = "پیشرفته"
-STR_OPTION_OK_BUTTON          = STR_UPD_BTN_OK
-STR_OPTION_CANCEL_BUTTON      = STR_UPD_BTN_CANCEL
+STR_OPTION_OK_BUTTON          = "OK"
+STR_OPTION_CANCEL_BUTTON      = "Cancel"
 
 // View tab
 STR_OPTION_DRPNAMES           = "اسامی بسته‌های درایور"

@@ -46,6 +46,8 @@ STR_DRVDIR                    = "Seleziona cartella driver..."
 STR_DRVDIR_H                  = "Seleziona un'altra cartella con i driver pack o i driver decompressi.\n\nPuoi utilizzarla per metterci i driver da CD/DVD."
 STR_OPTIONS_BTN               = "Opzioni..."
 STR_OPTIONS_BTN_H             = "Apri una finestra con le impostazioni."
+STR_UPDATES_BTN               = "Aggiornamenti"
+STR_UPDATES_BTN_H             = "Apri la finestra di dialogo degli aggiornamenti."
 
 STR_SHOW_FOUND                = "Trovati nei driver-packs"
 STR_SHOW_FOUND_H              = "Driver trovati che possono essere installati.\n\nVi consigliamo di installare i driver delle seguenti categorie: non installato, più recenti, miglior corrispondenza."
@@ -178,6 +180,7 @@ STR_CONT_OPENINF              = "Apri il file inf del driver installato"
 STR_CONT_LOCATEINF            = "Individua il file inf del driver installato"
 STR_CONT_HWID_SEARCH          = "Cerca Microsoft Update Catalog per Hardware ID"
 STR_CONT_HWID_CLIP            = "Copia HardwareID nel Blocco note"
+STR_CONT_HWID_IGNORE          = "Aggiungi questo ID hardware all'elenco degli elementi da ignorare."
 
 // Misc
 STR_OPENSNAPSHOT              = "Snapshot files (*.snp)/0*.snp/0All files/0*.*/0/0"
@@ -281,20 +284,41 @@ STR_UPD_DIALOG_TITLE          = "Controllo aggiornamenti"
 STR_UPD_DIALOG_MSG            = "Vuoi attivare il controllo automatico online degli aggiornamenti per i nuovi driver pack e dell'applicazione?"
 STR_UPD_DIALOG_INDEX          = "Vuoi scaricare gli indici aggiornati al fine di consentire di determinare quale driver packs è necessario scaricare?"
 
+// Updates dialog
 STR_UPD_TITLE                 = "Aggiorna"
+
 STR_UPD_SELECTION             = "Scelta"
 STR_UPD_BTN_ALL               = "Seleziona tutto"
 STR_UPD_BTN_NONE              = "Deseleziona tutto"
-STR_UPD_BTN_NETWORK           = "Solo drivers di rete"
 STR_UPD_BTN_THISPC            = "Seleziona solo quelli necessari a questo PC"
 STR_UPD_BTN_THISPC_H          = "Al fine di determinare quali driver-packs sono necessari, è bene scaricare prima gli indici."
-STR_UPD_OPTIONS               = "Opzioni"
-STR_UPD_ONLYUPDATES           = "Mostra solo aggiornati, nascondi i driver pack mancanti"
-STR_UPD_TOTALSIZE             = "Dimensione totale download: %d MB"
-STR_UPD_TOTALAVAIL            = "Spazio Totale Disponibile : %d MB"
-STR_UPD_BTN_OK                = "OK"
-STR_UPD_BTN_CANCEL            = "Annulla"
-STR_UPD_BTN_ACCEPT            = "Accetta"
+STR_UPD_BTN_NETWORK           = "Solo drivers di rete"
+
+STR_UPD_SELECTED              = "Selezionato: %d / %d"
+STR_UPD_TOTALSIZE             = "Dimensione totale download: %s"
+STR_UPD_TOTALAVAIL            = "Spazio Totale Disponibile : %s"
+
+STR_UPD_STREAMSTATS           = "Statistiche del flusso"
+STR_UPD_STREAM_STATE          = "Stato:"
+STR_UPD_STREAM_COMPLETE       = "Completato: %s / %s (%d%%)"
+STR_UPD_STREAM_TIME           = "Rimanente: %s"
+STR_UPD_STREAM_SESSDL         = "Download della sessione: %s (%s/s)"
+STR_UPD_STREAM_SESSUL         = "Caricamenti della sessione: %s (%s/s)"
+STR_UPD_STREAM_SEEDS          = "Seeds: %d (%d),  Peers: %d (%d)"
+STR_UPD_STREAM_ALERT          = "Avviso: %s"
+
+STR_UPD_OPTIONS               = "Options"
+STR_UPD_ONLYUPDATES           = "Show only updates, hide missing driver packs."
+STR_UPD_KEEPSEEDING           = "Keep sharing after downloads are finished."
+
+STR_UPD_SPECIALMODE           = "Share Mode"
+STR_UPD_TXT_SHARE             = "You can help distribute our driver collection by sharing your 'drivers' folder."
+STR_UPD_BTN_SHARE             = "Share"
+
+STR_UPD_BTN_UPDATE            = "iniziare"
+STR_UPD_BTN_STOP              = "Fermare"
+STR_UPD_BTN_CLOSE             = "chiudere"
+
 STR_UPD_COL_NAME              = "Driver pack"
 STR_UPD_COL_SIZE              = "Dimensione"
 STR_UPD_COL_PER               = "%"
@@ -320,6 +344,15 @@ STR_UPD_APP                   = "Applicazione"
 STR_UPD_INDEXES               = "Indici"
 STR_UPD_UPDATEHINT1           = "Suggerimento"
 STR_UPD_UPDATEHINT2           = "E' necessario aggiornare prima il database per poter utilizzare questa funzione."
+
+STR_UPD_PROMPT_01             = "Controllo dei file parziali in corso. (%d%%) Il download inizierà a breve..."
+STR_UPD_PROMPT_02             = "Download in corso (%d%%)"
+STR_UPD_PROMPT_03             = "Condivisione. Premi Stop per terminare."
+STR_UPD_PROMPT_04             = "Download completato"
+STR_UPD_PROMPT_05             = "Verifica dei dati in corso. Il download inizierà a breve..."
+STR_UPD_PROMPT_06             = "Il tuo sistema è aggiornato. Non c'è nulla da scaricare."
+STR_UPD_PROMPT_07             = "Pronto: Seleziona gli elementi desiderati e premi Avvia."
+STR_UPD_PROMPT_08             = "Impossibile ottenere gli aggiornamenti. Riprova più tardi."
 
 // Update hint
 STR_UPD_CHECKING              = "Verifica aggiornamenti"
@@ -363,6 +396,7 @@ STR_TR_ST5                    = "seeding"
 STR_TR_ST6                    = "spazio occupato"
 STR_TR_ST7                    = "controllo dati recupero"
 STR_TR_ST8                    = "Spostamento File"
+STR_TR_ST9                    = "paused"
 
 // Options dialog
 STR_OPTION_TITLE              = "Opzioni"
@@ -370,8 +404,8 @@ STR_OPTION_VIEW_TAB           = "Visualizza"
 STR_OPTION_UPDATES_TAB        = "Aggiornamenti"
 STR_OPTION_PATH_TAB           = "Percorsi"
 STR_OPTION_ADVANCED_TAB       = "Avanzate"
-STR_OPTION_OK_BUTTON          = STR_UPD_BTN_OK
-STR_OPTION_CANCEL_BUTTON      = STR_UPD_BTN_CANCEL
+STR_OPTION_OK_BUTTON          = "OK"
+STR_OPTION_CANCEL_BUTTON      = "Cancel"
 
 // View tab
 STR_OPTION_DRPNAMES           = "Nomi dei driver-packs"

@@ -46,6 +46,8 @@ STR_DRVDIR                    = "选择驱动程序目录…"
 STR_DRVDIR_H                  = "选择其他包含驱动程序包或未打包驱动程序的文件夹。\n\n你可以使用它在CD/DVD上搜索驱动程序。"
 STR_OPTIONS_BTN               = "选项…"
 STR_OPTIONS_BTN_H             = "打开设置对话框"
+STR_UPDATES_BTN               = "Updates"
+STR_UPDATES_BTN_H             = "Open updates dialog box."
 
 STR_SHOW_FOUND                = "发现可用驱动"
 STR_SHOW_FOUND_H              = "在驱动程序包中找到可以安装的驱动程序。\n\n建议安装以下类别的驱动程序：未安装、较新、较好。"
@@ -178,6 +180,7 @@ STR_CONT_OPENINF              = "打开已安装驱动程序的inf文件"
 STR_CONT_LOCATEINF            = "定位已安装驱动程序的inf文件"
 STR_CONT_HWID_SEARCH          = "在微软更新目录中搜索硬件ID"
 STR_CONT_HWID_CLIP            = "复制硬件ID到剪贴板"
+STR_CONT_HWID_IGNORE          = "Add this Hardware ID to Ignore List"
 
 // Misc
 STR_OPENSNAPSHOT              = "快照文件(*.snp)/0*.snp/0所有文件/0*.*/0/0"
@@ -194,7 +197,7 @@ STR_STATUS_STOPPED            = "设备已停止运行"
 // Driver status
 STR_STATUS_INVALID            = "驱动程序不兼容"
 STR_STATUS_MISSING            = "可用的驱动程序（尚未安装的驱动程序）"
-STR_STATUS_NOTSIGNED          = "（未签名）"
+STR_STATUS_NOTSIGNED          = " （未签名）"
 
 STR_STATUS_BETTER_NEW         = "更好更新的驱动程序"
 STR_STATUS_SAME_NEW           = "更新的驱动程序"
@@ -208,7 +211,7 @@ STR_STATUS_BETTER_OLD         = "更好但较旧的驱动程序"
 STR_STATUS_SAME_OLD           = "旧驱动程序"
 STR_STATUS_WORSE_OLD          = "较差的旧驱动程序"
 
-STR_STATUS_DUP                = "（重复）"
+STR_STATUS_DUP                = " （重复）"
 
 STR_STATUS_NF_MISSING         = "设备需要驱动程序但在驱动程序包中找不到"
 STR_STATUS_NF_UNKNOWN         = "该设备正常工作，但驱动程序包中没有包含该驱动程序"
@@ -224,9 +227,9 @@ STR_VIRUS_HIDDEN              = "根目录有隐藏文件夹"
 STR_VIRUS_HIDDEN_H            = "根目录有隐藏文件夹。病毒可以建立隐藏文件夹来隐藏其存在。建议检查这些文件夹（参见日志以获取详细信息）是否有病毒。\n\n如果确信它干净，在每个文件夹建立not_a_virus.txt文件。"
 
 // Status
-STR_CLOSE_SNAPSHOT            = "（点此停止仿真）"
+STR_CLOSE_SNAPSHOT            = " （点此停止仿真）"
 STR_EMPTYDRP                  = "连接到互联网以下载驱动程序包，或将解压的驱动程序放入以下文件夹"
-STR_CLOSE_DRPEXT              = "（点此返回默认文件夹）"
+STR_CLOSE_DRPEXT              = " （点此返回默认文件夹）"
 STR_NOUPDATES                 = "驱动程序已是最新"
 STR_INITIALIZING              = "初始化中…"
 
@@ -240,7 +243,7 @@ STR_INST_FAILED               = "安装失败，错误信息为："
 STR_INST_INSTALLING           = "安装中…"
 STR_INST_COMPLITED            = "安装完成"
 STR_INST_COMPLITED_RB         = "安装完成（需要重启系统）"
-STR_INST_CLOSE                = "（点此隐藏已安装的驱动程序）"
+STR_INST_CLOSE                = " （点此隐藏已安装的驱动程序）"
 
 STR_EXTR_EXTRACTING           = "解压中…"
 STR_EXTR_OK                   = "已解压"
@@ -281,20 +284,40 @@ STR_UPD_DIALOG_TITLE          = "检查更新"
 STR_UPD_DIALOG_MSG            = "要启用自动在线检查新版本的驱动程序包和应用程序吗？"
 STR_UPD_DIALOG_INDEX          = "要下载最新的索引来确定需要下载哪些驱动程序包吗？"
 
+// Updates dialog
 STR_UPD_TITLE                 = "更新"
+
 STR_UPD_SELECTION             = "选择"
 STR_UPD_BTN_ALL               = "全选"
 STR_UPD_BTN_NONE              = "全不选"
 STR_UPD_BTN_NETWORK           = "仅网络驱动程序"
 STR_UPD_BTN_THISPC            = "仅本机需要的"
 STR_UPD_BTN_THISPC_H          = "要先下载索引来确定需要哪些驱动程序包。"
-STR_UPD_OPTIONS               = "选项"
-STR_UPD_ONLYUPDATES           = "仅显示更新，隐藏缺失的驱动程序包"
-STR_UPD_TOTALSIZE             = "总下载大小：%d MB"
-STR_UPD_TOTALAVAIL            = "总可用空间：%d MB"
-STR_UPD_BTN_OK                = "确定"
-STR_UPD_BTN_CANCEL            = "取消"
-STR_UPD_BTN_ACCEPT            = "应用"
+
+STR_UPD_SELECTED              = "Selected: %d / %d"
+STR_UPD_TOTALSIZE             = "总下载大小：%s"
+STR_UPD_TOTALAVAIL            = "总可用空间：%s"
+
+STR_UPD_STREAMSTATS           = "Torrent statistics"
+STR_UPD_STREAM_STATE          = "State: "
+STR_UPD_STREAM_COMPLETE       = "Complete: %s / %s (%d%%)"
+STR_UPD_STREAM_TIME           = "Remaining: %s"
+STR_UPD_STREAM_SESSDL         = "Session Downloads: %s (%s/s)"
+STR_UPD_STREAM_SESSUL         = "Session Uploads: %s (%s/s)"
+STR_UPD_STREAM_SEEDS          = "Seeds: %d (%d),  Peers: %d (%d)"
+STR_UPD_STREAM_ALERT          = "Alert: %s"
+
+STR_UPD_OPTIONS               = "Options"
+STR_UPD_ONLYUPDATES           = "Show only updates, hide missing driver packs."
+STR_UPD_KEEPSEEDING           = "Keep sharing after downloads are finished."
+
+STR_UPD_SPECIALMODE           = "Share Mode"
+STR_UPD_TXT_SHARE             = "You can help distribute our driver collection by sharing your 'drivers' folder."
+STR_UPD_BTN_SHARE             = "Share"
+
+STR_UPD_BTN_UPDATE            = "Start"
+STR_UPD_BTN_STOP              = "Stop"
+STR_UPD_BTN_CLOSE             = "Close"
 STR_UPD_COL_NAME              = "驱动软件包"
 STR_UPD_COL_SIZE              = "大小"
 STR_UPD_COL_PER               = "%"
@@ -320,6 +343,15 @@ STR_UPD_APP                   = "应用程序"
 STR_UPD_INDEXES               = "索引"
 STR_UPD_UPDATEHINT1           = "提示"
 STR_UPD_UPDATEHINT2           = "必须先更新基础版本才能使用此功能"
+
+STR_UPD_PROMPT_01             = "Checking partial files. (%d%%) Download will start shortly..."
+STR_UPD_PROMPT_02             = "Downloading (%d%%)"
+STR_UPD_PROMPT_03             = "Sharing. Press Stop to end."
+STR_UPD_PROMPT_04             = "Download finished"
+STR_UPD_PROMPT_05             = "Checking resume data. Download will start shortly..."
+STR_UPD_PROMPT_06             = "You're up to date. Nothing to download."
+STR_UPD_PROMPT_07             = "Ready: Select the items you want and press Start."
+STR_UPD_PROMPT_08             = "Unable to get updates. Try again later."
 
 // Update hint
 STR_UPD_CHECKING              = "检查更新中"
@@ -363,6 +395,7 @@ STR_TR_ST5                    = "做种中"
 STR_TR_ST6                    = "分配空间中"
 STR_TR_ST7                    = "正在检查恢复数据"
 STR_TR_ST8                    = "移动文件中"
+STR_TR_ST9                    = "paused"
 
 // Options dialog
 STR_OPTION_TITLE              = "选项"
@@ -370,8 +403,8 @@ STR_OPTION_VIEW_TAB           = "视图"
 STR_OPTION_UPDATES_TAB        = "更新"
 STR_OPTION_PATH_TAB           = "路径"
 STR_OPTION_ADVANCED_TAB       = "高级"
-STR_OPTION_OK_BUTTON          = STR_UPD_BTN_OK
-STR_OPTION_CANCEL_BUTTON      = STR_UPD_BTN_CANCEL
+STR_OPTION_OK_BUTTON          = "OK"
+STR_OPTION_CANCEL_BUTTON      = "Cancel"
 
 // View tab
 STR_OPTION_DRPNAMES           = "驱动程序包名称"

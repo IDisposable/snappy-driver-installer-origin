@@ -46,6 +46,8 @@ STR_DRVDIR                    = "Изаберите фасциклу управ�
 STR_DRVDIR_H                  = "Изаберите другу фасциклу са пакетима управљачких програма или распакованим управљачким програмима.\n\nМожете ово користити за претрагу управљачких програма на CD/DVD."
 STR_OPTIONS_BTN               = "Опције..."
 STR_OPTIONS_BTN_H             = "Отворите прозор са подешавањима."
+STR_UPDATES_BTN               = "Updates"
+STR_UPDATES_BTN_H             = "Open updates dialog box."
 
 STR_SHOW_FOUND                = "Пронађено у пакетима"
 STR_SHOW_FOUND_H              = "Управљачки програми су пронађени у пакетима управљачких програма и могу се инсталирати.\n\nСаветујемо да инсталирате управљачке програме из следећих категорија: није инсталирано, новије, боље поклапање."
@@ -178,6 +180,7 @@ STR_CONT_OPENINF              = "Отвори inf датотеку инстал�
 STR_CONT_LOCATEINF            = "Лоцирај inf датотеку инсталираног управљачког програма"
 STR_CONT_HWID_SEARCH          = "Претражи Microsoft Update Catalog за ИД хардвера"
 STR_CONT_HWID_CLIP            = "Копирај ИД хардвера на међуспремник"
+STR_CONT_HWID_IGNORE          = "Add this Hardware ID to Ignore List"
 
 // Misc
 STR_OPENSNAPSHOT              = "Датотеке снимака (*.snp)/0*.snp/0Све датотеке/0*.*/0/0"
@@ -224,9 +227,9 @@ STR_VIRUS_HIDDEN              = "Постоје сакривене фасцик�
 STR_VIRUS_HIDDEN_H            = "Коренски директоријум садржи сакривене фасцикле. Вируси могу да направе сакривене фасцикле како би сакрили своје присуство. Саветује се да проверите вирусе у фасциклама (погледајте запис за више детања).\n\nАко сте сигурни да су чисте, направите датотеку са називом not_a_virus.txt унутар сваке фасцикле."
 
 // Status
-STR_CLOSE_SNAPSHOT            = "(Кликните овде да зауставите симулацију)"
+STR_CLOSE_SNAPSHOT            = " (Кликните овде да зауставите симулацију)"
 STR_EMPTYDRP                  = "Повежите се на интернет да би сте преузели пакете управљачких програма или ставите распаковане управљачке програме у следећу фасциклу"
-STR_CLOSE_DRPEXT              = "(Кликните овде да се вратите у подразумевану фасциклу)"
+STR_CLOSE_DRPEXT              = " (Кликните овде да се вратите у подразумевану фасциклу)"
 STR_NOUPDATES                 = "Управљачки програми су ажурни"
 STR_INITIALIZING              = "Покретање..."
 
@@ -240,7 +243,7 @@ STR_INST_FAILED               = "Инсталација није успела, �
 STR_INST_INSTALLING           = "Инсталирање..."
 STR_INST_COMPLITED            = "Инсталација је завршена"
 STR_INST_COMPLITED_RB         = "Инсталација је завршена (потребно је поновно покретање система)"
-STR_INST_CLOSE                = "(Кликните овде да сакријете инсталиране управљачке програме)"
+STR_INST_CLOSE                = " (Кликните овде да сакријете инсталиране управљачке програме)"
 
 STR_EXTR_EXTRACTING           = "Распакивање..."
 STR_EXTR_OK                   = "Успешно је распаковано"
@@ -281,20 +284,41 @@ STR_UPD_DIALOG_TITLE          = "Провера надоградњи"
 STR_UPD_DIALOG_MSG            = "Да ли би сте волели да омогућите аутоматску проверу нових верзија пакета и апликације?"
 STR_UPD_DIALOG_INDEX          = "Да ли би сте волели да преузмете најновије индексе како би сте омогућили утврђивање који пакети управљачких програма су вам потребни за преузимање?"
 
+// Updates dialog
 STR_UPD_TITLE                 = "Надоградња"
+
 STR_UPD_SELECTION             = "Избор"
 STR_UPD_BTN_ALL               = "Означи све"
 STR_UPD_BTN_NONE              = "Означи ништа"
 STR_UPD_BTN_NETWORK           = "Само мрежа"
 STR_UPD_BTN_THISPC            = "За овај рачунар"
 STR_UPD_BTN_THISPC_H          = "Да би сте могли да одредите који пакети управљачких програма вам требају, морате прво преузети индексе."
-STR_UPD_OPTIONS               = "Опције"
-STR_UPD_ONLYUPDATES           = "Прикажи само надоградње, сакриј недостајуће"
-STR_UPD_TOTALSIZE             = "Укупна величина за преузимање: %d MB"
-STR_UPD_TOTALAVAIL            = "Укупно доступног простора: %MB"
-STR_UPD_BTN_OK                = "У реду"
-STR_UPD_BTN_CANCEL            = "Поништи"
-STR_UPD_BTN_ACCEPT            = "Прихватам"
+
+STR_UPD_SELECTED              = "Selected: %d / %d"
+STR_UPD_TOTALSIZE             = "Укупна величина за преузимање: %s"
+STR_UPD_TOTALAVAIL            = "Укупно доступног простора: %s"
+
+STR_UPD_STREAMSTATS           = "Torrent statistics"
+STR_UPD_STREAM_STATE          = "State: "
+STR_UPD_STREAM_COMPLETE       = "Complete: %s / %s (%d%%)"
+STR_UPD_STREAM_TIME           = "Remaining: %s"
+STR_UPD_STREAM_SESSDL         = "Session Downloads: %s (%s/s)"
+STR_UPD_STREAM_SESSUL         = "Session Uploads: %s (%s/s)"
+STR_UPD_STREAM_SEEDS          = "Seeds: %d (%d),  Peers: %d (%d)"
+STR_UPD_STREAM_ALERT          = "Alert: %s"
+
+STR_UPD_OPTIONS               = "Options"
+STR_UPD_ONLYUPDATES           = "Show only updates, hide missing driver packs."
+STR_UPD_KEEPSEEDING           = "Keep sharing after downloads are finished."
+
+STR_UPD_SPECIALMODE           = "Share Mode"
+STR_UPD_TXT_SHARE             = "You can help distribute our driver collection by sharing your 'drivers' folder."
+STR_UPD_BTN_SHARE             = "Share"
+
+STR_UPD_BTN_UPDATE            = "Start"
+STR_UPD_BTN_STOP              = "Stop"
+STR_UPD_BTN_CLOSE             = "Close"
+
 STR_UPD_COL_NAME              = "Пакет управљачких програма"
 STR_UPD_COL_SIZE              = "Величина"
 STR_UPD_COL_PER               = "%"
@@ -321,14 +345,23 @@ STR_UPD_INDEXES               = "Индекси"
 STR_UPD_UPDATEHINT1           = "Савет"
 STR_UPD_UPDATEHINT2           = "Морате прво ажурирати основу да би сте користили ову функционалност."
 
+STR_UPD_PROMPT_01             = "Checking partial files. (%d%%) Download will start shortly..."
+STR_UPD_PROMPT_02             = "Downloading (%d%%)"
+STR_UPD_PROMPT_03             = "Sharing. Press Stop to end."
+STR_UPD_PROMPT_04             = "Download finished"
+STR_UPD_PROMPT_05             = "Checking resume data. Download will start shortly..."
+STR_UPD_PROMPT_06             = "You're up to date. Nothing to download."
+STR_UPD_PROMPT_07             = "Ready: Select the items you want and press Start."
+STR_UPD_PROMPT_08             = "Unable to get updates. Try again later."
+
 // Update hint
 STR_UPD_CHECKING              = "Провера надоградњи"
 STR_UPD_AVAIL1                = "Доступне надоградње: SDIO R%d"
 STR_UPD_AVAIL2                = "Доступне надоградње: %d пакета надоградњи"
 STR_UPD_AVAIL3                = "Доступне надоградње: SDIO R%d и %d пакета надоградњи"
-STR_UPD_START                 = "(Кликните овде за преузимање)"
+STR_UPD_START                 = " (Кликните овде за преузимање)"
 STR_UPD_PROGRES               = "Преузето %s од %s (%d%%)"
-STR_UPD_MODIFY                = "(Кликните овде да изаберете надоградње)"
+STR_UPD_MODIFY                = " (Кликните овде да изаберете надоградње)"
 STR_UPD_CHECKINGFILES         = "Провера датотека %s од %s (%d%%)"
 
 STR_DWN_DOWNLOADED            = "Преузето"
@@ -337,7 +370,7 @@ STR_DWN_UPLOADED              = "Постављено"
 STR_DWN_ELAPSED               = "Протекло време"
 STR_DWN_REMAINING             = "Преостало време"
 STR_DWN_SEEDING               = "Дељење %s (%s)"
-STR_DWN_MODIFY                = "(Кликните овде да прекинете)"
+STR_DWN_MODIFY                = " (Кликните овде да прекинете)"
 STR_DWN_CLOSING               = "Затварање сесије"
 
 STR_DWN_STATUS                = "Статус"
@@ -363,6 +396,7 @@ STR_TR_ST5                    = "донира се"
 STR_TR_ST6                    = "обезбеђивање простора"
 STR_TR_ST7                    = "провера података на настављање"
 STR_TR_ST8                    = "премештање датотека"
+STR_TR_ST9                    = "paused"
 
 // Options dialog
 STR_OPTION_TITLE              = "Опције"
@@ -370,8 +404,8 @@ STR_OPTION_VIEW_TAB           = "Приказ"
 STR_OPTION_UPDATES_TAB        = "Надоградње"
 STR_OPTION_PATH_TAB           = "Путање"
 STR_OPTION_ADVANCED_TAB       = "Напредно"
-STR_OPTION_OK_BUTTON          = STR_UPD_BTN_OK
-STR_OPTION_CANCEL_BUTTON      = STR_UPD_BTN_CANCEL
+STR_OPTION_OK_BUTTON          = "OK"
+STR_OPTION_CANCEL_BUTTON      = "Cancel"
 
 // View tab
 STR_OPTION_DRPNAMES           = "Називи пакета управљачких програма"

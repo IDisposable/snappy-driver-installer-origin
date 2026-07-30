@@ -46,6 +46,8 @@ STR_DRVDIR                    = "Treiberordner wählen..."
 STR_DRVDIR_H                  = "Gestattet die Wahl eines anderen Ordners (z. B. auf einer CD/DVD) mit Treiberpaketen oder ungepackten Treibern, um dort nach Treibern zu suchen."
 STR_OPTIONS_BTN               = "Einstellungen..."
 STR_OPTIONS_BTN_H             = "Öffnet das Dialogfenster für die Einstellungen."
+STR_UPDATES_BTN               = "Updates"
+STR_UPDATES_BTN_H             = "Open updates dialog box."
 
 STR_SHOW_FOUND                = "Treiberfunde"
 STR_SHOW_FOUND_H              = "Installierbare Treiberfunde in Treiberpaketen werden angezeigt.\n\nWir empfehlen, die Treiber aus folgenden Kategorien zu installieren: 'Nicht installiert', 'Neuere Treiber', 'Besser geeignet'."
@@ -178,6 +180,7 @@ STR_CONT_OPENINF              = "Inf-Datei des installierten Treibers öffnen"
 STR_CONT_LOCATEINF            = "Inf-Datei des installierten Treibers lokalisieren"
 STR_CONT_HWID_SEARCH          = "Hardware-ID im Microsoft Aktualisierungskatalog suchen"
 STR_CONT_HWID_CLIP            = "Hardware-ID in den Zwischenspeicher kopieren"
+STR_CONT_HWID_IGNORE          = "Add this Hardware ID to Ignore List"
 
 // Misc
 STR_OPENSNAPSHOT              = "Schnappschussdateien (*.snp)/0*.snp/0All files/0*.*/0/0"
@@ -281,20 +284,41 @@ STR_UPD_DIALOG_TITLE          = "Aktualisierungsprüfung"
 STR_UPD_DIALOG_MSG            = "Soll die automatische Online-Prüfung auf neue Versionen der Treiberpakete und auf aktualisierte Versionen der Anwendung aktiviert werden?"
 STR_UPD_DIALOG_INDEX          = "Sollen die neusten Indizes heruntergeladen werden, damit festgelegt werden kann, welche Treiberpakete heruntergeladen werden müssen?"
 
+// Updates dialog
 STR_UPD_TITLE                 = "Aktualisierung"
+
 STR_UPD_SELECTION             = "Auswahl"
 STR_UPD_BTN_ALL               = "Alles anwählen"
 STR_UPD_BTN_NONE              = "Alles abwählen"
-STR_UPD_BTN_NETWORK           = "Nur Netzwerk"
 STR_UPD_BTN_THISPC            = "Nur für diesen PC"
 STR_UPD_BTN_THISPC_H          = "Zum Bestimmen der erforderlichen Treiberpakete, müssen die Indizes vorab heruntergeladen werden."
-STR_UPD_OPTIONS               = "Optionen"
-STR_UPD_ONLYUPDATES           = "Nur Aktualisierungen ohne fehlende Pakete anzeigen"
-STR_UPD_TOTALSIZE             = "Gesamte Herunterladegröße: %d MB"
-STR_UPD_TOTALAVAIL            = "Verfügbare Speicherkapazität: %d MB"
-STR_UPD_BTN_OK                = "OK"
-STR_UPD_BTN_CANCEL            = "Abbrechen"
-STR_UPD_BTN_ACCEPT            = "Annehmen"
+STR_UPD_BTN_NETWORK           = "Nur Netzwerk"
+
+STR_UPD_SELECTED              = "Selected: %d / %d"
+STR_UPD_TOTALSIZE             = "Gesamte Herunterladegröße: %s"
+STR_UPD_TOTALAVAIL            = "Verfügbare Speicherkapazität: %s"
+
+STR_UPD_STREAMSTATS           = "Torrent-Statistiken"
+STR_UPD_STREAM_STATE          = "State:"
+STR_UPD_STREAM_COMPLETE       = "Complete: %s / %s (%d%%)"
+STR_UPD_STREAM_TIME           = "Remaining: %s"
+STR_UPD_STREAM_SESSDL         = "Session Downloads: %s (%s/s)"
+STR_UPD_STREAM_SESSUL         = "Session Uploads: %s (%s/s)"
+STR_UPD_STREAM_SEEDS          = "Seeds: %d (%d),  Peers: %d (%d)"
+STR_UPD_STREAM_ALERT          = "Alert: %s"
+
+STR_UPD_OPTIONS               = "Options"
+STR_UPD_ONLYUPDATES           = "Show only updates, hide missing driver packs."
+STR_UPD_KEEPSEEDING           = "Keep sharing after downloads are finished."
+
+STR_UPD_SPECIALMODE           = "Share Mode"
+STR_UPD_TXT_SHARE             = "You can help distribute our driver collection by sharing your 'drivers' folder."
+STR_UPD_BTN_SHARE             = "Share"
+
+STR_UPD_BTN_UPDATE            = "Start"
+STR_UPD_BTN_STOP              = "Stop"
+STR_UPD_BTN_CLOSE             = "Close"
+
 STR_UPD_COL_NAME              = "Treiberpaket"
 STR_UPD_COL_SIZE              = "Größe"
 STR_UPD_COL_PER               = "%"
@@ -320,6 +344,15 @@ STR_UPD_APP                   = "Anwendung"
 STR_UPD_INDEXES               = "Indizes"
 STR_UPD_UPDATEHINT1           = "Hinweis"
 STR_UPD_UPDATEHINT2           = "Die Basis muss aktualisiert werden, bevor diese Funktion angewendet werden kann."
+
+STR_UPD_PROMPT_01             = "Checking partial files. (%d%%) Download will start shortly..."
+STR_UPD_PROMPT_02             = "Downloading (%d%%)"
+STR_UPD_PROMPT_03             = "Sharing. Press Stop to end."
+STR_UPD_PROMPT_04             = "Download finished"
+STR_UPD_PROMPT_05             = "Checking resume data. Download will start shortly..."
+STR_UPD_PROMPT_06             = "You're up to date. Nothing to download."
+STR_UPD_PROMPT_07             = "Ready: Select the items you want and press Start."
+STR_UPD_PROMPT_08             = "Unable to get updates. Try again later."
 
 // Update hint
 STR_UPD_CHECKING              = "Prüfung auf Aktualisierungen"
@@ -363,6 +396,7 @@ STR_TR_ST5                    = "Seeding"
 STR_TR_ST6                    = "Speicherplatz wird zugewiesen"
 STR_TR_ST7                    = "Fortsetzungsdaten werden geprüft"
 STR_TR_ST8                    = "Daten werden übertragen"
+STR_TR_ST9                    = "paused"
 
 // Options dialog
 STR_OPTION_TITLE              = "Optionen"
@@ -370,8 +404,8 @@ STR_OPTION_VIEW_TAB           = "Ansicht"
 STR_OPTION_UPDATES_TAB        = "Aktualisierungen"
 STR_OPTION_PATH_TAB           = "Pfade"
 STR_OPTION_ADVANCED_TAB       = "Erweitert"
-STR_OPTION_OK_BUTTON          = STR_UPD_BTN_OK
-STR_OPTION_CANCEL_BUTTON      = STR_UPD_BTN_CANCEL
+STR_OPTION_OK_BUTTON          = "OK"
+STR_OPTION_CANCEL_BUTTON      = "Cancel"
 
 // View tab
 STR_OPTION_DRPNAMES           = "Treiberpaketname"

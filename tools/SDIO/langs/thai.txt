@@ -46,6 +46,8 @@ STR_DRVDIR                    = "เลือกที่อยู่ของ�
 STR_DRVDIR_H                  = "เลือกโฟลเดอร์แพ็คไดร์เวอร์อื่นๆ หรือแยกไดร์เวอร์\n\nคุณสามารถใช้มันเพื่อค้นหาไดร์เวอร์ในแผ่น CD หรือ DVD"
 STR_OPTIONS_BTN               = "ตัวเลือก..."
 STR_OPTIONS_BTN_H             = "เปิดกล่องโต้ตอบด้วยการตั้งค่า"
+STR_UPDATES_BTN               = "Updates"
+STR_UPDATES_BTN_H             = "Open updates dialog box."
 
 STR_SHOW_FOUND                = "พบใน driverpacks"
 STR_SHOW_FOUND_H              = "พบไดร์เวอร์ในแพ็คไดร์เวอร์ที่สามารถติดตั้งได้\n\nเราแนะนำให้คุณติดตั้งไดรเวอร์จากประเภทต่อไปนี้: ไม่ได้ติดตั้ง, รุ่นใหม่กว่า ,การเข้ากันได้ดีกว่า"
@@ -178,6 +180,7 @@ STR_CONT_OPENINF              = "เปิดไฟล์ inf ของไดร
 STR_CONT_LOCATEINF            = "ค้นหาไฟล์ inf ของไดร์เวอร์ที่ติดตั้งแล้ว"
 STR_CONT_HWID_SEARCH          = "ค้นหารหัสอุปกรณ์ทางอินเทอร์เน็ต"
 STR_CONT_HWID_CLIP            = "คัดลอกรหัสอุปกรณ์ไปยังคลิปบอร์ด"
+STR_CONT_HWID_IGNORE          = "Add this Hardware ID to Ignore List"
 
 // Misc
 STR_OPENSNAPSHOT              = "ไฟล์ Snapshot (*.snp)/0*.snp/0All files/0*.*/0/0"
@@ -194,7 +197,7 @@ STR_STATUS_STOPPED            = "อุปกรณ์ที่หยุดก�
 // Driver status
 STR_STATUS_INVALID            = "ไดรเวอร์ที่เข้ากันไม่ได้"
 STR_STATUS_MISSING            = "ไดร์เวอร์ที่พร้อมใช้งาน (ไดรเวอร์ไม่ได้ติดตั้ง)"
-STR_STATUS_NOTSIGNED          = "(ไม่ได้ลงนาม)"
+STR_STATUS_NOTSIGNED          = " (ไม่ได้ลงนาม)"
 
 STR_STATUS_BETTER_NEW         = "อัพเดทไดร์เวอร์พร้อมใช้งานแล้ว ซึ่งมันจะดีที่สุด"
 STR_STATUS_SAME_NEW           = "อัพเดทไดร์เวอร์ที่พร้อมใช้งาน"
@@ -208,7 +211,7 @@ STR_STATUS_BETTER_OLD         = "มีไดร์เวอร์ใหม่�
 STR_STATUS_SAME_OLD           = "ไดรเวอร์เก่า"
 STR_STATUS_WORSE_OLD          = "ไดรเวอร์เก่าแล้ว"
 
-STR_STATUS_DUP                = "(ซ้ำ)"
+STR_STATUS_DUP                = " (ซ้ำ)"
 
 STR_STATUS_NF_MISSING         = "อุปกรณ์จำเป็นต้องมีไดร์เวอร์ แต่ไม่พบไดร์ฟเวอร์ในแพ็คไดร์เวอร์"
 STR_STATUS_NF_UNKNOWN         = "อุปกรณ์ทำงานอย่างถูกต้อง แต่ไม่พบไดร์เวอร์ในแพ็คไดร์เวอร์"
@@ -224,9 +227,9 @@ STR_VIRUS_HIDDEN              = "มีโฟลเดอร์ที่ซ่�
 STR_VIRUS_HIDDEN_H            = "โฟลเดอร์รากมีโฟลเดอร์ที่ซ่อนอยู่ ไวรัสสามารถซ่อนตัวในโฟลเดอร์นั้นได้ (สามารถดูได้จากไฟล์ log) \n\nถ้าคุณแน่ใจว่ามันปลอดภัยให้เพิ่มในไฟล์ not_a_virus.txt  เพื่อซ่อนคำเตือนนี้"
 
 // Status
-STR_CLOSE_SNAPSHOT            = "(คลิกที่นี่เพื่อหยุดการจำลอง)"
+STR_CLOSE_SNAPSHOT            = " (คลิกที่นี่เพื่อหยุดการจำลอง)"
 STR_EMPTYDRP                  = "เชื่อมต่อกับอินเทอร์เน็ตเพื่อดาวน์โหลดแพ็คไดร์เวอร์หรือแยกแพ็คไดร์เวอร์ในโฟลเดอร์ต่อไปนี้"
-STR_CLOSE_DRPEXT              = "(คลิกที่นี่เพื่อกลับไปยังโฟลเดอร์เริ่มต้น)"
+STR_CLOSE_DRPEXT              = " (คลิกที่นี่เพื่อกลับไปยังโฟลเดอร์เริ่มต้น)"
 STR_NOUPDATES                 = "ไดร์เวอร์ที่ใช้เป็นรุ่นล่าสุดแล้ว"
 STR_INITIALIZING              = "กำลังเริ่มต้น..."
 
@@ -240,7 +243,7 @@ STR_INST_FAILED               = "การติดตั้งล้มเห�
 STR_INST_INSTALLING           = "กำลังติดตั้ง..."
 STR_INST_COMPLITED            = "ติดตั้งเสร็จสมบูรณ์"
 STR_INST_COMPLITED_RB         = "การติดตั้งเสร็จเรียบร้อยแล้ว (จำเป็นต้องเริ่มระบบใหม่)"
-STR_INST_CLOSE                = "(คลิกที่นี่เพื่อซ่อนไดรเวอร์ที่ติดตั้งแล้ว)"
+STR_INST_CLOSE                = " (คลิกที่นี่เพื่อซ่อนไดรเวอร์ที่ติดตั้งแล้ว)"
 
 STR_EXTR_EXTRACTING           = "กำลังแยกไฟล์..."
 STR_EXTR_OK                   = "แยกไฟล์สำเร็จแล้ว"
@@ -281,27 +284,48 @@ STR_UPD_DIALOG_TITLE          = "กำลังตรวจสอบการ�
 STR_UPD_DIALOG_MSG            = "คุณต้องการช่วยให้มีการตรวจสอบแพ็คไดร์เวอร์ออนไลน์โดยอัตโนมัติ?"
 STR_UPD_DIALOG_INDEX          = "คุณต้องการดาวน์โหลดดัชนีให้ใหม่ล่าสุดก่อนที่จะ กำหนดว่าแพ็คไดร์เวอร์ไหนคุณจะต้องดาวน์โหลด?"
 
+// Updates dialog
 STR_UPD_TITLE                 = "อัพเดท"
+
 STR_UPD_SELECTION             = "การเลือก"
 STR_UPD_BTN_ALL               = "เลือกทั้งหมด"
 STR_UPD_BTN_NONE              = "ยกเลิกการเลือกทั้งหมด"
 STR_UPD_BTN_NETWORK           = "เครือข่ายเท่านั้น"
 STR_UPD_BTN_THISPC            = "ตรวจสอบเฉพาะที่จำเป็นสำหรับคอมพิวเตอร์เครื่องนี้"
 STR_UPD_BTN_THISPC_H          = "เพื่อตรวจสอบว่าอันไหนคือแพ็คไดร์เวอร์ที่คุณต้องการ คุณต้องดาวน์โหลดดัชนีก่อน"
-STR_UPD_OPTIONS               = "ตัวเลือก"
-STR_UPD_ONLYUPDATES           = "ไม่ต้องแจ้งเตือนเกี่ยวกับแพ็คไดร์เวอร์ที่หายไป"
-STR_UPD_TOTALSIZE             = "ขนาดการดาวน์โหลดทั้งหมด: %d เมกะไบต์"
-STR_UPD_TOTALAVAIL            = "พื้นที่ที่มีอยู่ทั้งหมด: %d เมกกะไบต์"
-STR_UPD_BTN_OK                = "ตกลง"
-STR_UPD_BTN_CANCEL            = "ยกเลิก"
-STR_UPD_BTN_ACCEPT            = "ยอมรับ"
+
+STR_UPD_SELECTED              = "Selected: %d / %d"
+STR_UPD_TOTALSIZE             = "ขนาดการดาวน์โหลดทั้งหมด: %s"
+STR_UPD_TOTALAVAIL            = "พื้นที่ที่มีอยู่ทั้งหมด: %s"
+
+STR_UPD_STREAMSTATS           = "Torrent statistics"
+STR_UPD_STREAM_STATE          = "State: "
+STR_UPD_STREAM_COMPLETE       = "Complete: %s / %s (%d%%)"
+STR_UPD_STREAM_TIME           = "Remaining: %s"
+STR_UPD_STREAM_SESSDL         = "Session Downloads: %s (%s/s)"
+STR_UPD_STREAM_SESSUL         = "Session Uploads: %s (%s/s)"
+STR_UPD_STREAM_SEEDS          = "Seeds: %d (%d),  Peers: %d (%d)"
+STR_UPD_STREAM_ALERT          = "Alert: %s"
+
+STR_UPD_OPTIONS               = "Options"
+STR_UPD_ONLYUPDATES           = "Show only updates, hide missing driver packs."
+STR_UPD_KEEPSEEDING           = "Keep sharing after downloads are finished."
+
+STR_UPD_SPECIALMODE           = "Share Mode"
+STR_UPD_TXT_SHARE             = "You can help distribute our driver collection by sharing your 'drivers' folder."
+STR_UPD_BTN_SHARE             = "Share"
+
+STR_UPD_BTN_UPDATE            = "Start"
+STR_UPD_BTN_STOP              = "Stop"
+STR_UPD_BTN_CLOSE             = "Close"
+
 STR_UPD_COL_NAME              = "ลายเซ็น:"
 STR_UPD_COL_SIZE              = "ขนาด"
 STR_UPD_COL_PER               = "%"
 STR_UPD_COL_NEW               = "ใหม่"
 STR_UPD_COL_CUR               = "ปัจจุบัน"
 STR_UPD_COL_THISPC            = "สำหรับเครื่องคอมพิวเตอร์นี้?"
-STR_UPD_WEBSTATUS             = "(อินเทอร์เน็ต)"
+STR_UPD_WEBSTATUS             = " (อินเทอร์เน็ต)"
 STR_UPD_YES                   = "ใช่"
 STR_UPD_NO                    = "ไม่"
 STR_UPD_UNKNOWN               = "ไม่รู้จัก"
@@ -321,14 +345,23 @@ STR_UPD_INDEXES               = "ดัชนี"
 STR_UPD_UPDATEHINT1           = "คำแนะนำ"
 STR_UPD_UPDATEHINT2           = "เพื่อใช้คุณลักษณะนี้คุณจะต้องอัพเดทก่อน"
 
+STR_UPD_PROMPT_01             = "Checking partial files. (%d%%) Download will start shortly..."
+STR_UPD_PROMPT_02             = "Downloading (%d%%)"
+STR_UPD_PROMPT_03             = "Sharing. Press Stop to end."
+STR_UPD_PROMPT_04             = "Download finished"
+STR_UPD_PROMPT_05             = "Checking resume data. Download will start shortly..."
+STR_UPD_PROMPT_06             = "You're up to date. Nothing to download."
+STR_UPD_PROMPT_07             = "Ready: Select the items you want and press Start."
+STR_UPD_PROMPT_08             = "Unable to get updates. Try again later."
+
 // Update hint
 STR_UPD_CHECKING              = "ตรวจสอบการปรับปรุง"
 STR_UPD_AVAIL1                = "มีการอัพเดทที่พร้อมใช้งาน: SDIO R%d"
 STR_UPD_AVAIL2                = "มีการอัพเดทที่พร้อมใช้งาน: %d แพ็คไดร์เวอร์"
 STR_UPD_AVAIL3                = "มีการอัพเดทที่พร้อมใช้งาน: SDIO R%d และ %d แพ็คไดร์เวอร์"
-STR_UPD_START                 = "(คลิกที่นี่เพื่อเริ่มดาวน์โหลด)"
+STR_UPD_START                 = " (คลิกที่นี่เพื่อเริ่มดาวน์โหลด)"
 STR_UPD_PROGRES               = "ดาวน์โหลดแล้ว %s รายการจากทั้งหมด %s (%d%%)"
-STR_UPD_MODIFY                = "(คลิกที่นี่เพื่อเลือกการอัพเดท)"
+STR_UPD_MODIFY                = " (คลิกที่นี่เพื่อเลือกการอัพเดท)"
 STR_UPD_CHECKINGFILES         = "กำลังตรวจสอบไฟล์ %s of %s (%d%%)"
 
 STR_DWN_DOWNLOADED            = "ดาวน์โหลดแล้ว"
@@ -337,7 +370,7 @@ STR_DWN_UPLOADED              = "อัพโหลดแล้ว"
 STR_DWN_ELAPSED               = "เวลาผ่านไปแล้ว"
 STR_DWN_REMAINING             = "ใช้เวลาอีก"
 STR_DWN_SEEDING               = "การเพาะ %s (%s)"
-STR_DWN_MODIFY                = "(คลิกที่นี่เพื่อหยุด)"
+STR_DWN_MODIFY                = " (คลิกที่นี่เพื่อหยุด)"
 STR_DWN_CLOSING               = "ปิดเซสชัน"
 
 STR_DWN_STATUS                = "สถานะ"
@@ -363,6 +396,7 @@ STR_TR_ST5                    = "กำลังปล่อย"
 STR_TR_ST6                    = "จัดสรรพื้นที่"
 STR_TR_ST7                    = "กำลังตรวจสอบข้อมูลประวัติ"
 STR_TR_ST8                    = "กำลังย้ายไฟล์"
+STR_TR_ST9                    = "paused"
 
 // Options dialog
 STR_OPTION_TITLE              = "ตัวเลือก"
@@ -370,8 +404,8 @@ STR_OPTION_VIEW_TAB           = "ดู"
 STR_OPTION_UPDATES_TAB        = "อัพเดท"
 STR_OPTION_PATH_TAB           = "เส้นทาง"
 STR_OPTION_ADVANCED_TAB       = "ขั้นสูง"
-STR_OPTION_OK_BUTTON          = STR_UPD_BTN_OK
-STR_OPTION_CANCEL_BUTTON      = STR_UPD_BTN_CANCEL
+STR_OPTION_OK_BUTTON          = "OK"
+STR_OPTION_CANCEL_BUTTON      = "Cancel"
 
 // View tab
 STR_OPTION_DRPNAMES           = "ชื่อแพ็คไดร์เวอร์"

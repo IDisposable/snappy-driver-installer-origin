@@ -46,6 +46,8 @@ STR_DRVDIR                  = "Izberi mapo gonilnika..."
 STR_DRVDIR_H                = "Izberite drugo mapo s paketi gonilnikov ali nepakiranimi gonilniki.\n\nUporabite jo lahko za iskanje gonilnikov na CD-ju/DVD-ju z gonilniki."
 STR_OPTIONS_BTN             = "Možnosti..."
 STR_OPTIONS_BTN_H           = "Odpri pogovorno okno z nastavitvami."
+STR_UPDATES_BTN               = "Updates"
+STR_UPDATES_BTN_H             = "Open updates dialog box."
 
 STR_SHOW_FOUND              = "Najdeni v paketih"
 STR_SHOW_FOUND_H            = "Najdeni gonilniki v paketih gonilnikov in jih je mogoče namestiti.\n\nSvetujemo vam, da namestite gonilnike iz naslednjih kategorij: niso nameščeni, novejši, bolje se ujemajo."
@@ -178,6 +180,7 @@ STR_CONT_OPENINF            = "Odpri 'inf' datoteko nameščenega gonilnika"
 STR_CONT_LOCATEINF          = "Poišči 'inf' datoteko nameščenega gonilnika"
 STR_CONT_HWID_SEARCH        = "Poišči 'HardwareID' v katalogu 'Microsoft Update'"
 STR_CONT_HWID_CLIP          = "Kopiraj ID strojne opreme v odložišče"
+STR_CONT_HWID_IGNORE          = "Add this Hardware ID to Ignore List"
 
 // Misc
 STR_OPENSNAPSHOT            = "Datoteke s posnetki (*.snp)/0*.snp/0Vse datoteke/0*.*/0/0"
@@ -208,7 +211,7 @@ STR_STATUS_BETTER_OLD       = "Na voljo je bolj optimalen gonilnik, čeprav je s
 STR_STATUS_SAME_OLD         = "Star gonilnik"
 STR_STATUS_WORSE_OLD        = "Star gonilnik in tudi manj kot optimalen"
 
-STR_STATUS_DUP              = "(dvojnik)"
+STR_STATUS_DUP              = " (dvojnik)"
 
 STR_STATUS_NF_MISSING       = "Naprava zahteva gonilnik, vendar ga ni bilo mogoče najti v paketih gonilnikov"
 STR_STATUS_NF_UNKNOWN       = "Naprava deluje pravilno, vendar v paketih gonilnikov ni nobenega gonilnika"
@@ -224,9 +227,9 @@ STR_VIRUS_HIDDEN            = "V korenski mapi so skrite mape"
 STR_VIRUS_HIDDEN_H          = "Korenska mapa vsebuje skrite mape. Virusi lahko ustvarijo skrite mape, da skrijejo svojo prisotnost. Priporočamo, da preverite mape (za podrobnosti glejte dnevnik) za viruse.\n\nČe ste prepričani, da je čista, ustvarite datoteko z imenom not_a_virus.txt v vsaki mapi."
 
 // Status
-STR_CLOSE_SNAPSHOT          = "(Kliknite tukaj za ustavitev posnemanja)"
+STR_CLOSE_SNAPSHOT          = " (Kliknite tukaj za ustavitev posnemanja)"
 STR_EMPTYDRP                = "Povežite se z internetom, da prenesete pakete gonilnikov ali postavite nepakirane gonilnike v naslednjo mapo"
-STR_CLOSE_DRPEXT            = "(Kliknite tukaj za vrnitev v privzeto mapo)"
+STR_CLOSE_DRPEXT            = " (Kliknite tukaj za vrnitev v privzeto mapo)"
 STR_NOUPDATES               = "Gonilniki so posodobljeni"
 STR_INITIALIZING            = "Inicializacija..."
 
@@ -240,7 +243,7 @@ STR_INST_FAILED             = "Namestitev ni uspela, napaka"
 STR_INST_INSTALLING         = "Namestitev..."
 STR_INST_COMPLITED          = "Namestitev je končana"
 STR_INST_COMPLITED_RB       = "Namestitev je končana (potreben je ponovni zagon sistema)"
-STR_INST_CLOSE              = "(Kliknite tukaj, da skrijete nameščene gonilnike)"
+STR_INST_CLOSE              = " (Kliknite tukaj, da skrijete nameščene gonilnike)"
 
 STR_EXTR_EXTRACTING         = "Razširjanje... "
 STR_EXTR_OK                 = "Uspešno razširjeno"
@@ -281,20 +284,41 @@ STR_UPD_DIALOG_TITLE        = "Preverjanje posodobitev"
 STR_UPD_DIALOG_MSG          = "Ali želite omogočiti samodejno spletno preverjanje novih različic gonilnikov in aplikacije?"
 STR_UPD_DIALOG_INDEX        = "Ali želite prenesti najnovejše indekse, da boste lahko ugotovili, katere pakete gonilnikov morate prenesti?"
 
+// Updates dialog
 STR_UPD_TITLE               = "Posodobi"
+
 STR_UPD_SELECTION           = "Izbor"
 STR_UPD_BTN_ALL             = "Izberi vse"
 STR_UPD_BTN_NONE            = "Počisti izbor vseh"
 STR_UPD_BTN_NETWORK         = "Samo omrežje"
 STR_UPD_BTN_THISPC          = "Samo ta računalnik"
 STR_UPD_BTN_THISPC_H        = "Da boste lahko ugotovili, katere pakete gonilnikov potrebujete, morate najprej prenesti indekse."
-STR_UPD_OPTIONS             = "Možnosti"
-STR_UPD_ONLYUPDATES         = "Prikaži samo posodobitve, skrij manjkajoče pakete"
-STR_UPD_TOTALSIZE           = "Skupna velikost prenosa: %d MB"
-STR_UPD_TOTALAVAIL          = "Skupni razpoložljivi prostor: %d MB"
-STR_UPD_BTN_OK              = "Vredu"
-STR_UPD_BTN_CANCEL          = "Prekliči"
-STR_UPD_BTN_ACCEPT          = "Sprejmi"
+
+STR_UPD_SELECTED              = "Selected: %d / %d"
+STR_UPD_TOTALSIZE           = "Skupna velikost prenosa: %s"
+STR_UPD_TOTALAVAIL          = "Skupni razpoložljivi prostor: %s"
+
+STR_UPD_STREAMSTATS           = "Torrent statistics"
+STR_UPD_STREAM_STATE          = "State: "
+STR_UPD_STREAM_COMPLETE       = "Complete: %s / %s (%d%%)"
+STR_UPD_STREAM_TIME           = "Remaining: %s"
+STR_UPD_STREAM_SESSDL         = "Session Downloads: %s (%s/s)"
+STR_UPD_STREAM_SESSUL         = "Session Uploads: %s (%s/s)"
+STR_UPD_STREAM_SEEDS          = "Seeds: %d (%d),  Peers: %d (%d)"
+STR_UPD_STREAM_ALERT          = "Alert: %s"
+
+STR_UPD_OPTIONS               = "Options"
+STR_UPD_ONLYUPDATES           = "Show only updates, hide missing driver packs."
+STR_UPD_KEEPSEEDING           = "Keep sharing after downloads are finished."
+
+STR_UPD_SPECIALMODE           = "Share Mode"
+STR_UPD_TXT_SHARE             = "You can help distribute our driver collection by sharing your 'drivers' folder."
+STR_UPD_BTN_SHARE             = "Share"
+
+STR_UPD_BTN_UPDATE          = "Start"
+STR_UPD_BTN_STOP            = "Stop"
+STR_UPD_BTN_CLOSE           = "Close"
+
 STR_UPD_COL_NAME            = "Paket gonilnikov"
 STR_UPD_COL_SIZE            = "Velikost"
 STR_UPD_COL_PER             = "%"
@@ -321,14 +345,23 @@ STR_UPD_INDEXES             = "Indeksi"
 STR_UPD_UPDATEHINT1         = "Namig"
 STR_UPD_UPDATEHINT2         = "Za uporabo te funkcije morate najprej posodobiti osnovo."
 
+STR_UPD_PROMPT_01             = "Checking partial files. (%d%%) Download will start shortly..."
+STR_UPD_PROMPT_02             = "Downloading (%d%%)"
+STR_UPD_PROMPT_03             = "Sharing. Press Stop to end."
+STR_UPD_PROMPT_04             = "Download finished"
+STR_UPD_PROMPT_05             = "Checking resume data. Download will start shortly..."
+STR_UPD_PROMPT_06             = "You're up to date. Nothing to download."
+STR_UPD_PROMPT_07             = "Ready: Select the items you want and press Start."
+STR_UPD_PROMPT_08             = "Unable to get updates. Try again later."
+
 // Update hint
 STR_UPD_CHECKING            = "Preverjanje posodobitev"
 STR_UPD_AVAIL1              = "Na voljo so posodobitve: SDIO R%d"
 STR_UPD_AVAIL2              = "Na voljo so posodobitve: %d paketov gonilnikov"
 STR_UPD_AVAIL3              = "Na voljo so posodobitve: paketi gonilnikov SDIO R%d in %d"
-STR_UPD_START               = "(Kliknite tukaj za začetek prenosa)"
+STR_UPD_START               = " (Kliknite tukaj za začetek prenosa)"
 STR_UPD_PROGRES             = "Preneseno %s od %s (%d%%)"
-STR_UPD_MODIFY              = "(Kliknite tukaj za izbiro posodobitev)"
+STR_UPD_MODIFY              = " (Kliknite tukaj za izbiro posodobitev)"
 STR_UPD_CHECKINGFILES       = "Preverjanje datotek %s od %s (%d%%)"
 
 STR_DWN_DOWNLOADED          = "Preneseno"
@@ -337,7 +370,7 @@ STR_DWN_UPLOADED            = "Naloženo"
 STR_DWN_ELAPSED             = "Potekel čas"
 STR_DWN_REMAINING           = "Preostali čas"
 STR_DWN_SEEDING             = "Sejanje %s (%s)"
-STR_DWN_MODIFY              = "(Kliknite tukaj za ustavitev)"
+STR_DWN_MODIFY              = " (Kliknite tukaj za ustavitev)"
 STR_DWN_CLOSING             = "Zapiralna seja"
 
 STR_DWN_STATUS              = "Stanje"
@@ -363,6 +396,7 @@ STR_TR_ST5                  = "sejanje"
 STR_TR_ST6                  = "dodelitev prostora"
 STR_TR_ST7                  = "preverjanje podatkov za nadaljevanje"
 STR_TR_ST8                  = "premikanje datotek"
+STR_TR_ST9                    = "paused"
 
 // Options dialog
 STR_OPTION_TITLE            = "Možnosti"
@@ -370,8 +404,8 @@ STR_OPTION_VIEW_TAB         = "Prikaz"
 STR_OPTION_UPDATES_TAB      = "Posodobitve"
 STR_OPTION_PATH_TAB         = "Poti"
 STR_OPTION_ADVANCED_TAB     = "Napredno"
-STR_OPTION_OK_BUTTON        = STR_UPD_BTN_OK
-STR_OPTION_CANCEL_BUTTON    = STR_UPD_BTN_CANCEL
+STR_OPTION_OK_BUTTON        = "OK"
+STR_OPTION_CANCEL_BUTTON    = "Cancel"
 
 // View tab
 STR_OPTION_DRPNAMES         = "Imena paketov gonilnikov"
