@@ -13,6 +13,8 @@ You should have received a copy of the GNU General Public License along with
 Snappy Driver Installer Origin.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#define __STDC_FORMAT_MACROS 1
+
 #include "com_header.h"
 #include "common.h"
 #include "logging.h"
@@ -20,6 +22,7 @@ Snappy Driver Installer Origin.  If not, see <http://www.gnu.org/licenses/>.
 #include "settings.h"
 #include "theme.h"
 #include "manager.h"
+#include <inttypes.h> // Required for SCNd64
 
 #include "7zip.h"
 
@@ -28,7 +31,7 @@ Snappy Driver Installer Origin.  If not, see <http://www.gnu.org/licenses/>.
 #pragma GCC diagnostic ignored "-Wswitch-enum"
 #pragma GCC diagnostic ignored "-Wzero-as-null-pointer-constant"
 #endif
-#define BOOST_SYSTEM_NO_DEPRECATED
+#define BOOST_SYSTEM_NO_DEPRECATED 1
 #include <boost/thread/condition_variable.hpp>
 #ifdef __GNUC__
 #pragma GCC diagnostic pop
@@ -251,7 +254,7 @@ void Hashtable::reset(size_t size1)
     if(!size)size=1;
     items.resize(size);
     items.reserve(size*sizeof(int));
-    memset(items.data(),0,size*sizeof(Hashitem));
+    memset((void *)items.data(),0,size*sizeof(Hashitem));
 }
 
 char *Hashtable::savedata(char *p)
@@ -433,6 +436,7 @@ void strsub(wchar_t *str,const wchar_t *pattern,const wchar_t *rep)
         wcscpy(buf,s);
         wcscpy(s,rep);
         wcscpy(s+wcslen(rep),buf+wcslen(pattern));
+        wcscpy(str,s);
     }
 }
 
@@ -479,9 +483,20 @@ size_t unicode2ansi(const unsigned char *s,char *out,size_t size)
 
 int _wtoi_my(const wchar_t *str)
 {
-    int val;
-    swscanf(str,L"%d",&val);
-    return val;
+    int val=0;
+    if(swscanf(str,L"%d",&val)==1)
+        return val;
+    else
+        return 0;
+}
+
+int64_t _wtoi64_my(const wchar_t *str)
+{
+    int64_t val=0;
+    if(swscanf(str,L"%" SCNd64,&val)==1)
+        return val;
+    else
+        return 0;
 }
 //}
 
@@ -518,3 +533,104 @@ std::vector<std::wstring> split(const std::wstring &s, wchar_t delim)
     split(s, delim, std::back_inserter(elems));
     return elems;
 }
+
+std::wstring BytesToStr(uint64_t bytes)
+{
+    // convert a number to binary bytes string
+
+    double tb=1099511627776.0;
+    double gb=1073741824.0;
+    double mb=1048576.0;
+    double kb=1024.0;
+
+    double fbytes=bytes;
+    wchar_t buf[50];
+    std::wstring res;
+
+    if(fbytes>tb)
+    {
+        fbytes=fbytes/1024/1024/1024/1024;
+        std::swprintf(buf, sizeof(buf) / sizeof(wchar_t), L"%.1f", fbytes);
+        std::wstring ws(buf);
+        return ws+L" TB";
+    }
+    else if(fbytes>gb)
+    {
+        fbytes=fbytes/1024/1024/1024;
+        std::swprintf(buf, sizeof(buf) / sizeof(wchar_t), L"%.1f", fbytes);
+        std::wstring ws(buf);
+        return ws+L" "+STR(STR_UPD_GB);
+    }
+    else if(fbytes>mb)
+    {
+        fbytes=fbytes/1024/1024;
+        std::swprintf(buf, sizeof(buf) / sizeof(wchar_t), L"%.1f", fbytes);
+        std::wstring ws(buf);
+        return ws+L" "+STR(STR_UPD_MB);
+    }
+    else if(fbytes>kb)
+    {
+        fbytes=fbytes/1024;
+        std::swprintf(buf, sizeof(buf) / sizeof(wchar_t), L"%.1f", fbytes);
+        std::wstring ws(buf);
+        return ws+L" "+STR(STR_UPD_KB);
+    }
+    else
+    {
+        std::swprintf(buf, sizeof(buf) / sizeof(wchar_t), L"%.0f", fbytes);
+        std::wstring ws(buf);
+        return ws+L" "+STR(STR_UPD_BYTES);
+    }
+}
+
+std::wstring utf8_to_wstring(const std::string& str)
+{
+    if (str.empty()) return L"";
+
+    // Find out how many wide characters we need
+    int size_needed = MultiByteToWideChar(CP_UTF8, 0, &str[0], (int)str.size(), NULL, 0);
+    if (size_needed <= 0) {
+        throw std::runtime_error("MultiByteToWideChar conversion failed.");
+    }
+
+    std::wstring wstrTo(size_needed, 0);
+    MultiByteToWideChar(CP_UTF8, 0, &str[0], (int)str.size(), &wstrTo[0], size_needed);
+
+    return wstrTo;
+}
+
+std::string CopyWcharToUtf8String(const wchar_t* wstr)
+{
+    if (!wstr) return "";
+
+    // 1. Get the length of the string
+    int wstrLen = static_cast<int>(wcslen(wstr));
+    if (wstrLen == 0) return "";
+
+    // 2. Calculate the required buffer size for UTF-8
+    int sizeNeeded = WideCharToMultiByte(CP_UTF8, 0, wstr, wstrLen, nullptr, 0, nullptr, nullptr);
+
+    // 3. Allocate space and convert
+    std::string str(sizeNeeded, '\0');
+    WideCharToMultiByte(CP_UTF8, 0, wstr, wstrLen, &str[0], sizeNeeded, nullptr, nullptr);
+
+    return str;
+}
+
+std::string WStringToString(const std::wstring& wstr)
+{
+    if (wstr.empty()) return std::string();
+
+    // 1. Determine the size needed for the destination string buffer
+    size_t size_needed = std::wcstombs(nullptr, wstr.c_str(), 0);
+
+    // 2. Allocate space in a narrow string
+    std::string strTo(size_needed, '\0');
+
+    // 3. Perform the actual conversion
+    std::wcstombs(&strTo[0], wstr.c_str(), size_needed);
+
+    return strTo;
+}
+
+
