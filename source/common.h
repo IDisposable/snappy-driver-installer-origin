@@ -65,6 +65,11 @@ void strtolower(const char *s,size_t len);
 std::string to_lower(std::string str);
 size_t unicode2ansi(const unsigned char *s,char *out,size_t size);
 int _wtoi_my(const wchar_t *str);
+int64_t _wtoi64_my(const wchar_t *str);
+std::wstring BytesToStr(uint64_t bytes);
+std::wstring utf8_to_wstring(const std::string& str);
+std::string CopyWcharToUtf8String(const wchar_t* wstr);
+std::string WStringToString(const std::wstring& wstr);
 
 class WString_dyn
 {
