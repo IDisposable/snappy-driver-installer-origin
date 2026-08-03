@@ -15,11 +15,11 @@ Snappy Driver Installer Origin.  If not, see <http://www.gnu.org/licenses/>.
 
 #include "..\source\svnrev.h"
 
-#define VER_FILEVERSION             1,18,0,SVN_REV
-#define VER_FILEVERSION_STR         "1.18.0." SVN_REV_STR "\0"
+#define VER_FILEVERSION             2,0,0,SVN_REV
+#define VER_FILEVERSION_STR         "2.0.0." SVN_REV_STR "\0"
 
-#define VER_VERSION_STR             "Version 1.18.0." SVN_REV_STR
-#define VER_VERSION_STR2            "v1.18.0"
+#define VER_VERSION_STR             "Version 2.0.0." SVN_REV_STR "/beta-8"
+#define VER_VERSION_STR2            "v2.0.0/beta-8"
 
 #define IDC_STATIC     -1
 
@@ -51,20 +51,44 @@ Snappy Driver Installer Origin.  If not, see <http://www.gnu.org/licenses/>.
 #define IDACCEPT      305
 
 // Update
-#define IDCHECKALL    306
-#define IDUNCHECKALL  307
-#define IDCHECKTHISPC 308
-#define IDLIST        309
-#define IDTOTALSIZE   310
-#define IDONLYUPDATE  311
-#define IDTOTALAVAIL  313
+#define ID_UPD_LIST        309
 
-#define IDOPTIONS     315
-#define IDCHECKNETWORK 316
-#define IDSELECTION   317
+#define ID_UPD_PROMPTBOX   340
+#define ID_UPD_PROMPT      341
+#define ID_UPD_PROGRESSBAR 342
+
+#define ID_UPD_SELECTION   317
+#define ID_UPD_CHECKALL    306
+#define ID_UPD_UNCHECKALL  307
+#define ID_UPD_CHECKTHISPC 308
+#define ID_UPD_CHECKNETWORK 316
+#define ID_UPD_TOTALSIZE   310
+#define ID_UPD_TOTALAVAIL  313
+#define ID_UPD_SELECTED    314
+
+#define ID_UPD_STREAM_STATS  330
+#define ID_UPD_STREAM_STATE  331
+#define ID_UPD_STREAM_SEEDS  332
+#define ID_UPD_STREAM_ALERT  333
+#define ID_UPD_STREAM_SESSDL 334
+#define ID_UPD_STREAM_SESSUL 335
+#define ID_UPD_STREAM_COMPLETE 336
+#define ID_UPD_STREAM_TIME   337
+
+#define ID_UPD_OPTIONS 322
+#define ID_UPD_ONLYUPDATES 311
+#define ID_UPD_KEEPSEEDING 312
+
+#define ID_UPD_SPECIALMODE     323
+#define ID_UPD_TXT_SHARE       328
+#define ID_UPD_BTN_SHARE       325
+
+#define ID_UPD_BTN_UPDATE      324
+#define ID_UPD_BTN_STOP        326
+#define ID_UPD_BTN_CLOSE       327
 
 // Options
-#define IDC_TAB1      312
+#define IDC_TAB1      380
 
 // View tab
 #define IDD_Page1     400
@@ -133,10 +157,6 @@ Snappy Driver Installer Origin.  If not, see <http://www.gnu.org/licenses/>.
 #define IDM_OPENLOGS  17
 #define IDM_LICENSE   18
 #define IDM_DRVDIR    19
-#define IDM_SEED      20
-#define IDM_UPDATES   21
-#define IDM_UPDATES_SDIO 22
-#define IDM_UPDATES_DRIVERS 23
 #define IDM_TOOLS     24
 #define IDM_WELCOME   25
 #define IDM_TRANSLATE 26
