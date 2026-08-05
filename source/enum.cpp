@@ -263,7 +263,7 @@ Device::Device(HDEVINFO hDevInfo,State *state,int i)
     SP_DEVINFO_DATA *DeviceInfoDataloc;
 
     DeviceInfoDataloc=(SP_DEVINFO_DATA *)&DeviceInfoData;
-    memset(&DeviceInfoData,0,sizeof(SP_DEVINFO_DATA));
+    memset((void *)&DeviceInfoData,0,sizeof(SP_DEVINFO_DATA));
     DeviceInfoData.cbSize=sizeof(SP_DEVINFO_DATA);
 
     driver_index=-1;
@@ -449,7 +449,8 @@ unsigned calc_score(int catalogfile,int feature,int rank,const State *state,int 
 
 unsigned Driver::calc_score_h(const State *state)const
 {
-    return calc_score(catalogfile,feature,identifierscore, // TODO: check signature
+    // TODO: check signature
+    return calc_score(catalogfile,feature,identifierscore,
                       state,StrStrIW(state->textas.getw(InfSectionExt),L".nt")||StrStrIW(state->textas.getw(InfSection),L".nt")?1:0);
 }
 
@@ -873,7 +874,7 @@ int State::save(const wchar_t *filename)
     int version=VER_STATE;
 
     if(Settings.flags&FLAG_NOSNAPSHOT)return 0;
-    Log.print_con("Saving state in '%S'...",filename);
+    Log.print_con("Saving state in '%S'...\n",filename);
     if(!System.canWriteFile(filename,L"wb"))
     {
         Log.print_err("ERROR in state_save(): Write-protected,'%S'\n",filename);
@@ -963,7 +964,17 @@ int  State::load(const wchar_t *filename)
     decode(mem_unpack.get(),sz_unpack,mem.get(),sz);
     p=mem_unpack.get();
 
-    memcpy(this,p,sizeof(state_m_t));p+=sizeof(state_m_t);
+    /*
+    The [-Wclass-memaccess] warning occurs because you are using std::memcpy to
+    copy data into a C++ object (State) that is not trivially copyable.When a
+    class defines complex elements like standard containers (std::string, std::vector),
+    virtual functions, user-defined constructors, or private members, a raw byte copy
+    via memcpy bypasses these structures. This can break encapsulation, skip necessary
+    deep-copy operations, or corrupt internal pointers, leading to undefined behavior
+    and hidden memory leaks.
+    (char *) to pretend I know what I'm doing
+    */
+    memcpy((char *)this,p,sizeof(state_m_t));p+=sizeof(state_m_t);
     p=Devices_list.loaddata(p);
     p=Drivers_list.loaddata(p);
     p=textas.loaddata(p);

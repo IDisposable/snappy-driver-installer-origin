@@ -57,7 +57,7 @@ public:
         p->Add(new wCheckbox{STR_EXPERT,            new ExpertmodeCheckboxCommand});
         wPanels->Add(p);
 
-        // Install
+        // Install panel
         p=new wPanel{3,BOX_PANEL2};
         wPanels->Add(p);
 
@@ -77,12 +77,19 @@ public:
         wPanels->Add(r);
 
         // Actions
+        #ifdef USE_TORRENT
+        p=new wPanel{5,BOX_PANEL4,KB_ACTIONS,true};
+        #else
         p=new wPanel{4,BOX_PANEL4,KB_ACTIONS,true};
+        #endif
         p->Add(new wButton  {STR_REFRESH,           new RefreshCommand});
         p->Add(new wButton  {STR_SNAPSHOT,          new SnapshotCommand});
         p->Add(new wButton  {STR_EXTRACT,           new ExtractCommand});
         //p->Add(new wButton  {STR_DRVDIR,            new DrvDirCommand});
         p->Add(new wButton  {STR_OPTIONS_BTN,       new DrvOptionsCommand});
+        #ifdef USE_TORRENT
+        p->Add(new wButton  {STR_UPDATES_BTN,       new DrvUpdatesCommand});
+        #endif // USE_TORRENT
         wPanels->Add(p);
 
         // Filters (found)
@@ -324,7 +331,7 @@ void wTextRev::draw(Canvas &canvas)
     buf.sprintf(L"%s (%s)",TEXT(SVN_REV_STR),date.Get());
     if(rtl)buf.append(L"\u200E");
     canvas.SetTextColor(D_C(CHKBOX_TEXT_COLOR));
-    canvas.DrawTextXY(mirw(x1,0,wx),y1,buf.Get());
+    canvas.DrawTextXY(mirw(x1,0,wx)+10,y1,buf.Get());
 }
 
 void wCheckbox::draw(Canvas &canvas)
@@ -348,19 +355,48 @@ void wButton::draw(Canvas &canvas)
     if(!flags)canvas.DrawWidget(x1,y1,x1+wx,y1+wy-1,isSelected?BOX_BUTTON_H:BOX_BUTTON);
 
     canvas.SetTextColor(D_C(CHKBOX_TEXT_COLOR));
-    canvas.DrawTextXY(mirw(x1,wy/2,wx),y1+(wy-D_X(FONT_SIZE)-2)/2,STR(str_id));
+
+    // center the text
+    int cx=0;
+    if(str_id==STR_SELECT_ALL)cx=D(CENTER_TEXT_PANEL10);
+    else if(str_id==STR_SELECT_NONE)cx=D(CENTER_TEXT_PANEL11);
+    else if(str_id==STR_REFRESH)cx=D(CENTER_TEXT_PANEL4);
+    else if(str_id==STR_SNAPSHOT)cx=D(CENTER_TEXT_PANEL4);
+    else if(str_id==STR_EXTRACT)cx=D(CENTER_TEXT_PANEL4);
+    else if(str_id==STR_OPTIONS_BTN)cx=D(CENTER_TEXT_PANEL4);
+    else if(str_id==STR_UPDATES_BTN)cx=D(CENTER_TEXT_PANEL4);
+
+    if(cx)
+    {
+        int tw=canvas.GetTextExtent(STR(str_id));
+        canvas.DrawTextXY(x1+wx/2-tw/2,y1+(wy-D_X(FONT_SIZE)-2)/2,STR(str_id));
+    }
+    else
+        canvas.DrawTextXY(mirw(x1,wy/2,wx),y1+(wy-D_X(FONT_SIZE)-2)/2,STR(str_id));
     //canvas.drawrect(x1,y1,x1+wx,y1+wy,0xFF000000,0xFF,1,0);
 }
 
 void wButtonInst::draw(Canvas &canvas)
 {
+    // install button
     if(!flags)canvas.DrawWidget(x1,y1,x1+wx,y1+wy-1,isSelected?BOX_BUTTON_H:BOX_BUTTON);
 
     WStringShort buf;
     canvas.SetTextColor(D_C(CHKBOX_TEXT_COLOR));
     buf.sprintf(L"%s (%d)",STR(str_id),manager_g->countItems());
     int nwy=D_X(PANEL9_OFSX)==D_X(PANEL10_OFSX)?D_X(PANEL10_WY):wy;
-    canvas.DrawTextXY(mirw(x1,nwy/2,wx),y1+(wy-D_X(FONT_SIZE)-2)/2,buf.Get());
+
+    // center the text
+    int cx=0;
+    if(str_id==STR_INSTALL)cx=D(CENTER_TEXT_PANEL9);
+
+    if(cx)
+    {
+        int tw=canvas.GetTextExtent(buf.Get());
+        canvas.DrawTextXY(x1+wx/2-tw/2,y1+(wy-D_X(FONT_SIZE)-2)/2,buf.Get());
+    }
+    else
+        canvas.DrawTextXY(mirw(x1,nwy/2,wx),y1+(wy-D_X(FONT_SIZE)-2)/2,buf.Get());
 }
 
 void wTextSys1::draw(Canvas &canvas)

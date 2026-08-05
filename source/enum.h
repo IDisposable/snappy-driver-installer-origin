@@ -114,8 +114,8 @@ public:
         Mfg(0),FriendlyName(0),Capabilities(0),ConfigFlags(0),
         InstanceId(0),status(0),problem(0),ret(0),DeviceInfoData(){}
 
-    friend class Manager; // TODO: friend
-    friend class itembar_t; // TODO: friend
+    friend class Manager;
+    friend class itembar_t;
     friend class CanvasImp;
 };
 
@@ -166,8 +166,8 @@ public:
     Driver():DriverDesc(0),ProviderName(0),DriverDate(0),DriverVersion(0),MatchingDeviceId(0),
         InfPath(0),InfSection(0),InfSectionExt(0),cat(0),version(),catalogfile(0),feature(0),identifierscore(0){}
 
-    friend class Manager; // TODO: friend
-    friend class itembar_t; // TODO: friend
+    friend class Manager;
+    friend class itembar_t;
 };
 
 // State (POD)
@@ -217,7 +217,7 @@ public:
 // State
 class State
 {
-    OSVERSIONINFOEX platform;
+    OSVERSIONINFOEXW platform;
     int locale;
     int architecture;
 

@@ -55,15 +55,6 @@ const tbl_t table_version[NUM_VER_NAMES]=
     {"driverpackagedisplayname",   24},
     {"driverpackagetype",          17}
 };
-const wchar_t *olddrps[]=
-{
-    L"DP_Video_Server_1",
-    L"DP_Video_Others_1",
-    L"DP_Video_nVIDIA_1",
-    L"DP_Video_AMD_1",
-    L"DP_Videos_AMD_1",
-    L"DP_LAN_Realtek_1",
-};
 //}
 
 //{ Concurrent_queue
@@ -117,10 +108,10 @@ public:
             WaitForSingleObject(notification,INFINITE);
             lock.lock();
         }
-        popped_value=the_queue.front();
-        num--;
-        the_queue.pop();
-    }
+            popped_value=the_queue.front();
+            num--;
+            the_queue.pop();
+        }
 };
 //}
 
@@ -136,7 +127,7 @@ void *mySzAlloc(ISzAllocPtr p,size_t size)
     {
         mem=((void*)(new char[size]));
     }
-    catch(std::bad_alloc)
+    catch(const std::bad_alloc& e)
     {
         Log.print_err("Failed to alloc\n");
         //Log.log_err("%10ld, Failed to allocate %ld MB \n",nvwa::total_mem_alloc/1024/1024,size/1024/1024);
@@ -471,18 +462,10 @@ int Collection::scanfolder_count(const wchar_t *path)
         }
         else
         {
-            size_t i,len=wcslen(FindFileData.cFileName);
+            size_t len=wcslen(FindFileData.cFileName);
             if(len<3)continue;
 
-            for(i=0;i<6;i++)
-                if(StrStrIW(FindFileData.cFileName,olddrps[i]))
-                {
-                    if(Settings.flags&(FLAG_AUTOINSTALL|FLAG_NOGUI))break;
-                    buf.sprintf(L" /c del \"%s\\%s*.7z\" /Q /F",driverpack_dir,olddrps[i]);
-                    System.run_command(L"cmd",buf.Get(),SW_HIDE,1);
-                    break;
-                }
-            if(i==6&&_wcsicmp(FindFileData.cFileName+len-3,L".7z")==0)
+            if(_wcsicmp(FindFileData.cFileName+len-3,L".7z")==0)
             {
                 Driverpack drp{path,FindFileData.cFileName,this};
                 if(Settings.flags&COLLECTION_FORCE_REINDEXING||!drp.checkindex())cnt++;
@@ -672,6 +655,7 @@ void Collection::populate()
     Log.print_debug("Collection::populate::loadOnlineIndexes\n");
     loadOnlineIndexes();
 
+    // STR_INDEXING
     Log.print_debug("Collection::populate::itembar\n");
     manager_g->itembar_setactive(SLOT_INDEXING,0);
     if(driverpack_list.size()<=1&&(Settings.flags&FLAG_DPINSTMODE)==0)
@@ -1744,26 +1728,26 @@ unsigned int __stdcall Driverpack::indexinf_thread(void *arg)
         while(1)
         {
             data.drp->objs_new->wait_and_pop(t);
-            if(last)tm+=System.GetTickCountWr()-last;
-            if(!t.adr)
-            {
-                t.drp->genhashes();
-                t.drp->text_ind.shrink();
-                last=System.GetTickCountWr();
-                //Log.print_con("Trm %ws\n",data.drp->getFilename());
-                delete data.drp->objs_new;
-                break;
-            }
-            if(StrStrIW(t.inffile,L".inf"))
-                t.drp->indexinf_ansi(t.pathinf,t.inffile,t.adr,t.len);
-            else
-                t.drp->parsecat(t.pathinf,t.inffile,t.adr,t.len);
+                if(last)tm+=System.GetTickCountWr()-last;
+                if(!t.adr)
+                {
+                    t.drp->genhashes();
+                    t.drp->text_ind.shrink();
+                    last=System.GetTickCountWr();
+                    //Log.print_con("Trm %ws\n",data.drp->getFilename());
+                    delete data.drp->objs_new;
+                    break;
+                }
+                if(StrStrIW(t.inffile,L".inf"))
+                    t.drp->indexinf_ansi(t.pathinf,t.inffile,t.adr,t.len);
+                else
+                    t.drp->parsecat(t.pathinf,t.inffile,t.adr,t.len);
 
-            delete[] t.pathinf;
-            delete[] t.inffile;
-            delete[] t.adr;
-            last=System.GetTickCountWr();
-        }
+                delete[] t.pathinf;
+                delete[] t.inffile;
+                delete[] t.adr;
+                last=System.GetTickCountWr();
+            }
         //Log.print_con("Fin %ws\n",data.drp->getFilename());
     }
     //Log.print_con("Starved for %ld\n",tm);
@@ -1779,7 +1763,8 @@ unsigned int __stdcall Driverpack::savedrp_thread(void *arg)
     while(drplist->wait_and_pop(data),data.drp)
     {
         bufw2.sprintf(L"%s\\%s",data.drp->getPath(),data.drp->getFilename());
-        Log.print_con("Saving indexes for '%S'\n",bufw2.Get());
+        Log.print_con("Writing index: '%S'\n",bufw2.Get());
+        // STR_INDEXLZMA
         if(Settings.flags&COLLECTION_USE_LZMA)
             manager_g->itembar_settext(SLOT_INDEXING,2,bufw2.Get(),cur_,count_);
         cur_++;

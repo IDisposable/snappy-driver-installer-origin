@@ -120,6 +120,12 @@ public:
     void LeftClick(bool=false);
 };
 
+class DrvUpdatesCommand:public Command
+{
+public:
+    void LeftClick(bool=false);
+};
+
 class InstallCommand:public Command
 {
 public:
@@ -235,6 +241,7 @@ class wPanel:public WidgetComposite
     int kbi;
 
 public:
+    // TODO: is this the '18' that defines the number of items in each PANELx_  ??
     wPanel(int sz_,int box_,int kb_=0,bool isAdv=false,int kbi_=0):sz(sz_),indofs(((box_-BOX_PANEL)/2)*18),boxi(box_),kb(kb_),isAdvanced(isAdv),kbi(kbi_){}
     bool IsHidden(){return (!Settings.expertmode&&isAdvanced)||wy==0;}
     void PrevItem();

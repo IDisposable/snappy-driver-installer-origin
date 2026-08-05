@@ -50,7 +50,7 @@ void wFontImp::SetFont(const wchar_t *name,int size,bool bold)
     if(hFont&&!DeleteObject(hFont))
         Log.print_err("ERROR in setfont(): failed DeleteObject\n");
 
-    hFont=CreateFont(-size,0,0,0,bold?FW_BOLD:FW_DONTCARE,FALSE,FALSE,FALSE,DEFAULT_CHARSET,OUT_DEFAULT_PRECIS,
+    hFont=CreateFontW(-size,0,0,0,bold?FW_BOLD:FW_DONTCARE,FALSE,FALSE,FALSE,DEFAULT_CHARSET,OUT_DEFAULT_PRECIS,
                      CLIP_DEFAULT_PRECIS,DEFAULT_QUALITY,VARIABLE_PITCH,name);
 
     if(!hFont)Log.print_err("ERROR in setfont(): failed CreateFont\n");
@@ -98,7 +98,7 @@ void ClipRegion::setRegion(int x1,int y1,int x2,int y2){imp->setRegion(x1,y1,x2,
 //{ ComboBox
 ComboboxImp::ComboboxImp(HWND hwnd,int id)
 {
-    handle=CreateWindowMF(WC_COMBOBOX,L"",hwnd,id,CBS_DROPDOWNLIST|CBS_HASSTRINGS|WS_OVERLAPPED|WS_VSCROLL);
+    handle=CreateWindowMF(WC_COMBOBOXW,L"",hwnd,id,CBS_DROPDOWNLIST|CBS_HASSTRINGS|WS_OVERLAPPED|WS_VSCROLL);
 }
 void ComboboxImp::Clear()
 {
