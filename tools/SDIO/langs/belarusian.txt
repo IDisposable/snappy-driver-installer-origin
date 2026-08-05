@@ -312,7 +312,7 @@ STR_UPD_ONLYUPDATES           = "Show only updates, hide missing driver packs."
 STR_UPD_KEEPSEEDING           = "Keep sharing after downloads are finished."
 
 STR_UPD_SPECIALMODE           = "Share Mode"
-STR_UPD_TXT_SHARE             = "You can help distribute our driver collection by sharing your 'drivers' folder."
+STR_UPD_TXT_SHARE             = "You can help distribute the driver collection by sharing your downloaded driver packs."
 STR_UPD_BTN_SHARE             = "Share"
 
 STR_UPD_BTN_UPDATE            = "Start"
@@ -345,13 +345,16 @@ STR_UPD_UPDATEHINT1           = "Парада"
 STR_UPD_UPDATEHINT2           = "Вы павінны спачатку абнавіць праграму з індэксамі."
 
 STR_UPD_PROMPT_01             = "Checking partial files. (%d%%) Download will start shortly..."
-STR_UPD_PROMPT_02             = "Downloading (%d%%)"
+STR_UPD_PROMPT_02             = "Processing files. Please wait..."
 STR_UPD_PROMPT_03             = "Sharing. Press Stop to end."
 STR_UPD_PROMPT_04             = "Download finished"
 STR_UPD_PROMPT_05             = "Checking resume data. Download will start shortly..."
 STR_UPD_PROMPT_06             = "You're up to date. Nothing to download."
 STR_UPD_PROMPT_07             = "Ready: Select the items you want and press Start."
 STR_UPD_PROMPT_08             = "Unable to get updates. Try again later."
+STR_UPD_PROMPT_09             = "Resetting. Please wait..."
+STR_UPD_PROMPT_10             = "Starting share mode. Please wait..."
+STR_UPD_PROMPT_11             = "Ending share mode. Please wait..."
 
 // Update hint
 STR_UPD_CHECKING              = "Праверка наяўнасці абнаўленняў"

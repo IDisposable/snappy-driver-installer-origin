@@ -14,7 +14,7 @@ FONT_SIZE = 15
 // Main window
 // ----------------------------------------------------------------
 MAINWND_TRANSPARENCY = 255
-MAINWND_TEXT_COLOR = 0xFFFF00
+MAINWND_TEXT_COLOR = 0x404000
 MAINWND_WX = 1024
 MAINWND_WY = 900
 MAINWND_MINX = 640
@@ -155,6 +155,7 @@ PANEL2_INSIDE_COLOR = 0xFF000000 // Transparent
 	//PANEL9_OUTLINE_COLOR_H = PANEL_OUTLINE_COLOR_H
 	//PANEL9_OUTLINE_WIDTH_H = -1
 	//PANEL9_OUTLINE_ROUND_H = PANEL_OUTLINE_ROUND_H
+	CENTER_TEXT_PANEL9 = 0
 
 	// ----------------------------------------------------------------
 	// Panel > Install > Select All button
@@ -166,6 +167,7 @@ PANEL2_INSIDE_COLOR = 0xFF000000 // Transparent
 	PANEL10_INSIDE_COLOR = 0xFF000000 // Transparent
 	//PANEL10_OUTLINE_COLOR = PANEL9_OUTLINE_COLOR
 	//PANEL10_OUTLINE_WIDTH = PANEL9_OUTLINE_WIDTH
+	CENTER_TEXT_PANEL10 = 0
 
 	// ----------------------------------------------------------------
 	// Panel > Select None button
@@ -177,6 +179,7 @@ PANEL2_INSIDE_COLOR = 0xFF000000 // Transparent
 	PANEL11_INSIDE_COLOR = 0xFF000000 // Transparent
 	//PANEL11_OUTLINE_COLOR = PANEL9_OUTLINE_COLOR
 	//PANEL11_OUTLINE_WIDTH = PANEL9_OUTLINE_WIDTH
+	CENTER_TEXT_PANEL11 = 0
 
 // ----------------------------------------------------------------
 // Panel > Language, Theme
