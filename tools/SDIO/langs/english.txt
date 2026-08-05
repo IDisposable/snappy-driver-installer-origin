@@ -451,14 +451,14 @@ STR_OPTION_CONSOLE      = "Show console window"
 // Welcome
 STR_WELCOME_TITLE        = "Snappy Driver Installer Origin"
 STR_WELCOME_SUBTITLE     = "Welcome To Snappy Driver Installer Origin"
-STR_WELCOME_INTRO        = "Before you can begin, you'll need to download driver packs or indexes. Select one of the following options to start downloading. The Updates bar will keep you apprised of the download status."
+STR_WELCOME_INTRO        = "Before you can begin, you'll need to download driver packs or indexes. Select one of the following options to start downloading. The Updates dialog will keep you apprised of the download status."
 STR_WELCOME_INTRO2       = "Note: Look for this dialog and other tools on the System Menu at the top left of the main application window."
 STR_WELCOME_BUTTON1      = "Download All Driver Packs"
 STR_WELCOME_BUTTON1_DESC = "Get the entire driver pack collection. This is a big download and will take anywhere from an hour to a day depending on availability and internet speed. When complete, you'll have everything required to work offline. If you're a technician, this is the option you want."
 STR_WELCOME_BUTTON2      = "Download Network Drivers Only"
 STR_WELCOME_BUTTON2_DESC = "Get the latest Net, LAN, WLAN, and Wifi drivers. This allows you to get any PC online quickly and is a relatively small download."
 STR_WELCOME_BUTTON3      = "Download Indexes Only"
-STR_WELCOME_BUTTON3_DESC = "This allows you to scan your PC to see which drivers need to be installed or updated. The download will only take a few minutes but you'll need an internet connection when the required driver packs need to be downloaded. If you're a casual user, this is a good option."
+STR_WELCOME_BUTTON3_DESC = "This allows you to scan your PC to see which drivers need to be installed or updated. The download will only take a few minutes but you'll need an internet connection when the required driver packs need to be downloaded. If you're a first time or casual user, this is a good option."
 STR_WELCOME_CLOSE        = "Close"
 
 // USB Wizard - page 1
