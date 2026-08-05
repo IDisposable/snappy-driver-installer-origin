@@ -59,7 +59,12 @@ static inline bool CheckIsa()
 {
   // __try
   {
-    #if defined(__AVX2__)
+    // some compilers (e2k) support SSE/AVX, but cpuid() can be unavailable or return lower isa support
+#ifdef MY_CPU_X86_OR_AMD64
+    #if 0 && (defined(__AVX512F__) && defined(__AVX512VL__))
+      if (!CPU_IsSupported_AVX512F_AVX512VL())
+        return false;
+    #elif defined(__AVX2__)
       if (!CPU_IsSupported_AVX2())
         return false;
     #elif defined(__AVX__)
@@ -73,6 +78,7 @@ static inline bool CheckIsa()
           !CPU_IsSupported_CMOV())
         return false;
     #endif
+#endif
     /*
     __asm
     {
@@ -104,6 +110,7 @@ int Z7_CDECL _main
 }
 int Extract7z(const WCHAR *str)
 {
+  g_ErrStream = &g_StdErr;
   g_StdStream = &g_StdOut;
 
   // #if (defined(_MSC_VER) && defined(_M_IX86))
@@ -118,21 +125,23 @@ int Extract7z(const WCHAR *str)
 
   NConsoleClose::CCtrlHandlerSetter ctrlHandlerSetter;
   int res = 0;
-
+  
   try
   {
-	res = Main2(str);
+    res = Main2(str);
   }
   catch(const CNewException &)
   {
     PrintError(kMemoryExceptionMessage);
     return (NExitCode::kMemoryError);
   }
+/*
   catch(const NConsoleClose::CCtrlBreakException &)
   {
     PrintError(kUserBreakMessage);
     return (NExitCode::kUserBreak);
   }
+*/
   catch(const CMessagePathException &e)
   {
     PrintError(kException_CmdLine_Error_Message);
