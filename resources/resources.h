@@ -15,11 +15,18 @@ Snappy Driver Installer Origin.  If not, see <http://www.gnu.org/licenses/>.
 
 #include "..\source\svnrev.h"
 
+/* test
+#undef SVN_REV
+#define SVN_REV 829
+#undef SVN_REV_STR
+#define SVN_REV_STR "829"
+*/
+
 #define VER_FILEVERSION             2,0,0,SVN_REV
 #define VER_FILEVERSION_STR         "2.0.0." SVN_REV_STR "\0"
 
-#define VER_VERSION_STR             "Version 2.0.0." SVN_REV_STR "/beta-8"
-#define VER_VERSION_STR2            "v2.0.0/beta-8"
+#define VER_VERSION_STR             "Version 2.0.0." SVN_REV_STR
+#define VER_VERSION_STR2            "v2.0.0"
 
 #define IDC_STATIC     -1
 
@@ -200,4 +207,4 @@ Snappy Driver Installer Origin.  If not, see <http://www.gnu.org/licenses/>.
 #define IDC_TRANSL_COPYCLIP   1011
 #define IDC_TRANSL_CLEAR      1012
 
-#define WEB_HOMEPAGE    L"www.snappy-driver-installer.org"
+#define WEB_HOMEPAGE    L"www.glenn.delahoy.com/snappy-driver-installer-origin"

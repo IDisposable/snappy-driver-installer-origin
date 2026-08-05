@@ -65,47 +65,47 @@ CAPTION "Snappy Driver Installer Origin License"
 // updates dialog
 //
 
-IDD_DIALOG2 DIALOGEX 0, 0, 400, 410
+IDD_DIALOG2 DIALOGEX 0, 0, 440, 410
 FONT 8, "MS Shell Dlg"
 STYLE DS_CENTER | DS_MODALFRAME |WS_CAPTION |WS_VISIBLE|WS_POPUP|WS_SYSMENU|WS_SIZEBOX
 CAPTION "Updates"
 {
     CONTROL         "", ID_UPD_LIST, WC_LISTVIEW, WS_TABSTOP | WS_BORDER | LVS_REPORT|LVS_SINGLESEL|LVS_SHOWSELALWAYS,
-        5, 5, 389, 200, WS_EX_LEFT|LVS_EX_CHECKBOXES
+        5, 5, 429, 200, WS_EX_LEFT|LVS_EX_CHECKBOXES
 
-    CONTROL         "", ID_UPD_PROGRESSBAR, "msctls_progress32", WS_CHILD | WS_VISIBLE | PBS_SMOOTH, 5, 208, 389, 21
-    CTEXT           "Ready: Select the items you want and press Start", ID_UPD_PROMPT, 15, 212, 369, 14, WS_EX_TRANSPARENT
+    CONTROL         "", ID_UPD_PROGRESSBAR, "msctls_progress32", WS_CHILD | WS_VISIBLE | PBS_SMOOTH, 5, 208, 429, 21
+    CTEXT           "Ready: Select the items you want and press Start", ID_UPD_PROMPT, 15, 212, 419, 14, WS_EX_TRANSPARENT
 
-    GROUPBOX        "Selection",ID_UPD_SELECTION,5,234,192,80
-    PUSHBUTTON      "Check All",   ID_UPD_CHECKALL,   10, 244, 80, 14
-    PUSHBUTTON      "Uncheck All", ID_UPD_UNCHECKALL, 10, 260, 80, 14
-    PUSHBUTTON      "This PC Only", ID_UPD_CHECKTHISPC, 96, 244, 80, 14
-    PUSHBUTTON      "Network Only", ID_UPD_CHECKNETWORK, 96, 260, 80, 14
+    GROUPBOX        "Selection",ID_UPD_SELECTION,5,234,208,80
+    PUSHBUTTON      "Check All",   ID_UPD_CHECKALL,   10, 244, 94, 14
+    PUSHBUTTON      "Uncheck All", ID_UPD_UNCHECKALL, 10, 260, 94, 14
+    PUSHBUTTON      "This PC Only", ID_UPD_CHECKTHISPC, 111, 244, 94, 14
+    PUSHBUTTON      "Network Only", ID_UPD_CHECKNETWORK, 111, 260, 94, 14
 
-    LTEXT           "Selected: "                  , ID_UPD_SELECTED,   9, 278, 150, 12
-    LTEXT           "Total download size: xx MB",   ID_UPD_TOTALSIZE,  9, 289, 150, 12
-    LTEXT           "Total available space: xx MB", ID_UPD_TOTALAVAIL, 9, 300, 150, 12
+    LTEXT           "Selected: "                  , ID_UPD_SELECTED,   9, 278, 160, 12
+    LTEXT           "Total download size: xx MB",   ID_UPD_TOTALSIZE,  9, 289, 160, 12
+    LTEXT           "Total available space: xx MB", ID_UPD_TOTALAVAIL, 9, 300, 160, 12
 
-    GROUPBOX        "Stream Statistics",    ID_UPD_STREAM_STATS,  5,316,192,91
-    LTEXT           "State: ",              ID_UPD_STREAM_STATE,  9,326,180,11
-    LTEXT           "Complete: ",           ID_UPD_STREAM_COMPLETE, 9,336,180,11
-    LTEXT           "Remaining:",           ID_UPD_STREAM_TIME,   9,346,180,11
-    LTEXT           "Session Downloads: ",  ID_UPD_STREAM_SESSDL, 9,356,180,11
-    LTEXT           "Session Uploads: ",    ID_UPD_STREAM_SESSUL, 9,366,180,11
-    LTEXT           "Seeds: ",              ID_UPD_STREAM_SEEDS,  9,376,180,11
-    LTEXT           "Alert: ",              ID_UPD_STREAM_ALERT,  9,386,180,19
+    GROUPBOX        "Stream Statistics",    ID_UPD_STREAM_STATS,  5,316,208,91
+    LTEXT           "State: ",              ID_UPD_STREAM_STATE,  9,326,196,11
+    LTEXT           "Complete: ",           ID_UPD_STREAM_COMPLETE, 9,336,196,11
+    LTEXT           "Remaining:",           ID_UPD_STREAM_TIME,   9,346,196,11
+    LTEXT           "Session Downloads: ",  ID_UPD_STREAM_SESSDL, 9,356,196,11
+    LTEXT           "Session Uploads: ",    ID_UPD_STREAM_SESSUL, 9,366,196,11
+    LTEXT           "Seeds: ",              ID_UPD_STREAM_SEEDS,  9,376,196,11
+    LTEXT           "Alert: ",              ID_UPD_STREAM_ALERT,  9,386,196,19
 
-    GROUPBOX        "Options",ID_UPD_OPTIONS,205,234,189,38
-    CHECKBOX        "Only updates", ID_UPD_ONLYUPDATES,210,244,180,12,BS_AUTOCHECKBOX
-    CHECKBOX        "Keep seeding", ID_UPD_KEEPSEEDING,210,256,180,12,BS_AUTOCHECKBOX
+    GROUPBOX        "Options",ID_UPD_OPTIONS,225,232,209,58
+    CHECKBOX        "Only updates", ID_UPD_ONLYUPDATES,230,242,200,24,BS_AUTOCHECKBOX | BS_MULTILINE
+    CHECKBOX        "Keep seeding", ID_UPD_KEEPSEEDING,230,262,200,24,BS_AUTOCHECKBOX | BS_MULTILINE
 
-    GROUPBOX        "Share Mode",ID_UPD_SPECIALMODE,205,280,189,44
-    LTEXT           "You can help distribute our driver collection by sharing your 'drivers' folder.",ID_UPD_TXT_SHARE,210,290,134,28
-    PUSHBUTTON      "Share",     ID_UPD_BTN_SHARE, 345, 295, 45, 20
+    GROUPBOX        "Share Mode",ID_UPD_SPECIALMODE,225,298,209,44
+    LTEXT           "You can help distribute our driver collection by sharing your 'drivers' folder.",ID_UPD_TXT_SHARE,230,309,152,28
+    PUSHBUTTON      "Share",     ID_UPD_BTN_SHARE, 385, 312, 45, 20
 
-    PUSHBUTTON      "Start",     ID_UPD_BTN_UPDATE, 205, 378, 55, 28
-    PUSHBUTTON      "Stop", ID_UPD_BTN_STOP, 273, 378, 55, 28
-    PUSHBUTTON      "Close", ID_UPD_BTN_CLOSE,  339, 378, 55, 28
+    PUSHBUTTON      "Start",     ID_UPD_BTN_UPDATE, 235, 378, 55, 28
+    PUSHBUTTON      "Stop", ID_UPD_BTN_STOP, 307, 378, 55, 28
+    PUSHBUTTON      "Close", ID_UPD_BTN_CLOSE,  379, 378, 55, 28
 
 }
 
@@ -317,7 +317,7 @@ BEGIN
             "LibWebP \tv1.6.0 - WebP technology is licensed under the terms of the BSD license\n"
             "LibTorrent \tv1.2.20 - Licensed under the terms of the BSD license\n"
             "Backtrace \tLicensed under the terms of the BSD license\n"
-            "7-Zip \t\tv23.01 - Licensed under the terms of the GNU Library\n"
+            "7-Zip \t\tv26.01 - Licensed under the terms of the GNU Library\n"
             "\t\t or Lesser General Public License version 2\n"
             "Driver packs \tContributions by SamLab and our loyal user base",IDD_ABOUT_T7,10,201,300,80,SS_LEFT
 END
@@ -348,25 +348,29 @@ BEGIN
     LTEXT   "Note: Look for additional tools on the System Menu at the top left of the "
             "main application window."
             ,IDD_WELC_INTRO2,34,126,346,40,SS_LEFT
-    DEFPUSHBUTTON "Download All Driver Packs", IDD_WELC_BUTTON1,34,148,75,35,BS_MULTILINE
-    LTEXT   "Get the entire driver pack collection. "
-            "This is a big download and will take "
-            "anywhere from an hour to a day depending on availability and internet speed. "
-            "When complete, you'll have everything required to work offline. If you're a "
-            "technician, this is the option you want."
-            ,IDD_WELC_BUTTON1_DESC,120,148,260,39,SS_LEFT
-    PUSHBUTTON "Download Network Drivers Only", IDD_WELC_BUTTON2,34,188,75,35,BS_MULTILINE
-    LTEXT   "Get the latest LAN, WLAN, and Wifi drivers. This allows you to get "
-            "any PC online quickly and is a relatively small download."
-            ,IDD_WELC_BUTTON2_DESC,120,194,260,35,SS_LEFT
-    PUSHBUTTON "Download Indexes Only", IDD_WELC_BUTTON3,34,228,75,38,BS_MULTILINE
+
+    PUSHBUTTON "Download Indexes Only", IDD_WELC_BUTTON3,34,148,75,35,BS_MULTILINE
     LTEXT   "This allows you to "
             "scan your PC to see which drivers need to be installed or updated. "
             "The download will only take a few minutes but you'll need "
             "an internet connection when the required driver packs "
             "need to be downloaded. "
-            "If you're a casual user, this is the option you want."
-            ,IDD_WELC_BUTTON3_DESC,120  ,228,260,39,SS_LEFT
+            "If you're a casual user, this is a good option."
+            ,IDD_WELC_BUTTON3_DESC,120,148,260,39,SS_LEFT
+
+    PUSHBUTTON "Download Network Drivers Only", IDD_WELC_BUTTON2,34,188,75,35,BS_MULTILINE
+    LTEXT   "Get the latest Net, LAN, WLAN, and Wifi drivers. This allows you to get "
+            "any PC online quickly and is a relatively small download."
+            ,IDD_WELC_BUTTON2_DESC,120,194,260,35,SS_LEFT
+
+    DEFPUSHBUTTON "Download All Driver Packs", IDD_WELC_BUTTON1,34,228,75,35,BS_MULTILINE
+    LTEXT   "Get the entire driver pack collection. "
+            "This is a big download and will take "
+            "anywhere from an hour to a day depending on availability and internet speed. "
+            "When complete, you'll have everything required to work offline. If you're a "
+            "technician, this is the option you want."
+            ,IDD_WELC_BUTTON1_DESC,120,228,260,39,SS_LEFT
+
     PUSHBUTTON "&Close", IDD_WELC_CLOSE, 339, 266, 51, 28
 END
 
