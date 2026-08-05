@@ -21,7 +21,7 @@ echo Parameters: %1 %2 %3 %4 %5 %6 %7 %8 %9
 ; ***************************
 echo Initialising
 verbose 384
-;debug on
+debug off
 logging on
 enableinstall off
 keeptempfiles on
@@ -41,16 +41,21 @@ snapshot
 ; ***************************
 :updates
 echo Checking updates
+activetorrent 0
 checkupdates
 onerror goto :end
 ;echo Getting application updates
 ;get app
 ;echo Getting indexes
 ;get indexes
-echo Getting driver pack updates for what i already have
-get driverpacks updates
+;echo Getting all driver pack updates
+;get driverpacks missing
 ;echo Getting application updates
 ;get everything
+
+activetorrent 1
+init
+checkupdates
 
 ; ***************************
 ; *  install driver updates *
@@ -59,7 +64,7 @@ get driverpacks updates
 echo Creating restore point
 restorepoint
 onerror goto :end
-select missing better lan wlan-wifi
+select missing newer current better net
 install
 onerror goto :end
 
@@ -71,4 +76,5 @@ logging off
 debug off
 reboot ifneeded
 echo *** END ***
+pause
 end
