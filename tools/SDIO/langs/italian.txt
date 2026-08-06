@@ -290,7 +290,7 @@ STR_UPD_TITLE                 = "Aggiorna"
 STR_UPD_SELECTION             = "Scelta"
 STR_UPD_BTN_ALL               = "Seleziona tutto"
 STR_UPD_BTN_NONE              = "Deseleziona tutto"
-STR_UPD_BTN_THISPC            = "Seleziona solo quelli necessari a questo PC"
+STR_UPD_BTN_THISPC            = "Questo computer"
 STR_UPD_BTN_THISPC_H          = "Al fine di determinare quali driver-packs sono necessari, è bene scaricare prima gli indici."
 STR_UPD_BTN_NETWORK           = "Solo drivers di rete"
 

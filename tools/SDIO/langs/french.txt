@@ -290,7 +290,7 @@ STR_UPD_TITLE                 = "Mettre à jour"
 STR_UPD_SELECTION             = "Sélection"
 STR_UPD_BTN_ALL               = "Cocher tout"
 STR_UPD_BTN_NONE              = "Décocher tout"
-STR_UPD_BTN_THISPC            = "Cocher seulement ceux nécessaires pour ce PC"
+STR_UPD_BTN_THISPC            = "Cet ordinateur"
 STR_UPD_BTN_THISPC_H          = "Pour définir quels packs sont nécessaire vous devez d'abord télécharger les indexs."
 STR_UPD_BTN_NETWORK           = "Réseau seulement"
 
