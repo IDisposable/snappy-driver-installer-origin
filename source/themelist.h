@@ -1,18 +1,16 @@
 /*
-This file is part of Snappy Driver Installer.
+This file is part of Snappy Driver Installer Origin.
 
-Snappy Driver Installer is free software: you can redistribute it and/or modify
-it under the terms of the GNU General Public License as published by
-the Free Software Foundation, either version 3 of the License, or
-(at your option) any later version.
+Snappy Driver Installer Origin is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by the Free Software
+Foundation, either version 3 of the License or (at your option) any later version.
 
-Snappy Driver Installer is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied waÍàïðèìåðrranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
+Snappy Driver Installer Origin is distributed in the hope that it will be useful
+but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
 
-You should have received a copy of the GNU General Public License
-along with Snappy Driver Installer.  If not, see <http://www.gnu.org/licenses/>.
+You should have received a copy of the GNU General Public License along with
+Snappy Driver Installer Origin.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 #ifndef THEMELIST_H
@@ -50,12 +48,17 @@ enum
     BOX_PANEL7_H,
     BOX_PANEL8,
     BOX_PANEL8_H,
+
+    // install
     BOX_PANEL9,
     BOX_PANEL9_H,
+    // select all
     BOX_PANEL10,
     BOX_PANEL10_H,
+    // select none
     BOX_PANEL11,
     BOX_PANEL11_H,
+
     BOX_PANEL12,
     BOX_PANEL12_H,
     BOX_PANEL13,
@@ -122,6 +125,7 @@ enum
     BOX_NOUPDATES_H,
     BOX_DRVITEM_PN,
     BOX_DRVITEM_PN_H,
+
     BOX_NUM
 };
 
@@ -410,7 +414,7 @@ enum
     PANEL8_BITMAP_ANCHOR_H,
     PANEL8_BITMAP_FILL_H,
 
-// Panel, selectall_selectnone
+// Panel, install
     PANEL9_OFSX,
     PANEL9_OFSY,
     PANEL9_WX,
@@ -430,7 +434,7 @@ enum
     PANEL9_BITMAP_ANCHOR_H,
     PANEL9_BITMAP_FILL_H,
 
-// Panel, selectnone
+// Panel, select all
     PANEL10_OFSX,
     PANEL10_OFSY,
     PANEL10_WX,
@@ -450,7 +454,7 @@ enum
     PANEL10_BITMAP_ANCHOR_H,
     PANEL10_BITMAP_FILL_H,
 
-// Panel, options
+// Panel select none
     PANEL11_OFSX,
     PANEL11_OFSY,
     PANEL11_WX,
@@ -621,7 +625,7 @@ enum
     DRVITEM_TEXT1_COLOR_IF,
     DRVITEM_TEXT2_COLOR_IF,
 
-// No updates
+// updates are available etc
     DRVITEM_INSIDE_COLOR_IU,
     DRVITEM_OUTLINE_COLOR_IU,
     DRVITEM_OUTLINE_WIDTH_IU,
@@ -1016,6 +1020,15 @@ enum
     DRVITEM_BITMAP_FILL_NS_H,
     DRVITEM_TEXT1_COLOR_NS,
     DRVITEM_TEXT2_COLOR_NS,
+
+    // additional settings for specific buttons
+    // can't put these up with the PANEL entries
+    // as it messes up a hard coded array size somewhere
+    // possibly gui.h line 245 ??
+    CENTER_TEXT_PANEL9,
+    CENTER_TEXT_PANEL10,
+    CENTER_TEXT_PANEL11,
+    CENTER_TEXT_PANEL4,
 
     THEME_NM,
 };

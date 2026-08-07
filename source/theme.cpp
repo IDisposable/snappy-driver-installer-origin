@@ -271,7 +271,9 @@ void VaultImp::loadFromRes(int id)
     char *data1;
     size_t sz;
 
+    // get the resource as a blob of chars
     get_resource(id,(void **)&data1,&sz);
+    // replace cr with space
     datav_ptr.reset(new wchar_t[sz+1]);
     wchar_t *datav=datav_ptr.get();
     for(size_t i=0;i<sz;i++)
@@ -280,6 +282,7 @@ void VaultImp::loadFromRes(int id)
         datav[i]=data1[i];
     }
     datav[sz]=0;
+    // parse into entry[]
     parse(L"resource");
     for(size_t i=0;i<num;i++)
         if(entry[i].init<1)Log.print_err("ERROR in vault_loadfromres: not initialized '%S'\n",entry[i].name);

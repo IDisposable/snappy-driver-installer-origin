@@ -415,7 +415,7 @@ entry_t theme[THEME_NM]=
     DEF_VAL("PANEL8_BITMAP_ANCHOR_H")
     DEF_VAL("PANEL8_BITMAP_FILL_H")
 
-// Panel, selectall_selectnone
+// install button
     DEF_VAL("PANEL9_OFSX")
     DEF_VAL("PANEL9_OFSY")
     DEF_VAL("PANEL9_WX")
@@ -435,7 +435,7 @@ entry_t theme[THEME_NM]=
     DEF_VAL("PANEL9_BITMAP_ANCHOR_H")
     DEF_VAL("PANEL9_BITMAP_FILL_H")
 
-// Panel, selectnone
+// select all button
     DEF_VAL("PANEL10_OFSX")
     DEF_VAL("PANEL10_OFSY")
     DEF_VAL("PANEL10_WX")
@@ -455,7 +455,7 @@ entry_t theme[THEME_NM]=
     DEF_VAL("PANEL10_BITMAP_ANCHOR_H")
     DEF_VAL("PANEL10_BITMAP_FILL_H")
 
-// Panel, options
+// select none button
     DEF_VAL("PANEL11_OFSX")
     DEF_VAL("PANEL11_OFSY")
     DEF_VAL("PANEL11_WX")
@@ -1021,4 +1021,14 @@ entry_t theme[THEME_NM]=
     DEF_VAL("DRVITEM_BITMAP_FILL_NS_H")
     DEF_VAL("DRVITEM_TEXT1_COLOR_NS")
     DEF_VAL("DRVITEM_TEXT2_COLOR_NS")
+
+    // additional settings for specific buttons
+    // can't put these up with the PANEL entries
+    // as it messes up a hard coded array size somewhere
+    // possibly gui.h line 245 ??
+    DEF_VAL("CENTER_TEXT_PANEL9")
+    DEF_VAL("CENTER_TEXT_PANEL10")
+    DEF_VAL("CENTER_TEXT_PANEL11")
+    DEF_VAL("CENTER_TEXT_PANEL4")
+
 };
