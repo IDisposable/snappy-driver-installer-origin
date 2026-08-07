@@ -20,7 +20,11 @@ Snappy Driver Installer Origin.  If not, see <http://www.gnu.org/licenses/>.
 #include "settings.h"
 #include "cli.h"
 #include "matcher.h"
+
+#ifdef USE_TORRENT
 #include "update.h"
+#endif
+
 #include "manager.h"
 #include "install.h"
 #include "gui.h"
@@ -154,19 +158,23 @@ void driver_install(wchar_t *hwid,const wchar_t *inf,int *ret,int *needrb)
     }
 
     if(!*ret)*ret=GetLastError();
+
     if((Settings.flags&FLAG_DISABLEINSTALL)==0)
-    if((unsigned)*ret==0xE0000235||manager_g->matcher->getState()->getArchitecture())//ERROR_IN_WOW64
     {
-        buf.sprintf(L"\"%s\" \"%s\"",hwid,inf);
-        cmd.sprintf(L"%s\\install64.exe",extractdir);
-        Log.print_con("'%S %S'\n",cmd.Get(),buf.Get());
-        *ret=System.run_command(cmd.Get(),buf.Get(),SW_HIDE,1);
-        if((*ret&0x7FFFFFFF)==1)
+        if((unsigned)*ret==0xE0000235||manager_g->matcher->getState()->getArchitecture())//ERROR_IN_WOW64
         {
-            *needrb=(*ret&0x80000000)?1:0;
-            *ret&=~0x80000000;
+            buf.sprintf(L"\"%s\" \"%s\"",hwid,inf);
+            cmd.sprintf(L"%s\\install64.exe",extractdir);
+            Log.print_con("'%S %S'\n",cmd.Get(),buf.Get());
+            *ret=System.run_command(cmd.Get(),buf.Get(),SW_HIDE,1);
+            if((*ret&0x7FFFFFFF)==1)
+            {
+                *needrb=(*ret&0x80000000)?1:0;
+                *ret&=~0x80000000;
+            }
         }
     }
+
     Autoclicker.setflag(0);
 
     thr->join();
@@ -215,7 +223,10 @@ unsigned int __stdcall Manager::thread_install(void *arg)
     WINAPI5t_SRSetRestorePointW WIN5f_SRSetRestorePointW;
     int failed=0,installed=0;
 
-    if(CRITICAL_SECTION_ACTIVE)EnterCriticalSection(&sync);
+    // TODO:  getting 'lock'ed up here after an install
+    if(CRITICAL_SECTION_ACTIVE)
+        if(!TryEnterCriticalSection(&sync))
+            return 0;
 
     // Prepare extract dir
     Log.print_con("extractdir='%S'\n",extractdir);
@@ -232,57 +243,42 @@ unsigned int __stdcall Manager::thread_install(void *arg)
     if(isRebootDesired())Settings.flags|=FLAG_AUTOINSTALL;
 
     // Download driverpacks
-#ifdef USE_TORRENT
+    #ifdef USE_TORRENT
     if((Settings.flags&(FLAG_SCRIPTMODE|FLAG_UPDATESOK)) ||
         (!(Settings.flags&FLAG_SCRIPTMODE)))
     {
-        unsigned downdrivers=0;
         itembar=&manager_g->items_list[RES_SLOTS];
-        // find which items are selected
-        // check if the associated driver pack is set to DRIVERPACK_TYPE_UPDATE
-        // and set it's priority in the torrent
+        std::vector<std::wstring> filenames;
+
+        // make a list of driver packs i need to download
         for(i=RES_SLOTS;i<manager_g->items_list.size()&&installmode==MODE_INSTALLING;i++,itembar++)
-            if(itembar->checked&&itembar->isactive&&itembar->hwidmatch&&itembar->hwidmatch->getdrp_packontorrent())
+        if(itembar->checked&&itembar->isactive&&itembar->hwidmatch&&itembar->hwidmatch->getdrp_packontorrent())
         {
-            if(!Updater->isTorrentReady())
+            filenames.push_back(itembar->hwidmatch->getdrp_packname());
+        }
+
+
+            // if any DRIVERPACK_TYPE_UPDATE items are selected in the torrent
+            // then do the download
+            if(filenames.size()>0)
             {
-                Log.print_con("Waiting for torrent");
-                for(j=0;j<200;j++)
+                Updater->StartInstallDownload(filenames);
+
+                Log.print_con("{{{{{{{{\n");
+                while(installmode&&!Updater->IsUpdateCompleted())
                 {
-                    Log.print_con("*");
-                    if(Updater->isTorrentReady())
-                    {
-                        Log.print_con("DONE\n");
-                        break;
-                    }
-                    Sleep(100);
+                    Sleep(500);
                 }
-                if(!Updater->isTorrentReady())break;
-                Log.print_con("\n");
+                Log.print_con("{}}}}}}}}}\n");
             }
-            Updater->SetFilePriority(itembar->hwidmatch->getdrp_packname(),1);
-            downdrivers++;
-        }
-        // if any DRIVERPACK_TYPE_UPDATE items are selected in the torrent
-        // then do the download
-        if(downdrivers)
-        {
-            Updater->resumeDownloading();
-            Log.print_con("{{{{{{{{\n");
-            while(installmode&&!Updater->isUpdateCompleted())
+            if(installmode==MODE_STOPPING)
             {
-                Sleep(500);
+                itembar->install_status=STR_INST_STOPPING;
+                manager_g->items_list[SLOT_EXTRACTING].install_status=STR_INST_STOPPING;
+                manager_g->selectnone();
             }
-            Log.print_con("{}}}}}}}}}\n");
-        }
-        if(installmode==MODE_STOPPING)
-        {
-            itembar->install_status=STR_INST_STOPPING;
-            manager_g->items_list[SLOT_EXTRACTING].install_status=STR_INST_STOPPING;
-            manager_g->selectnone();
-        }
     }
-#endif
+    #endif
 
     // Restore point
     bool restorePointSelected=manager_g->items_list[SLOT_RESTORE_POINT].checked;
@@ -296,7 +292,7 @@ unsigned int __stdcall Manager::thread_install(void *arg)
         // System Restore client dll
         hinstLib=LoadLibrary(L"SrClient.dll");
         if(hinstLib!=NULL)
-            WIN5f_SRSetRestorePointW=(WINAPI5t_SRSetRestorePointW)GetProcAddress(hinstLib,"SRSetRestorePointW");
+            WIN5f_SRSetRestorePointW=(WINAPI5t_SRSetRestorePointW)(void*)GetProcAddress(hinstLib,"SRSetRestorePointW");
 
         if(hinstLib&&WIN5f_SRSetRestorePointW)
         {
@@ -458,6 +454,7 @@ unsigned int __stdcall Manager::thread_install(void *arg)
                             }while(!System.FileExists(hwidmatch->getdrp_packpath())&&!hwidmatch->getdrp_packontorrent());
                             Log.print_con("OK\n");
                         }
+
                     }while(r&&!hwidmatch->getdrp_packontorrent());
                 }
 
@@ -594,11 +591,15 @@ unsigned int __stdcall Manager::thread_install(void *arg)
     if(needreboot)ret_global|=0x40<<24;
     if(CRITICAL_SECTION_ACTIVE)LeaveCriticalSection(&sync);
     MainWindow.ShowProgressInTaskbar(false);
-    invalidate(INVALIDATE_DEVICES);
+    invalidate(INVALIDATE_DEVICES|INVALIDATE_MANAGER|INVALIDATE_INDEXES);
     MainWindow.redrawmainwnd();
 
     installupdate_exitflag=1;
     installupdate_event->raise();
+
+    #ifdef USE_TORRENT
+    Updater->EndInstallDownload();
+    #endif // USE_TORRENT
 
     return 0;
 }
