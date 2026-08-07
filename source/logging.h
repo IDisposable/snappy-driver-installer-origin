@@ -76,18 +76,18 @@ private:
     int error_count=0;
     int log_console=0;
     int log_verbose=
-        LOG_VERBOSE_ARGS|
-        LOG_VERBOSE_SYSINFO|
-        LOG_VERBOSE_DEVICES|
-        LOG_VERBOSE_MATCHER|
-        LOG_VERBOSE_MANAGER|
-        LOG_VERBOSE_DRP|
-        LOG_VERBOSE_TIMES|
-        LOG_VERBOSE_LOG_ERR|
-        LOG_VERBOSE_LOG_CON|
-        //LOG_VERBOSE_DEBUG|
-        //LOG_VERBOSE_DEVSYNC|
-        0;
+                LOG_VERBOSE_ARGS|
+                LOG_VERBOSE_SYSINFO|
+                LOG_VERBOSE_DEVICES|
+                LOG_VERBOSE_MATCHER|
+                LOG_VERBOSE_MANAGER|
+                LOG_VERBOSE_DRP|
+                LOG_VERBOSE_TIMES|
+                LOG_VERBOSE_LOG_ERR|
+                LOG_VERBOSE_LOG_CON|
+                //LOG_VERBOSE_DEBUG|
+                //LOG_VERBOSE_TORRENT|
+                0;
 
 public:
     void print_con(char const *format,...);
@@ -96,6 +96,7 @@ public:
     void print_syserr(int r,const wchar_t *s);
     void print_nul(char const *format,...);
     void print_debug(char const *format,...);
+    void print_torr(char const *format,...);
 
     void gen_timestamp();
     void start(wchar_t *log_dir);
@@ -116,7 +117,7 @@ extern Log_t Log;
 
 // Error handling
 const wchar_t *errno_str();
-void start_exception_hadnlers();
+void start_exception_handlers();
 void SignalHandler(int signum);
 
 // Virus detection

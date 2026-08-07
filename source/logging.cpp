@@ -177,7 +177,8 @@ void Log_t::print_con(char const *format,...)
     va_list args;
     va_start(args,format);
     wvsprintfA(buffer,format,args);
-    if(logfile)fputs(buffer,logfile);
+    if(logfile)
+        fputs(buffer,logfile);
     fputs(buffer,stdout);
     va_end(args);
 }
@@ -192,6 +193,19 @@ void Log_t::print_debug(char const *format,...)
     char buffer[1024*16];
 
     if((log_verbose&LOG_VERBOSE_DEBUG)==0)return;
+    va_list args;
+    va_start(args,format);
+    wvsprintfA(buffer,format,args);
+    if(logfile)fputs(buffer,logfile);
+    fputs(buffer,stdout);
+    va_end(args);
+}
+
+void Log_t::print_torr(char const *format,...)
+{
+    char buffer[1024*16];
+
+    if((log_verbose&LOG_VERBOSE_TORRENT)==0)return;
     va_list args;
     va_start(args,format);
     wvsprintfA(buffer,format,args);
@@ -270,29 +284,29 @@ static void myterminate()
     }
     catch(const std::exception& e)
     {
-        buf.sprintf(L"Exception: %S\n",e.what());
+        buf.sprintf(L"Unhandled exception: %S\n",e.what());
     }
     catch(int i)
     {
-        buf.sprintf(L"Exception: %d\n",i);
+        buf.sprintf(L"Unhandled exception: %d\n",i);
     }
     catch(char const*str)
     {
-        buf.sprintf(L"Exception: %S\n",str);
+        buf.sprintf(L"Unhandled exception: %S\n",str);
     }
     catch(wchar_t const*str)
     {
-        buf.sprintf(L"Exception: %s\n",str);
+        buf.sprintf(L"Unhandled exception: %s\n",str);
     }
     catch(...)
     {
-        buf.sprintf(L"Exception: unknown");
+        buf.sprintf(L"Unhandled exception: unknown");
     }
     Log.print_err("ERROR: %S\n",buf.Get());
     Log.save();
     Log.stop();
-    buf.append(L"\n\nThe program will self terminate now.");
-    MessageBox(MainWindow.hMain,buf.Get(),L"Exception",MB_ICONERROR);
+    buf.append(L"\n\nThe program will terminate now.");
+    MessageBox(MainWindow.hMain,buf.Get(),L"Unhandled Exception",MB_ICONERROR);
 
     abort();
 }
@@ -303,7 +317,7 @@ static void myunexpected()
     myterminate();
 }
 
-void start_exception_hadnlers()
+void start_exception_handlers()
 {
     std::set_unexpected(myunexpected);
     std::set_terminate(myterminate);
