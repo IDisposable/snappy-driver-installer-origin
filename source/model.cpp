@@ -21,7 +21,10 @@ Snappy Driver Installer Origin.  If not, see <http://www.gnu.org/licenses/>.
 #include "indexing.h"
 #include "matcher.h"
 #include "manager.h"
+
+#ifdef USE_TORRENT
 #include "update.h"
+#endif
 
 #include <windows.h>
 
@@ -85,7 +88,7 @@ unsigned int __stdcall Bundle::thread_loadall(void *arg)
     while(1)
     {
         // Wait for an update request
-        deviceupdate_event->wait();
+        deviceupdate_event->wait(INFINITE);
         if(deviceupdate_exitflag)break;
         bundle[bundle_shadow].bundle_init();
             /*static long long prmem;
