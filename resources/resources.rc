@@ -33,7 +33,7 @@ IDR_THEME       RESFILE     "..\\tools\\SDIO\\themes\\clean.txt"
 IDR_LANG        RESFILE     "..\\tools\\SDIO\\langs\\english.txt"
 IDR_INSTALL64   RESFILE     "install64.exe"
 IDR_CLI_HELP    RESFILE     "CLI.txt"
-IDB_LOGO        BITMAP      "logoorigin128.bmp"
+IDB_LOGO        BITMAP      "logoorigin128-blue.bmp"
 IDB_WATERMARK   BITMAP      "watermark.bmp"
 
 // the update dialog IDD_DIALOG2
@@ -328,19 +328,19 @@ END
 
 IDD_WELCOME DIALOGEX DISCARDABLE 0, 0, 400, 300
 STYLE DS_MODALFRAME | DS_CENTER | WS_POPUP | WS_CAPTION |WS_VISIBLE
-FONT 9, "MS Sans Serif"
+FONT 10, "MS Shell Dlg"
 CAPTION "Welcome"
 BEGIN
     CONTROL IDB_LOGO,IDC_STATIC,WC_STATIC,SS_BITMAP,5,5, 32, 32
-    LTEXT   "Snappy Driver Installer Origin",IDD_WELC_TITLE,115,4,300,90,SS_LEFT
+    LTEXT   "Snappy Driver Installer Origin",IDD_WELC_TITLE,95,4,300,90,SS_LEFT
     LTEXT   COPYRIGHT_DATE "\n"
             VER_VERSION_STR "\n"
             SVN_BUILD_DATE "\n"
             SVN_BUILD_NOTE
-            , IDD_WELC_TEXT, 115,24,250,90,SS_LEFT
-    LTEXT   "Home Page: www.snappy-driver-installer.org",IDD_WELC_LINK1,115,57,200,10,SS_LEFT|SS_NOTIFY
+            , IDD_WELC_TEXT, 95,24,250,90,SS_LEFT
+    LTEXT   "Home Page: www.snappy-driver-installer.org",IDD_WELC_LINK1,95,57,200,10,SS_LEFT|SS_NOTIFY
     LTEXT   "Welcome To Snappy Driver Installer Origin"
-            ,IDD_WELC_SUBTITLE,34,92,384,40,SS_LEFT
+            ,IDD_WELC_SUBTITLE,34,84,384,44,SS_LEFT
     LTEXT   "Before you can begin, you'll need to download driver packs or indexes. Select one of "
             "the following options to start downloading. The Updates bar will keep you apprised of"
             "the download status."
@@ -349,7 +349,7 @@ BEGIN
             "main application window."
             ,IDD_WELC_INTRO2,34,126,346,40,SS_LEFT
 
-    PUSHBUTTON "Download Indexes Only", IDD_WELC_BUTTON3,34,148,75,35,BS_MULTILINE
+    PUSHBUTTON "Download Indexes", IDD_WELC_BUTTON3,34,147,75,35,BS_MULTILINE
     LTEXT   "This allows you to "
             "scan your PC to see which drivers need to be installed or updated. "
             "The download will only take a few minutes but you'll need "
@@ -358,18 +358,18 @@ BEGIN
             "If you're a casual user, this is a good option."
             ,IDD_WELC_BUTTON3_DESC,120,148,260,39,SS_LEFT
 
-    PUSHBUTTON "Download Network Drivers Only", IDD_WELC_BUTTON2,34,188,75,35,BS_MULTILINE
+    PUSHBUTTON "Download Network Drivers", IDD_WELC_BUTTON2,34,187,75,35,BS_MULTILINE
     LTEXT   "Get the latest Net, LAN, WLAN, and Wifi drivers. This allows you to get "
             "any PC online quickly and is a relatively small download."
             ,IDD_WELC_BUTTON2_DESC,120,194,260,35,SS_LEFT
 
-    DEFPUSHBUTTON "Download All Driver Packs", IDD_WELC_BUTTON1,34,228,75,35,BS_MULTILINE
+    DEFPUSHBUTTON "Download All Driver Packs", IDD_WELC_BUTTON1,34,227,75,35,BS_MULTILINE
     LTEXT   "Get the entire driver pack collection. "
             "This is a big download and will take "
             "anywhere from an hour to a day depending on availability and internet speed. "
             "When complete, you'll have everything required to work offline. If you're a "
             "technician, this is the option you want."
-            ,IDD_WELC_BUTTON1_DESC,120,228,260,39,SS_LEFT
+            ,IDD_WELC_BUTTON1_DESC,120,229,260,39,SS_LEFT
 
     PUSHBUTTON "&Close", IDD_WELC_CLOSE, 339, 266, 51, 28
 END
