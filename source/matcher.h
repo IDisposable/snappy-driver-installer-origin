@@ -18,7 +18,7 @@ along with Snappy Driver Installer.  If not, see <http://www.gnu.org/licenses/>.
 #ifndef MATCHER_H
 #define MATCHER_H
 
-#define NUM_DECS 55*6
+#define NUM_DECS 56*6
 #define NUM_MARKERS 86
 #define NUM_FILTERS 22
 
@@ -38,6 +38,8 @@ enum DRIVER_STATUS
     STATUS_NF_UNKNOWN  = 0x200,
     STATUS_NF_STANDARD = 0x400,
     STATUS_DUP         = 0x800,
+
+    STATUS_IGNORED     = 0x1000,
 };
 
 class Devicematch;
@@ -100,10 +102,11 @@ public:
 public:
     Devicematch(Device *cur_device,const Driver *cur_driver,size_t items,Matcher *matcher);
     int isMissing(const State *state);
+    int isIgnored(const State *state);
     int getStatus(){return status;}
 
-    friend class Manager; // TODO: friend
-    friend class MatcherImp; // TODO: friend
+    friend class Manager;
+    friend class MatcherImp;
 };
 
 // Hwidmatch is used to extract info about an available driver from indexes

@@ -99,6 +99,7 @@ const char *nts[NUM_DECS]=
     "nt.10.0...14393",  "ntx86.10.0...14393",  "ntamd64.10.0...14393",  "ntia64.10.0...14393",  "ntarm.10.0...14393",  "ntarm64.10.0...14393", //   Win 10 v1607        Server 2016
     "nt.10.0...15063",  "ntx86.10.0...15063",  "ntamd64.10.0...15063",  "ntia64.10.0...15063",  "ntarm.10.0...15063",  "ntarm64.10.0...15063", //   Win 10 v1703
     "nt.10.0...16209",  "ntx86.10.0...16209",  "ntamd64.10.0...16209",  "ntia64.10.0...16209",  "ntarm.10.0...16209",  "ntarm64.10.0...16209", //   Win 10 creators update
+    "nt.10.0...16225",  "ntx86.10.0...16225",  "ntamd64.10.0...16225",  "ntia64.10.0...16225",  "ntarm.10.0...16225",  "ntarm64.10.0...16225", //   Win 10 creators update
     "nt.10.0...16273",  "ntx86.10.0...16273",  "ntamd64.10.0...16273",  "ntia64.10.0...16273",  "ntarm.10.0...16273",  "ntarm64.10.0...16273", //   Win 10 insider preview
     "nt.10.0...16288",  "ntx86.10.0...16288",  "ntamd64.10.0...16288",  "ntia64.10.0...16288",  "ntarm.10.0...16288",  "ntarm64.10.0...16288", //   Win 10 insider preview
     "nt.10.0...16299",  "ntx86.10.0...16299",  "ntamd64.10.0...16299",  "ntia64.10.0...16299",  "ntarm.10.0...16299",  "ntarm64.10.0...16299", //   Win 10 v1709        Server 2016
@@ -165,6 +166,7 @@ const int nts_version[NUM_DECS]=
    100,   100,   100,   100,   100,  100, // 10 (1607)
    100,   100,   100,   100,   100,  100, // 10 (1703)
    100,   100,   100,   100,   100,  100, // 10 (creators update)
+   100,   100,   100,   100,   100,  100, // 10 (creators update)
    100,   100,   100,   100,   100,  100, // 10 (insider preview)
    100,   100,   100,   100,   100,  100, // 10 (insider preview)
    100,   100,   100,   100,   100,  100, // 10 (1709)
@@ -229,6 +231,7 @@ const int nts_build[NUM_DECS]=
    14393,   14393,   14393,   14393,   14393,  14393, // 10 (1607)
    15063,   15063,   15063,   15063,   15063,  15063, // 10 (1703)
    16209,   16209,   16209,   16209,   16209,  16209, // 10 (creators update)
+   16225,   16225,   16225,   16225,   16225,  16225, // 10 (creators update)
    16273,   16273,   16273,   16273,   16273,  16273, // 10 (insider preview)
    16288,   16288,   16288,   16288,   16288,  16288, // 10 (insider preview)
    16299,   16299,   16299,   16299,   16299,  16299, // 10 (1709)
@@ -293,6 +296,7 @@ const int nts_arch[NUM_DECS]=
     0,  1,  2,  3,  4,  5, // 10 (1607)
     0,  1,  2,  3,  4,  5, // 10 (1607)
     0,  1,  2,  3,  4,  5, // 10 (1703)
+    0,  1,  2,  3,  4,  5, // 10 (creators update)
     0,  1,  2,  3,  4,  5, // 10 (creators update)
     0,  1,  2,  3,  4,  5, // 10 (insider preview)
     0,  1,  2,  3,  4,  5, // 10 (insider preview)
@@ -359,6 +363,7 @@ const int nts_score[NUM_DECS]=
     64,   164,   164,   164,   164,  164, // 10 (1607)
     64,   164,   164,   164,   164,  164, // 10 (1703)
     64,   164,   164,   164,   164,  164, // 10 (1703)
+    64,   164,   164,   164,   164,  164, // 10 (creators update)
     64,   164,   164,   164,   164,  164, // 10 (creators update)
     64,   164,   164,   164,   164,  164, // 10 (insider preview)
     64,   164,   164,   164,   164,  164, // 10 (insider preview)
@@ -963,6 +968,14 @@ Devicematch::Devicematch(Device *cur_device,const Driver *cur_driver,size_t item
 
     State *state=matcher->getState();
 
+    // see if this is in the ignore list
+    // and pretend it never happened
+    if(isIgnored(state))
+    {
+        status=STATUS_IGNORED;
+        return;
+    }
+
     if(device->getHardwareID())
     {
         // p is the PBYTE pointing to a REG_MULTI_SZ
@@ -972,6 +985,7 @@ Devicematch::Devicematch(Device *cur_device,const Driver *cur_driver,size_t item
         while(*p)
         {
             // look for this hwid string in the index
+            // add it to hwidmatch_list and inc num_matches
             matcher->findHWIDs(this,p,dev_pos,1);
             p+=wcslen(p)+1;
             dev_pos++;
@@ -1016,6 +1030,27 @@ int Devicematch::isMissing(const State *state)
         //if(memcmp(device->getGUID(),&nonPnP,sizeof(GUID)))return 1;
     }
     if(driver&&!_wcsicmp(state->textas.getw(driver->getMatchingDeviceId()),L"PCI\\CC_0300"))return 1;
+    return 0;
+}
+
+int Devicematch::isIgnored(const State *state)
+{
+    // get the device hwid
+    const wchar_t *hwid=device->getHWIDby(0,state);
+
+    // iterate the string array loaded from hwid_ignore.txt
+    if(wcslen(hwid)>0)
+    {
+        for(std::vector<std::wstring>::iterator t = Settings.ignoreList.begin(); t != Settings.ignoreList.end(); ++t)
+        {
+            if(*t==hwid)
+            {
+                // found
+                return 1;
+            }
+        }
+    }
+
     return 0;
 }
 //}
