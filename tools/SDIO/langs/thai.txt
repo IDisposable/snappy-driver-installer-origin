@@ -49,7 +49,7 @@ STR_OPTIONS_BTN_H             = "เปิดกล่องโต้ตอบ�
 STR_UPDATES_BTN               = "Updates"
 STR_UPDATES_BTN_H             = "Open updates dialog box."
 
-STR_SHOW_FOUND                = "พบใน driverpacks"
+STR_SHOW_FOUND                = "พบใน driver packs"
 STR_SHOW_FOUND_H              = "พบไดร์เวอร์ในแพ็คไดร์เวอร์ที่สามารถติดตั้งได้\n\nเราแนะนำให้คุณติดตั้งไดรเวอร์จากประเภทต่อไปนี้: ไม่ได้ติดตั้ง, รุ่นใหม่กว่า ,การเข้ากันได้ดีกว่า"
 STR_SHOW_MISSING              = "ยังไม่ได้ติดตั้ง"
 STR_SHOW_MISSING_H            = "ไดร์เวอร์การ์ดจอจากแพ็คไดร์เวอร์สำหรับอุปกรณ์ที่จำเป็นต้องใช้ไดร์เวอร์\n\nเราขอแนะนำให้คุณติดตั้งไดรเวอร์เหล่านี้"
@@ -64,7 +64,7 @@ STR_SHOW_BETTER_H             = "ไดร์เวอร์การ์ดจ�
 STR_SHOW_WORSE_RANK           = "เข้ากันไม่ได้"
 STR_SHOW_WORSE_RANK_H         = "ไดร์เวอร์การ์ดจอจากแพ็คไดร์เวอร์ไม่ตรงกับไดร์เวอร์ที่คุณติดตั้งอยู่ในปัจจุบัน\n\nเราแนะนำให้คุณไม่ต้องติดตั้งไดรเวอร์นี้ เพราะถ้าติดตั้งอาจมีปัญหา"
 
-STR_SHOW_NOTFOUND             = "ไม่มีdriverpacks"
+STR_SHOW_NOTFOUND             = "ไม่มีdriver packs"
 STR_SHOW_NOTFOUND_H           = "ไม่พบไดร์เวอร์ในแพ็คไดร์เวอร์และไม่สามารถติดตั้ง"
 STR_SHOW_NF_MISSING           = "ยังไม่ได้ติดตั้ง"
 STR_SHOW_NF_MISSING_H         = "อุปกรณ์แสดงผลจำเป็นต้องใช้ไดร์เวอร์ แต่ไม่มีไดร์เวอร์ในแพ็คไดร์เวอร์\n\nคุณสามารถค้นหาไดร์เวอร์บนอินเทอร์เน็ตหรือในแผ่นดีวีดี โดยค้นหาจาก HardwareID ของอุปกรณ์\n\nโปรดแจ้งให้เราทราบเกี่ยวกับไดร์เวอร์ที่หายไป เพื่อให้พวกเขาเพิ่มไดร์เวอร์นี้ในแพ็คไดร์เวอร์"
@@ -307,9 +307,9 @@ STR_UPD_STREAM_SESSUL         = "Session Uploads: %s (%s/s)"
 STR_UPD_STREAM_SEEDS          = "Seeds: %d (%d),  Peers: %d (%d)"
 STR_UPD_STREAM_ALERT          = "Alert: %s"
 
-STR_UPD_OPTIONS               = "Options"
-STR_UPD_ONLYUPDATES           = "Show only updates, hide missing driver packs."
-STR_UPD_KEEPSEEDING           = "Keep sharing after downloads are finished."
+STR_UPD_OPTIONS               = "Update Options"
+STR_UPD_ONLYUPDATES           = "Only show updates for driver packs you already have."
+STR_UPD_KEEPSEEDING           = "Keep sharing new driver packs after downloads are finished."
 
 STR_UPD_SPECIALMODE           = "Share Mode"
 STR_UPD_TXT_SHARE             = "You can help distribute the driver collection by sharing your downloaded driver packs."
@@ -424,7 +424,7 @@ STR_OPTION_HINT               = "คำแนะนำ"
 STR_OPTION_HINT_LABEL         = "ความล่าช้าในมิลลิวินาที"
 
 // Updates tab
-STR_OPTION_CHECKUPDATES       = "ไม่ต้องตรวจสอบอัพเดทสำหรับ app/driverpacks"
+STR_OPTION_CHECKUPDATES       = "ไม่ต้องตรวจสอบอัพเดทสำหรับ app/driver packs"
 STR_OPTION_ONLYUPDATES        = STR_UPD_ONLYUPDATES
 STR_OPTION_TORRENT            = "Torrent"
 STR_OPTION_PORT               = "พอร์ต"

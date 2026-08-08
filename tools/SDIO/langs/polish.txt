@@ -307,9 +307,9 @@ STR_UPD_STREAM_SESSUL         = "Przesłane pliki w tej sesji: %s (%s/s)"
 STR_UPD_STREAM_SEEDS          = "Seeds: %d (%d),  Peers: %d (%d)"
 STR_UPD_STREAM_ALERT          = "Powiadomienie: %s"
 
-STR_UPD_OPTIONS               = "Opcje"
-STR_UPD_ONLYUPDATES           = "Pokaż tylko aktualizacje, ukryj brakujące pakiety sterowników."
-STR_UPD_KEEPSEEDING           = "Nie przestawaj udostępniać plików po zakończeniu pobierania."
+STR_UPD_OPTIONS               = "Update Options"
+STR_UPD_ONLYUPDATES           = "Only show updates for driver packs you already have."
+STR_UPD_KEEPSEEDING           = "Keep sharing new driver packs after downloads are finished."
 
 STR_UPD_SPECIALMODE           = "Tryb udostępniania"
 STR_UPD_TXT_SHARE             = "Możesz pomóc w rozpowszechnianiu zbioru sterowników, udostępniając pobrane przez siebie pakiety sterowników."

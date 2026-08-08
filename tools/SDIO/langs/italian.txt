@@ -307,9 +307,9 @@ STR_UPD_STREAM_SESSUL         = "Caricamenti della sessione: %s (%s/s)"
 STR_UPD_STREAM_SEEDS          = "Seeds: %d (%d),  Peers: %d (%d)"
 STR_UPD_STREAM_ALERT          = "Avviso: %s"
 
-STR_UPD_OPTIONS               = "Options"
-STR_UPD_ONLYUPDATES           = "Show only updates, hide missing driver packs."
-STR_UPD_KEEPSEEDING           = "Keep sharing after downloads are finished."
+STR_UPD_OPTIONS               = "Update Options"
+STR_UPD_ONLYUPDATES           = "Only show updates for driver packs you already have."
+STR_UPD_KEEPSEEDING           = "Keep sharing new driver packs after downloads are finished."
 
 STR_UPD_SPECIALMODE           = "Share Mode"
 STR_UPD_TXT_SHARE             = "You can help distribute the driver collection by sharing your downloaded driver packs."
