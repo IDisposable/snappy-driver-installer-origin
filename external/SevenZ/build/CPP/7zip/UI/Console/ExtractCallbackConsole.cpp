@@ -220,6 +220,9 @@ static const char * const kIsNotArc = "Is not archive";
 static const char * const kHeadersError = "Headers Error";
 static const char * const kWrongPassword = "Wrong password";
 
+void _7z_total(long long  i);
+int  _7z_setcomplited(long long i);
+
 static const char * const k_ErrorFlagsMessages[] =
 {
     "Is not archive"
@@ -239,6 +242,7 @@ Z7_COM7F_IMF(CExtractCallbackConsole::SetTotal(UInt64 size))
 {
   MT_LOCK
 
+  _7z_total(size);
   if (NeedPercents())
   {
     _percent.Total = size;
@@ -257,7 +261,7 @@ Z7_COM7F_IMF(CExtractCallbackConsole::SetCompleted(const UInt64 *completeValue))
       _percent.Completed = *completeValue;
     _percent.Print();
   }
-  return CheckBreak2();
+  return _7z_setcomplited(*completeValue);
 }
 
 static const char * const kTab = "  ";
