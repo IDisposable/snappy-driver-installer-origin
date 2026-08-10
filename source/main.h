@@ -88,17 +88,9 @@ enum MessagesWND
     WM_UPDATELANG      = WM_APP+2,
     WM_UPDATETHEME     = WM_APP+3,
     WM_SEEDING         = WM_APP+4,
-    WM_TORRENT         = WM_APP+5,
+//    WM_TORRENT         = WM_APP+5,
     WM_INDEXESSAVED    = WM_APP+6,
 };
-
-// torrents
-enum TORRENT_SELECTION_MODE
-{
-    TSM_NONE           = 0,
-    TSM_AUTO           = 1
-};
-//}
 
 //{ Global variables
 
@@ -227,7 +219,7 @@ public:
     void setscrollpos(int pos);
 
     void ShowProgressInTaskbar(bool show,long long complited=0,long long total=0);
-    void DownloadedTorrent(int TorrentResults);
+    void TorrentUpdateCheckComplete();
     void ResetUpdater(int activetorrent=1);
     void UpdateTorrentItems(int activetorrent);
 
@@ -254,8 +246,6 @@ void setMirroringEdit(HWND hwnd);
 void checktimer(const wchar_t *str,long long t,int uMsg);
 
 // GUI
-BOOL CALLBACK LicenseProcedure(HWND hwnd,UINT Message,WPARAM wParam,LPARAM lParam);
-BOOL CALLBACK WelcomeProcedure(HWND hwnd,UINT Message,WPARAM wParam,LPARAM lParam);
 
 //#include "debug_new.h"
 void* operator new(size_t size, const char* file, int line);

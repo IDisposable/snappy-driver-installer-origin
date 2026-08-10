@@ -23,6 +23,8 @@ Snappy Driver Installer Origin.  If not, see <http://www.gnu.org/licenses/>.
 #include "commdlg.h"
 #include "shellapi.h"
 #include "tchar.h"
+#include <ctime>
+#include <iostream>
 
 #include <windows.h>
 #include <process.h>
@@ -212,6 +214,7 @@ bool SystemImp::FileAvailable(const wchar_t *path, int numRetries, int waitTime)
 {
     // this repeatedly tests for existence of the given file
     // for the given number of retries
+
     bool FileOk;
     int retries=0;
 
@@ -228,6 +231,10 @@ bool SystemImp::FileAvailable(const wchar_t *path, int numRetries, int waitTime)
     return(FileOk);
 }
 
+bool SystemImp::FileExists(const std::string path)
+{
+    return PathFileExistsA(path.c_str())!=0;
+}
 bool SystemImp::FileExists(const wchar_t *path)
 {
     return PathFileExists(path)!=0;
@@ -344,6 +351,84 @@ int SystemImp::DriveNumber(const wchar_t *filename)
     return PathGetDriveNumberW(filename);
 }
 
+bool SystemImp::MoveFile(std::wstring SourceFile,std::wstring DestFile)
+{
+    // attempt to do a move
+    // if can't move a file
+    // try to do a copy/delete
+
+    // get current working drive
+    wchar_t* buffer={0};
+    int cwdDrive=-1;
+    if ( (buffer = _wgetcwd(nullptr,BUFLEN) ) == nullptr)
+        Log.print_con("_wgetcwd error");
+    else
+        cwdDrive = System.DriveNumber(buffer);
+
+    // find the source  drive
+    int srcDrive = System.DriveNumber(SourceFile.c_str());
+    if (srcDrive==-1) srcDrive=cwdDrive;
+
+    // Log.print_con("Src: %d %S\n",srcDrive,filenamefull_src);
+
+    // find the destination drive
+    int destDrive = System.DriveNumber(DestFile.c_str());
+    if ( (wcscspn(DestFile.c_str(),L"\\\\")!=0) && (destDrive==-1) ) destDrive=cwdDrive;
+
+    //Log.print_con("Dst: %d %S\n",destDrive,filenamefull_dst);
+
+    // if source and destination drive are the same then perform a move
+    bool DoMove=(srcDrive==destDrive);
+
+    if(DoMove)
+    {
+        // Move file
+        if(!MoveFileExW(SourceFile.c_str(),DestFile.c_str(),MOVEFILE_REPLACE_EXISTING||
+                                                           MOVEFILE_COPY_ALLOWED||
+                                                           MOVEFILE_WRITE_THROUGH))
+        {
+            std::wstring ws1=L"MoveFileEx("+SourceFile+L")";
+            Log.print_syserr(GetLastError(),ws1.c_str());
+            DoMove=false;
+        }
+    }
+
+    // if move fails or not same drive then perform a copy / delete
+    // MOVEFILE_COPY_ALLOWED should be able to move across volumes
+    if(!DoMove)
+    {
+        if(!CopyFileExW(SourceFile.c_str(), DestFile.c_str(),nullptr,nullptr,nullptr,0))
+        {
+            Log.print_syserr(GetLastError(),L"CopyFileExW()");
+            return false;
+        }
+        else if(System.FileExists(DestFile.c_str()))
+            System.deletefile(SourceFile.c_str());
+    }
+    return true;
+}
+
+std::wstring SystemImp::GetCurrentWorkingDirectory()
+{
+    // 1. Query the required buffer size (including the null terminator)
+    DWORD bufferSize = GetCurrentDirectoryW(0, NULL);
+    if (bufferSize == 0) {
+        std::wcerr << L"Failed to get directory size. Error: " << GetLastError() << std::endl;
+        return L"";
+    }
+
+    // 2. Allocate the buffer dynamically
+    std::vector<wchar_t> buffer(bufferSize);
+
+    // 3. Populate the buffer with the actual path
+    if (GetCurrentDirectoryW(bufferSize, buffer.data()) == 0) {
+        std::wcerr << L"Failed to get current directory. Error: " << GetLastError() << std::endl;
+        return L"";
+    }
+
+    return std::wstring(buffer.data());
+}
+
 std::wstring SystemImp::StripQuotes(std::wstring source)
 {
   if (source.size() > 1) {
@@ -432,6 +517,23 @@ int SystemImp::canWriteFile(const wchar_t *path,const wchar_t *mode)
     return (flagsv&FILE_READ_ONLY_VOLUME)?0:1;
 }
 
+int SystemImp::canWriteDirectory(const std::string path)
+{
+    // 1. Get the required buffer size
+    int size_needed = MultiByteToWideChar(CP_UTF8, 0, &path[0], (int)path.size(), NULL, 0);
+
+    // 2. Allocate the wstring buffer
+    std::wstring wide_str(size_needed, 0);
+
+    // 3. Perform the actual conversion
+    MultiByteToWideChar(CP_UTF8, 0, &path[0], (int)path.size(), &wide_str[0], size_needed);
+
+    // 4. Extract the const wchar_t* pointer
+    const wchar_t* wpath = wide_str.c_str();
+
+    return canWriteDirectory(wpath);
+}
+
 int SystemImp::canWriteDirectory(const wchar_t *path)
 {
     // test if the given directory is writeable
@@ -479,6 +581,51 @@ void SystemImp::deletefile(const wchar_t *filename)
     DeleteFileW(filename);
 }
 
+void SystemImp::DeleteFilesWithWildcard(const std::wstring& directory, const std::wstring& pattern)
+{
+    // Ensure directory ends with a backslash
+    std::wstring searchPath = directory;
+    if (!searchPath.empty() && searchPath.back() != L'\\') {
+        searchPath += L'\\';
+    }
+
+    // Combine directory and wildcard pattern (e.g., "C:\\myFolder\\*.txt")
+    std::wstring fullPattern = searchPath + pattern;
+
+    WIN32_FIND_DATAW findData;
+    HANDLE hFind = FindFirstFileW(fullPattern.c_str(), &findData);
+
+    if (hFind == INVALID_HANDLE_VALUE) {
+        //std::wcout << L"No matching files found." << std::endl;
+        return;
+    }
+
+    do {
+        // Skip directory navigation entries "." and ".."
+        if (std::wstring(findData.cFileName) == L"." || std::wstring(findData.cFileName) == L"..") {
+            continue;
+        }
+
+        // Skip folders if the wildcard matches them
+        if (findData.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) {
+            continue;
+        }
+
+        // Construct the full, absolute file path
+        std::wstring fileToQuery = searchPath + findData.cFileName;
+
+        // Perform the deletion
+        if (DeleteFileW(fileToQuery.c_str())) {
+            std::wcout << L"Deleted: " << fileToQuery << std::endl;
+        } else {
+            std::wcout << L"Failed to delete (Error " << GetLastError() << L"): " << fileToQuery << std::endl;
+        }
+
+    } while (FindNextFileW(hFind, &findData));
+
+    FindClose(hFind);
+}
+
 void SystemImp::fileDelSpec(wchar_t *filename)
 {
     PathRemoveFileSpec(filename);
@@ -513,8 +660,8 @@ int SystemImp::run_command32(const wchar_t* file,const wchar_t* cmd,int show,int
 {
     // dynamic binding to kernel32 is good
     PVOID OldValue=NULL;
-    LPFN_Wow64DisableWow64FsRedirection pfnWow64DisableWowFsRedirection=(LPFN_Wow64DisableWow64FsRedirection)GetProcAddress(GetModuleHandle(_T("kernel32")),"Wow64DisableWow64FsRedirection");
-    LPFN_Wow64RevertWow64FsRedirection pfnWow64RevertWowFsRedirection=(LPFN_Wow64RevertWow64FsRedirection)GetProcAddress(GetModuleHandle(_T("kernel32")),"Wow64RevertWow64FsRedirection");
+    LPFN_Wow64DisableWow64FsRedirection pfnWow64DisableWowFsRedirection=(LPFN_Wow64DisableWow64FsRedirection)(void*)GetProcAddress(GetModuleHandle(_T("kernel32")),"Wow64DisableWow64FsRedirection");
+    LPFN_Wow64RevertWow64FsRedirection pfnWow64RevertWowFsRedirection=(LPFN_Wow64RevertWow64FsRedirection)(void*)GetProcAddress(GetModuleHandle(_T("kernel32")),"Wow64RevertWow64FsRedirection");
     bool b=false;
     if(pfnWow64DisableWowFsRedirection && pfnWow64RevertWowFsRedirection)
         b=pfnWow64DisableWowFsRedirection(&OldValue);
@@ -530,8 +677,8 @@ int SystemImp::run_command32(const wchar_t* file,const wchar_t* cmd,int show,int
 void SystemImp::run_controlpanel(const wchar_t* cmd)
 {
     PVOID OldValue=NULL;
-    LPFN_Wow64DisableWow64FsRedirection pfnWow64DisableWowFsRedirection=(LPFN_Wow64DisableWow64FsRedirection)GetProcAddress(GetModuleHandle(_T("kernel32")),"Wow64DisableWow64FsRedirection");
-    LPFN_Wow64RevertWow64FsRedirection pfnWow64RevertWowFsRedirection=(LPFN_Wow64RevertWow64FsRedirection)GetProcAddress(GetModuleHandle(_T("kernel32")),"Wow64RevertWow64FsRedirection");
+    LPFN_Wow64DisableWow64FsRedirection pfnWow64DisableWowFsRedirection=(LPFN_Wow64DisableWow64FsRedirection)(void*)GetProcAddress(GetModuleHandle(_T("kernel32")),"Wow64DisableWow64FsRedirection");
+    LPFN_Wow64RevertWow64FsRedirection pfnWow64RevertWowFsRedirection=(LPFN_Wow64RevertWow64FsRedirection)(void*)GetProcAddress(GetModuleHandle(_T("kernel32")),"Wow64RevertWow64FsRedirection");
     bool b=false;
     if(pfnWow64DisableWowFsRedirection && pfnWow64RevertWowFsRedirection)
         b=pfnWow64DisableWowFsRedirection(&OldValue);
@@ -548,7 +695,7 @@ int SystemImp::_vscwprintf_dll(const wchar_t * _Format,va_list _ArgList)
     if(hinstLib==NULL)
     {
         hinstLib=LoadLibrary(L"msvcrt.dll");
-        if(hinstLib!=NULL)_vscwprintf_func=(WINAPI5_vscwprintf)GetProcAddress(hinstLib,"_vscwprintf");
+        if(hinstLib!=NULL)_vscwprintf_func=(WINAPI5_vscwprintf)(void*)GetProcAddress(hinstLib,"_vscwprintf");
     }
     return _vscwprintf_func?_vscwprintf_func(_Format,_ArgList):1024*4;
 }
@@ -762,7 +909,7 @@ bool SystemImp::CreateRestorePoint(std::wstring desc)
         System.SetRestorePointCreationFrequency(0);
         hinstLib=LoadLibrary(L"SrClient.dll");
         if(hinstLib!=NULL)
-            WIN5f_SRSetRestorePointW=(WINAPI5t_SRSetRestorePointW)GetProcAddress(hinstLib,"SRSetRestorePointW");
+            WIN5f_SRSetRestorePointW=(WINAPI5t_SRSetRestorePointW)(void*)GetProcAddress(hinstLib,"SRSetRestorePointW");
 
         if(hinstLib&&WIN5f_SRSetRestorePointW)
         {
@@ -808,6 +955,33 @@ bool SystemImp::GetNonPresentDevices()
     ret=_wtoi(buf);
     return (ret);
 }
+
+void SystemImp::ProcessMessages()
+{
+    MSG msg;
+    // PeekMessage checks the queue without blocking
+    while (PeekMessage(&msg, nullptr, 0, 0, PM_REMOVE)) {
+        TranslateMessage(&msg);
+        DispatchMessage(&msg);
+    }
+}
+
+
+// used to ensure web download doesn't use the cache
+std::string SystemImp::getDateTimeStr()
+{
+    std::time_t time_now = std::time(nullptr);
+    std::tm tm_now = *std::localtime(&time_now);
+
+    char buffer[32];
+    // Formats directly into the character buffer
+    std::strftime(buffer, sizeof(buffer), "%Y-%m-%d %H:%M:%S", &tm_now);
+
+    std::string dt_str(buffer);
+    std::cout << dt_str << std::endl;
+    return dt_str;
+}
+
 
 //{ FileMonitor
 FilemonImp::FilemonImp(const wchar_t *szDirectory, int subdirs_, FileChangeCallback callback_)
@@ -859,7 +1033,8 @@ void CALLBACK FilemonImp::monitor_callback(DWORD dwErrorCode,DWORD dwNumberOfByt
 			pNotify=(PFILE_NOTIFY_INFORMATION)&pMonitor->buffer[offset];
 			offset+=pNotify->NextEntryOffset;
 
-            wcsncpy(szFile,pNotify->FileName,pNotify->FileNameLength/sizeof(wchar_t)+1);
+			ZeroMemory(szFile, sizeof(szFile)); // Clears the entire buffer
+            wcsncpy(szFile,pNotify->FileName,pNotify->FileNameLength/sizeof(wchar_t));
 
 			if(!monitor_pause)
 			{
@@ -869,8 +1044,9 @@ void CALLBACK FilemonImp::monitor_callback(DWORD dwErrorCode,DWORD dwNumberOfByt
                 size_t sz=0;
 
                 errno=0;
+                ZeroMemory(buf, sizeof(buf)); // Clears the entire buffer
                 wsprintf(buf,L"%ws\\%ws",pMonitor->dir,szFile);
-                Log.print_con("{\n  changed'%S'\n",buf);
+                Log.print_con("{\n  changed '%S'\n",buf);
                 f=_wfsopen(buf,L"rb",0x10); //deny read/write mode
                 if(f)m=2;
                 if(!f)
@@ -1136,7 +1312,7 @@ void viruscheck(const wchar_t *szFile,int action,int lParam)
 }
 //}
 
-static BOOL CALLBACK ShowHelpProcedure(HWND hwnd,UINT Message,WPARAM wParam,LPARAM lParam)
+static INT_PTR CALLBACK ShowHelpProcedure(HWND hwnd,UINT Message,WPARAM wParam,LPARAM lParam)
 {
     UNREFERENCED_PARAMETER(lParam);
 
@@ -1204,6 +1380,7 @@ void ShowHelp()
     CLIHelp_Font=CreateFont(-12,0,0,0,FW_DONTCARE,FALSE,FALSE,FALSE,DEFAULT_CHARSET,OUT_DEFAULT_PRECIS,
                             CLIP_DEFAULT_PRECIS,DEFAULT_QUALITY,VARIABLE_PITCH,L"Consolas");
 
-    DialogBox(ghInst,MAKEINTRESOURCE(IDD_DIALOG1),nullptr,(DLGPROC)ShowHelpProcedure);
+    DialogBox(ghInst,MAKEINTRESOURCE(IDD_DIALOG1),MainWindow.hMain,(DLGPROC)ShowHelpProcedure);
     DeleteObject(CLIHelp_Font);
 }
+

@@ -19,13 +19,18 @@ Snappy Driver Installer Origin.  If not, see <http://www.gnu.org/licenses/>.
 #include "system.h"
 #include "settings.h"
 #include "cli.h"
+
+#ifdef USE_TORRENT
 #include "update.h"
+#endif
+
 #include "install.h"
 #include "theme.h"
 #include "shellapi.h"
 
 #include <windows.h>
 #include <setupapi.h>       // for CommandLineToArgvW
+#include <fstream>
 #ifdef _MSC_VER
 #include <shellapi.h>
 #endif
@@ -38,6 +43,8 @@ int invaidate_set;
 int num_cores;
 int ret_global=0;
 
+extern int activetorrent;
+
 Settings_t::Settings_t()
 {
     *curlang=0;
@@ -45,9 +52,9 @@ Settings_t::Settings_t()
     wcscpy(logO_dir,  L"logs");
 
     wcscpy(drp_dir,   L"drivers");
-    wcscpy(output_dir,L"indexes\\SDIO\\txt");
+    wcscpy(output_dir,L"indexes\\txt");
     *drpext_dir=0;
-    wcscpy(index_dir, L"indexes\\SDIO");
+    wcscpy(index_dir, L"indexes");
     wcscpy(data_dir,  L"tools\\SDIO");
     *log_dir=0;
 
@@ -59,7 +66,7 @@ Settings_t::Settings_t()
     flags=COLLECTION_USE_LZMA;
     statemode=STATEMODE_REAL;
     expertmode=0;
-    hintdelay=500;
+    hintdelay=1000;
     license=0;
     scale=256;
     savedscale=scale;
@@ -130,13 +137,16 @@ void Settings_t::parse(const wchar_t *str,size_t ind)
         if(argint(pr,L"-wndsc:",         &wndsc))continue;
         if(argint(pr,L"-filters:",       &filters))continue;
 
+        #ifdef USE_TORRENT
         if(argint(pr,L"-port:",          &Updater->torrentport))continue;
         if(argint(pr,L"-minport:",       &Updater->outgoingport_min))continue;
         if(argint(pr,L"-maxport:",       &Updater->outgoingport_max))continue;
         if(argint(pr,L"-downlimit:",     &Updater->downlimit))continue;
         if(argint(pr,L"-uplimit:",       &Updater->uplimit))continue;
         if(argint(pr,L"-connections:",   &Updater->connections))continue;
-        if(argint(pr,L"-activetorrent:", &Updater->activetorrent))continue;
+//        if(argint(pr,L"-activetorrent:", &activetorrent))continue;
+        if(argint(pr,L"-torrentalerts:", &Updater->torrentalerts))continue;
+        #endif
 
         if(argopt(pr,L"-expertmode",     &expertmode))continue;
         if(argflg(pr,L"-showconsole",    FLAG_SHOWCONSOLE))continue;
@@ -161,6 +171,7 @@ void Settings_t::parse(const wchar_t *str,size_t ind)
             Log.print_con("Ret: %d\n",ret_global);
             statemode=STATEMODE_EXIT;
             break;
+
         }
 
         if(!_wcsicmp(pr,L"-PATH"))
@@ -235,6 +246,11 @@ void Settings_t::parse(const wchar_t *str,size_t ind)
         if(statemode==STATEMODE_EXIT)break;
     }
 
+    // sanity check
+    // the cfg goes from 150 to 350 with default 256
+    if(Settings.scale < 150 || Settings.scale > 350)
+        Settings.scale=256;
+
     Settings.savedscale=Settings.scale;
     ExpandEnvironmentStrings(logO_dir,log_dir,BUFLEN);
     LocalFree(argv);
@@ -251,19 +267,30 @@ void Settings_t::save()
     }
     FILE *f=_wfopen(L"sdio.cfg",L"wt");
     if(!f)return;
+
     fwprintf(f,L"\"-drp_dir:%ws\"\n\"-index_dir:%ws\"\n\"-output_dir:%ws\"\n"
               L"\"-data_dir:%ws\"\n\"-log_dir:%ws\"\n\n"
               L"\"-finish_cmd:%ws\"\n\"-finishrb_cmd:%ws\"\n\"-finish_upd_cmd:%ws\"\n\n"
               L"\"-lang:%ws\"\n\"-theme:%ws\"\n-hintdelay:%d\n-license:%d\n"
-              L"-wndwx:%d\n-wndwy:%d\n-wndsc:%d\n-scale:%d\n-filters:%d\n\n"
+              L"-wndwx:%d\n-wndwy:%d\n-wndsc:%d\n-scale:%d\n-filters:%d\n-verbose:%d\n\n"
+              #ifdef USE_TORRENT
               L"-port:%d\n-minport:%d\n-maxport:%d\n\n"
-              L"-downlimit:%d\n-uplimit:%d\n-connections:%d\n\n",
+              L"-downlimit:%d\n-uplimit:%d\n-connections:%d\n"
+              L"-torrentalerts:%d\n\n"
+              #endif
+              ,
             drp_dir,index_dir,output_dir,
             data_dir,logO_dir,
             finish,finish_rb,finish_upd,
-            STR(STR_LANG_ID),curtheme,hintdelay,license?1:0,wndwx,wndwy,wndsc,autosized?savedscale:scale,filters,
+            STR(STR_LANG_ID),curtheme,hintdelay,license?1:0,wndwx,wndwy,wndsc,autosized?savedscale:scale,filters,Log.log_verbose
+            #ifdef USE_TORRENT
+             ,
             Updater->torrentport,Updater->outgoingport_min,Updater->outgoingport_max,
-            Updater->downlimit,Updater->uplimit,Updater->connections);
+            Updater->downlimit,Updater->uplimit,Updater->connections,
+            Updater->torrentalerts
+            #endif
+            );
+
 
     if(expertmode)fwprintf(f,L"-expertmode ");
     if(flags&FLAG_SHOWCONSOLE)fwprintf(f,L"-showconsole ");
@@ -350,6 +377,7 @@ bool Settings_t::load(const wchar_t *filename)
 
     if(!loadCFGFile(filename,buf))return false;
     parse(buf,0);
+    loadIgnoreList();
     return true;
 }
 
@@ -412,4 +440,50 @@ bool Settings_t::load_cfg_switch(const wchar_t *cmdParams)
         }
     }
     return false;
+}
+
+void Settings_t::loadIgnoreList()
+{
+    FILE *f;
+    wchar_t Buff[BUFLEN];
+
+    ignoreList.clear();
+    Log.print_con("Opening '%S'\n",L"hwid-ignore.txt");
+    f=_wfopen(L"hwid-ignore.txt",L"rt");
+    if(!f)
+    {
+        Log.print_err("Failed to open '%S'\n",Buff);
+        return;
+    }
+
+    while(fgetws(Buff,sizeof(Buff)/2,f))
+    {
+        wcscpy(Buff,ltrim(Buff));       // trim spaces
+        if(*Buff=='#')continue;         // comments
+        if(*Buff==';')continue;         // comments
+        if(Buff[wcslen(Buff)-1]=='\n')Buff[wcslen(Buff)-1]='\0';
+        if(!*Buff)continue;
+
+        ignoreList.push_back(Buff);
+    }
+    fclose(f);
+}
+
+void Settings_t::addIgnoreList(const wchar_t *hwid)
+{
+    // called from driver list context menu
+    ignoreList.push_back(hwid);
+
+    Log.print_con("Writing '%S'\n",L"hwid-ignore.txt");
+
+    std::wofstream f("hwid-ignore.txt");
+
+    if (f.is_open())
+    {
+        // 4. Iterate through the vector and write to the file
+        for (const auto& str : ignoreList) {
+            f << str << std::endl;
+        }
+    }
+    f.close();
 }

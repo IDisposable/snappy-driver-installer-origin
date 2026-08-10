@@ -223,7 +223,6 @@ unsigned int __stdcall Manager::thread_install(void *arg)
     WINAPI5t_SRSetRestorePointW WIN5f_SRSetRestorePointW;
     int failed=0,installed=0;
 
-    // TODO:  getting 'lock'ed up here after an install
     if(CRITICAL_SECTION_ACTIVE)
         if(!TryEnterCriticalSection(&sync))
             return 0;
@@ -421,7 +420,10 @@ unsigned int __stdcall Manager::thread_install(void *arg)
                 // verify the file is available
                 wchar_t spec1[BUFLEN];
                 wsprintf(spec1,L"%s\\%s",hwidmatch->getdrp_packpath(),hwidmatch->getdrp_packname());
-                bool FileOk=System.FileAvailable(spec1,20,5);
+                bool FileOk=System.FileExists(spec1);
+                #ifdef USE_TORRENT
+                FileOk=System.FileAvailable(spec1,20,5);
+                #endif // USE_TORRENT
                 if(!FileOk)
                 {
                     Log.print_con("Error: %S not found. Download failed or network or storage not available.\n", spec1);
@@ -595,9 +597,9 @@ unsigned int __stdcall Manager::thread_install(void *arg)
     MainWindow.redrawmainwnd();
 
     installupdate_exitflag=1;
-    installupdate_event->raise();
 
     #ifdef USE_TORRENT
+    installupdate_event->raise();
     Updater->EndInstallDownload();
     #endif // USE_TORRENT
 

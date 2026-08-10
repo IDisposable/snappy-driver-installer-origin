@@ -110,6 +110,7 @@ enum GUI_ID
 
     ID_HWID_CLIP      =100,
     ID_HWID_WEB       =200,
+    ID_HWID_IGNORE    =300,
     ID_OS_ITEMS      =1000,
 };
 
@@ -162,6 +163,7 @@ enum FLAG
     FLAG_AUTOUPDATE             = 0x02000000,
     FLAG_FILTERSP               = 0x04000000,
     FLAG_OLDSTYLE               = 0x08000000,
+    FLAG_KEEPSEEDING            = 0x40000000,
 
     FLAG_NOSTOP                 = 0x20000000,
 
@@ -203,6 +205,8 @@ public:
     bool autosized=false;
     int  savedscale;
 
+    std::vector<std::wstring> ignoreList;
+
 public:
     Settings_t();
     void parse(const wchar_t *str,size_t ind);
@@ -210,6 +214,7 @@ public:
     bool load_cfg_switch(const wchar_t *cmdParams);
     void save();
     void loginfo();
+    void addIgnoreList(const wchar_t *hwid);
 
 private:
     bool argstr(const wchar_t *s,const wchar_t *cmp,wchar_t *d);
@@ -218,6 +223,7 @@ private:
     bool argflg(const wchar_t *s,const wchar_t *cmp,int f);
 
     bool loadCFGFile(const wchar_t *FileName,wchar_t *DestStr);
+    void loadIgnoreList();
     wchar_t *ltrim(wchar_t *s);
 };
 extern Settings_t Settings;

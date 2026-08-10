@@ -16,6 +16,13 @@ Snappy Driver Installer Origin.  If not, see <http://www.gnu.org/licenses/>.
 #ifndef UPDATE_H
 #define UPDATE_H
 
+#include <string>
+
+#ifdef USE_TORRENT
+#include <libtorrent/torrent_handle.hpp>
+#include <libtorrent/torrent_status.hpp>
+#endif // USE_TORRENT
+
 // Declarations
 class Updater_t;
 class Canvas;
@@ -37,9 +44,8 @@ struct type_item {
 class Updater_t
 {
 public:
-    int numfiles=0;
-    static bool SeedMode;
-    static int torrentport,outgoingport_min,outgoingport_max,downlimit,uplimit,connections,activetorrent;
+    static int torrentport,outgoingport_min,outgoingport_max,downlimit,uplimit,connections;
+    static int torrentalerts;
     static const std::wstring torrent_url;
     static const std::wstring torrent2_url;
     static const std::wstring torrent_save_path;
@@ -51,23 +57,31 @@ public:
     virtual void ShowPopup(Canvas &canvas)=0;
 
     virtual void checkUpdates()=0;
-    virtual void resumeDownloading()=0;
     virtual void pause()=0;
 
-    virtual bool isTorrentReady()=0;
-    virtual bool isPaused()=0;
-    virtual bool isUpdateCompleted()=0;
-    virtual bool isSeedingDrivers()=0;
+//    virtual bool isTorrentReady()=0;
+    virtual bool IsPaused()=0;
+    virtual bool IsUpdateCompleted()=0;
+    virtual bool IsSeedingDrivers()=0;
 
-    virtual int  Populate(int flags)=0;
-    virtual void SetFilePriority(const wchar_t *name,int pri)=0;
+    virtual int  Populate(bool reload)=0;
+//    virtual void SetFilePriority(const wchar_t *name,int pri)=0;
     virtual void SetLimits()=0;
-    virtual void OpenDialog()=0;
-    virtual void DownloadAll()=0;
-    virtual void DownloadNetwork()=0;
-    virtual void DownloadIndexes()=0;
-    virtual void StartSeedingDrivers()=0;
-    virtual void StopSeedingDrivers()=0;
+    virtual void OpenDialog(int automode=0)=0;
+    virtual void StartSpecialShare()=0;
+    virtual void StopSpecialShare()=0;
+    virtual void StopTorrent()=0;
+    virtual void SetActiveTorrent(const int torrent)=0;
+//    virtual bool NextTorrent()=0;
+    virtual void StartTorrent()=0;
+    virtual void StartInstallDownload(std::vector<std::wstring> filenames)=0;
+    virtual void EndInstallDownload()=0;
+
+    #ifdef USE_TORRENT
+    virtual std::wstring TorrentStateStr(libtorrent::torrent_status::state_t state)=0;
+    virtual void WelcomeDownloadAll()=0;
+    virtual void WelcomeDownloadNetwork()=0;
+    virtual void WelcomeDownloadIndexes()=0;
 
     virtual int scriptInitUpdates(int torrentport)=0;
     virtual int scriptDownloadApp()=0;
@@ -76,7 +90,17 @@ public:
     virtual int scriptDownloadEverything()=0;
     virtual int scriptDoDownload()=0;
     virtual int scriptInstall()=0;
+    #endif // USE_TORRENT
 };
 Updater_t *CreateUpdater();
 
 #endif
+
+#ifdef USE_TORRENT
+struct torrent_item {
+    std::string FileName;
+    std::string URL;
+    std::string SavePath;
+    libtorrent::torrent_handle handle;
+    };
+#endif // USE_TORRENT

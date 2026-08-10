@@ -49,7 +49,7 @@ int WINAPI WinMain(HINSTANCE hThisInstance,HINSTANCE hPrevInstance,LPSTR lpszArg
 	if(argc==3)
 	{
 		wprintf(L"Install64.exe '%s' '%s'\n",argv[1],argv[2]);
-		ret=UpdateDriverForPlugAndPlayDevices(FindWindow(L"classSDIMain",0),argv[1],argv[2],INSTALLFLAG_FORCE,&needreboot);
+		ret=UpdateDriverForPlugAndPlayDevices(FindWindow(L"classSDIOMain",0),argv[1],argv[2],INSTALLFLAG_FORCE,&needreboot);
 	}
 	else
 		printf("argc=%d\n",argc);

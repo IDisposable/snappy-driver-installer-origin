@@ -181,6 +181,12 @@ void Log_t::print_con(char const *format,...)
         fputs(buffer,logfile);
     fputs(buffer,stdout);
     va_end(args);
+    /*
+    When text is highlighted in a terminal or console window, it
+    triggers the operating system's selection/copy mode. This pauses
+    the program's output to stdout (which fputs uses), causing fputs
+    to block until you click away or press Enter to clear the highlight.
+    */
 }
 
 void Log_t::print_nul(char const *format,...)

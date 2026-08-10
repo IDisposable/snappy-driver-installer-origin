@@ -30,9 +30,9 @@ public:
     {
         CloseHandle(h);
     }
-    void wait()
+    void wait(DWORD dwMilliseconds)
     {
-        WaitForSingleObject(h,INFINITE);
+        WaitForSingleObject(h,dwMilliseconds);
     }
     bool isRaised()
     {

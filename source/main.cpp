@@ -21,7 +21,13 @@ Snappy Driver Installer Origin.  If not, see <http://www.gnu.org/licenses/>.
 #include "cli.h"
 #include "indexing.h"
 #include "manager.h"
+#include "license.h"
+#include "welcome.h"
+
+#ifdef USE_TORRENT
 #include "update.h"
+#endif
+
 #include "install.h"    // non-portable
 #include "gui.h"
 #include "draw.h"   // non-portable
@@ -68,9 +74,8 @@ int bundle_display=1;
 int bundle_shadow=0;
 bool emptydrp;
 WinVersions winVersions;
-HMENU pSysMenu,ToolsMenu,UpdatesMenu;
+HMENU pSysMenu,ToolsMenu;
 int pSysMenuCount=0;
-TORRENT_SELECTION_MODE TorrentSelectionMode=TSM_NONE;
 
 // http://www.winprog.org/tutorial/dlgfaq.html
 HBRUSH g_hbrDlgBackground = CreateSolidBrush(GetSysColor(COLOR_BTNFACE));
@@ -79,7 +84,7 @@ HBRUSH g_hbrDlgBackground = CreateSolidBrush(GetSysColor(COLOR_BTNFACE));
 // https://helgeklein.com/blog/2010/03/how-to-enable-drag-and-drop-for-an-elevated-mfc-application-on-vistawindows-7/
 typedef BOOL (WINAPI *PFN_CHANGEWINDOWMESSAGEFILTER)(UINT,DWORD);
 HMODULE hModuleUser32=GetModuleHandle(TEXT("user32.dll"));
-PFN_CHANGEWINDOWMESSAGEFILTER pfnChangeWindowMessageFilter=(PFN_CHANGEWINDOWMESSAGEFILTER)GetProcAddress(hModuleUser32,"ChangeWindowMessageFilter");
+PFN_CHANGEWINDOWMESSAGEFILTER pfnChangeWindowMessageFilter=(PFN_CHANGEWINDOWMESSAGEFILTER)(void*)GetProcAddress(hModuleUser32,"ChangeWindowMessageFilter");
 
 //}
 
@@ -139,9 +144,9 @@ public:
 };
 
 //{  Main
-int WINAPI WinMain(HINSTANCE hInst,HINSTANCE hinst,LPSTR pStr,int nCmd)
+int WINAPI WinMain(HINSTANCE hInst,HINSTANCE hPrevInst,LPSTR pStr,int nCmd)
 {
-    UNREFERENCED_PARAMETER(hinst);
+    UNREFERENCED_PARAMETER(hPrevInst);
     UNREFERENCED_PARAMETER(pStr);
     ghInst=hInst;
 
@@ -169,6 +174,7 @@ int WINAPI WinMain(HINSTANCE hInst,HINSTANCE hinst,LPSTR pStr,int nCmd)
         Script script;
         if(script.loadscript())
         {
+            vLang=CreateVaultLang(language,STR_NM,IDR_LANG);
             deviceupdate_event=CreateEventWr();
             script.runscript();
             delete deviceupdate_event;
@@ -187,9 +193,27 @@ int WINAPI WinMain(HINSTANCE hInst,HINSTANCE hinst,LPSTR pStr,int nCmd)
     if(!GetSystemMetrics(SM_MOUSEPRESENT))MainWindow.kbpanel=KB_FIELD;
 
     // Runtime error handlers
-    start_exception_hadnlers();
+    start_exception_handlers();
     HMODULE backtrace=LoadLibraryA("backtrace.dll");
     if(!backtrace)signal(SIGSEGV,SignalHandler);
+
+
+
+    // init common controls early
+
+    // Declare and clear the structure
+    INITCOMMONCONTROLSEX icex;
+    icex.dwSize = sizeof(INITCOMMONCONTROLSEX);
+
+    // Specify which control classes to load (use bitwise OR to combine)
+    icex.dwICC = ICC_BAR_CLASSES | ICC_PROGRESS_CLASS | ICC_LISTVIEW_CLASSES;
+
+    // Register the control classes
+    InitCommonControlsEx(&icex);
+
+
+
+
 
     // Load settings
     init_CLIParam();
@@ -241,17 +265,16 @@ int WINAPI WinMain(HINSTANCE hInst,HINSTANCE hinst,LPSTR pStr,int nCmd)
     manager_v[1].init(bundle[bundle_display].getMatcher());
     deviceupdate_event=CreateEventWr();
 
+    // Check updates
+    #ifdef USE_TORRENT
+    Updater=CreateUpdater();
+    #endif
+
     // Start device/driver scan
     bundle[bundle_display].bundle_prep();
     invalidate(INVALIDATE_DEVICES|INVALIDATE_SYSINFO|INVALIDATE_INDEXES|INVALIDATE_MANAGER);
     ThreadAbs *thr=CreateThread();
     thr->start(&Bundle::thread_loadall,&bundle[0]);
-
-    // Check updates
-    #ifdef USE_TORRENT
-    Updater=CreateUpdater();
-    TorrentSelectionMode=TSM_AUTO;
-    #endif
 
     // Start folder monitors
     Filemon *mon_drp=CreateFilemon(Settings.drp_dir,1,drp_callback);
@@ -294,8 +317,6 @@ int WINAPI WinMain(HINSTANCE hInst,HINSTANCE hinst,LPSTR pStr,int nCmd)
         signal(SIGSEGV,SIG_DFL);*/
 
     // Stop logging
-    //time_total=System.GetTickCountWr()-time_total;
-    Timers.print();
     Log.stop();
     delete Console;
 
@@ -364,13 +385,6 @@ void MainWindow_t::LoadMenuItems()
     AddMenuItem(ToolsMenu,MIIM_STRING|MIIM_ID,ID_DEVICEMNG,0,0,nullptr,const_cast<wchar_t *>STR(STR_SYS_DEVICEMNG));
     AddMenuItem(ToolsMenu,MIIM_STRING|MIIM_ID,ID_COMPMNG,0,0,nullptr,const_cast<wchar_t *>STR(STR_SYST_COMPMNG));
 
-    // the updates sub-menu - reverse order
-    UpdatesMenu=CreatePopupMenu();
-    AddMenuItem(UpdatesMenu,MIIM_STRING|MIIM_ID,IDM_UPDATES_DRIVERS,0,0,nullptr,const_cast<wchar_t *>STR(STR_UPDATES_DRIVERS));
-    AddMenuItem(UpdatesMenu,MIIM_STRING|MIIM_ID,IDM_UPDATES_SDIO,0,0,nullptr,const_cast<wchar_t *>STR(STR_UPDATES_SDIO));
-    AddMenuItem(UpdatesMenu,MIIM_FTYPE,0,MFT_SEPARATOR,0,nullptr,const_cast<wchar_t *>(L""));
-    AddMenuItem(UpdatesMenu,MIIM_STRING|MIIM_ID|MIIM_STATE,IDM_SEED,0,MFS_DISABLED,nullptr,const_cast<wchar_t *>STR(STR_SYST_START_SEED));
-
     // add options to the system menu - reverse order
     AddMenuItem(pSysMenu,MIIM_FTYPE,0,MFT_SEPARATOR,0,nullptr,const_cast<wchar_t *>(L""));
     AddMenuItem(pSysMenu,MIIM_STRING|MIIM_ID,IDM_LICENSE,0,0,nullptr,const_cast<wchar_t *>STR(STR_SYST_LICENSE));
@@ -380,8 +394,9 @@ void MainWindow_t::LoadMenuItems()
     AddMenuItem(pSysMenu,MIIM_STRING|MIIM_ID,IDM_DRVDIR,0,0,nullptr,const_cast<wchar_t *>STR(STR_DRVDIR));
     AddMenuItem(pSysMenu,MIIM_STRING|MIIM_ID,IDM_OPENLOGS,0,0,nullptr,const_cast<wchar_t *>STR(STR_OPENLOGS));
     AddMenuItem(pSysMenu,MIIM_STRING|MIIM_ID|MIIM_SUBMENU,IDM_TOOLS,0,0,ToolsMenu,const_cast<wchar_t *>STR(STR_TOOLS));
-    AddMenuItem(pSysMenu,MIIM_STRING|MIIM_ID|MIIM_SUBMENU,IDM_UPDATES,0,0,UpdatesMenu,const_cast<wchar_t *>STR(STR_UPDATES));
+    #ifdef USE_TORRENT
     AddMenuItem(pSysMenu,MIIM_STRING|MIIM_ID,IDM_WELCOME,0,0,nullptr,const_cast<wchar_t *>(L"Welcome"));
+    #endif // USE_TORRENT
 }
 
 void MainWindow_t::OpenTranslationTool()
@@ -397,6 +412,9 @@ void MainWindow_t::MainLoop(int nCmd)
 {
     if((Settings.flags&FLAG_NOGUI)&&(Settings.flags&FLAG_AUTOINSTALL)==0)return;
 
+    // in Win10 when the console window is visible, the icon on the taskbar button
+    // for the gui window goes away
+
     // Register classMain
     WNDCLASSEX wcx;
     memset(&wcx,0,sizeof(WNDCLASSEX));
@@ -404,6 +422,7 @@ void MainWindow_t::MainLoop(int nCmd)
     wcx.lpfnWndProc=    WndProcMainCallback;
     wcx.hInstance=      ghInst;
     wcx.hIcon=          LoadIcon(ghInst,MAKEINTRESOURCE(IDI_ICON1));
+    wcx.hIconSm=        LoadIcon(ghInst,MAKEINTRESOURCE(IDI_ICON1));
     wcx.hCursor=        LoadCursor(nullptr,IDC_ARROW);
     wcx.lpszClassName=  classMain;
     wcx.hbrBackground=  (HBRUSH)(COLOR_WINDOW+1);
@@ -436,7 +455,7 @@ void MainWindow_t::MainLoop(int nCmd)
     }
 
     // Main windows
-    hMain=CreateWindowEx(WS_EX_LAYERED,
+    hMain=CreateWindowEx(WS_EX_LAYERED|WS_EX_APPWINDOW,
                         classMain,
                         APPTITLE,
                         WS_OVERLAPPEDWINDOW|WS_CLIPCHILDREN,
@@ -448,31 +467,25 @@ void MainWindow_t::MainLoop(int nCmd)
         return;
     }
 
-    // license dialog
+
+    // first time license dialog
     if(!Settings.license)
-        DialogBox(ghInst,MAKEINTRESOURCE(IDD_DIALOG1),nullptr,(DLGPROC)LicenseProcedure);
+    {
+        DialogBox(ghInst,MAKEINTRESOURCE(IDD_DIALOG1),MainWindow.hMain,(DLGPROC)LicenseProcedure);
+        #ifdef USE_TORRENT
+        DialogBox(ghInst,MAKEINTRESOURCE(IDD_WELCOME),MainWindow.hMain,(DLGPROC)WelcomeProcedure);
+        #endif // USE_TORRENT
+    }
 
     // Enable updates notifications
     if(Settings.license==2)
     {
-        /*int f;
-        f=lang_enum(hLang,L"langs",manager_g->matcher->state->locale);
-        Log.print_con("lang %d\n",f);
-        lang_set(f);*/
-
-        //if(MessageBox(0,STR(STR_UPD_DIALOG_MSG),STR(STR_UPD_DIALOG_TITLE),MB_YESNO|MB_ICONQUESTION)==IDYES)
-        {
-            Settings.flags|=FLAG_CHECKUPDATES;
-            #ifdef USE_TORRENT
-            Updater->checkUpdates();
-            #endif
-            invalidate(INVALIDATE_MANAGER);
-        }
+        Settings.flags|=FLAG_CHECKUPDATES;
+        invalidate(INVALIDATE_MANAGER);
     }
 
     if(Settings.license)
     {
-        //time_test=System.GetTickCountWr()-time_total;log_times();
         ShowWindow(hMain,(Settings.flags&FLAG_NOGUI)?SW_HIDE:nCmd);
         int done=0;
         while(!done)
@@ -582,12 +595,16 @@ void drp_callback(const wchar_t *szFile,int action,int lParam)
     UNREFERENCED_PARAMETER(action);
     UNREFERENCED_PARAMETER(lParam);
 
-    if(StrStrIW(szFile,L".7z")&&Updater->isPaused())invalidate(INVALIDATE_INDEXES);
+    #ifdef USE_TORRENT
+    if(StrStrIW(szFile,L".7z")&&Updater->IsPaused())invalidate(INVALIDATE_INDEXES);
+    #else
+    UNREFERENCED_PARAMETER(szFile);
+    #endif
 }
 
-const wchar_t MainWindow_t::classMain[]= L"classSDIMain";
-const wchar_t MainWindow_t::classField[]=L"classSDIField";
-const wchar_t MainWindow_t::classPopup[]=L"classSDIPopup";
+const wchar_t MainWindow_t::classMain[]= L"classSDIOMain";
+const wchar_t MainWindow_t::classField[]=L"classSDIOField";
+const wchar_t MainWindow_t::classPopup[]=L"classSDIOPopup";
 MainWindow_t::MainWindow_t()
 {
     hFont=wFont::Create();
@@ -664,6 +681,8 @@ void MainWindow_t::theme_refresh()
     GetWindowRect(hMain,&rect);
     MoveWindow(hMain,rect.left,rect.top,D(MAINWND_WX),D(MAINWND_WY)+1,1);
     MoveWindow(hMain,rect.left,rect.top,D(MAINWND_WX),D(MAINWND_WY),1);
+    InvalidateRect(hMain,NULL,true);
+    UpdateWindow(hMain);
 }
 
 struct TData
@@ -672,7 +691,7 @@ struct TData
     HWND tab;
 } data;
 
-static BOOL CALLBACK DialogPage(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp)
+static INT_PTR CALLBACK DialogPage(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp)
 {
     UNREFERENCED_PARAMETER(hwnd);
     UNREFERENCED_PARAMETER(wp);
@@ -681,24 +700,29 @@ static BOOL CALLBACK DialogPage(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp)
     switch(msg)
     {
         case WM_COMMAND:
-            switch(wp)
-            {
-                case IDD_P1_ZOOMR:
-                    SendMessage(GetDlgItem(data.pages[0],IDD_P1_ZOOMI),TBM_SETPOS,1,-256);
-                    break;
-                case IDD_P1_DRV1:
-                case IDD_P1_DRV2:
-                case IDD_P1_DRV3:
-                    {
-                        Settings.flags&=~(FLAG_SHOWDRPNAMES1|FLAG_SHOWDRPNAMES2);
-                        if(SendMessage(GetDlgItem(data.pages[0],IDD_P1_DRV2),BM_GETCHECK,BST_CHECKED,0))Settings.flags|=FLAG_SHOWDRPNAMES1;
-                        if(SendMessage(GetDlgItem(data.pages[0],IDD_P1_DRV3),BM_GETCHECK,BST_CHECKED,0))Settings.flags|=FLAG_SHOWDRPNAMES2;
-                        manager_g->filter(Settings.filters);
+                switch(wp)
+                {
+                    case IDD_P1_ZOOMR:
+                        SendMessage(GetDlgItem(data.pages[0],IDD_P1_ZOOMI),TBM_SETPOS,1,-256);
+                        Settings.savedscale=Settings.scale=256;
                         PostMessage(MainWindow.hMain,WM_UPDATETHEME,0,0);
-                    }
-                default:
-                    break;
-            }
+                        break;
+                    case IDD_P1_DRV1:
+                    case IDD_P1_DRV2:
+                    case IDD_P1_DRV3:
+                        {
+                            // switch off both flags
+                            Settings.flags&=~(FLAG_SHOWDRPNAMES1|FLAG_SHOWDRPNAMES2);
+                            // set new flag
+                            if(SendMessage(GetDlgItem(data.pages[0],IDD_P1_DRV2),BM_GETCHECK,BST_CHECKED,0))Settings.flags|=FLAG_SHOWDRPNAMES1;
+                            if(SendMessage(GetDlgItem(data.pages[0],IDD_P1_DRV3),BM_GETCHECK,BST_CHECKED,0))Settings.flags|=FLAG_SHOWDRPNAMES2;
+                            manager_g->filter(Settings.filters);
+                            PostMessage(MainWindow.hMain,WM_UPDATETHEME,0,0);
+                        }
+                    default:
+                        break;
+                }
+                break;
 
         case WM_HSCROLL:
             {
@@ -750,7 +774,7 @@ static BOOL CALLBACK EnumChildProcMirror(HWND hWnd, LPARAM lParam)
     return TRUE;
 }
 
-static BOOL CALLBACK DialogProc1(HWND hwnd,UINT msg,WPARAM wp,LPARAM lp)
+static INT_PTR CALLBACK DialogProc1(HWND hwnd,UINT msg,WPARAM wp,LPARAM lp)
 {
     wchar_t num[32];
 
@@ -822,7 +846,7 @@ static BOOL CALLBACK DialogProc1(HWND hwnd,UINT msg,WPARAM wp,LPARAM lp)
                 SetWindowText(GetDlgItem(data.pages[1],IDD_P2_DOWN),STR(STR_OPTION_MAX_DOWNLOAD));
                 SetWindowText(GetDlgItem(data.pages[1],IDD_P2_UP),STR(STR_OPTION_MAX_UPLOAD));
                 SetWindowText(GetDlgItem(data.pages[1],IDD_P2_UPD),STR(STR_OPTION_CHECKUPDATES));
-                SetWindowText(GetDlgItem(data.pages[1],IDONLYUPDATE),STR(STR_UPD_ONLYUPDATES));
+                SetWindowText(GetDlgItem(data.pages[1],ID_UPD_ONLYUPDATES),STR(STR_UPD_ONLYUPDATES));
 
                 SetWindowText(GetDlgItem(data.pages[2],IDD_P3_DIR1),STR(STR_OPTION_DIR_DRIVERS));
                 SetWindowText(GetDlgItem(data.pages[2],IDD_P3_DIR2),STR(STR_OPTION_DIR_INDEXES));
@@ -845,7 +869,6 @@ static BOOL CALLBACK DialogProc1(HWND hwnd,UINT msg,WPARAM wp,LPARAM lp)
                 {
                     case FLAG_SHOWDRPNAMES1:r=IDD_P1_DRV2;break;
                     case FLAG_SHOWDRPNAMES2:r=IDD_P1_DRV3;break;
-//                    case 0:r=2;break;
                     default:r=IDD_P1_DRV1;break;
                 }
                 SendMessage(GetDlgItem(data.pages[0],r),BM_SETCHECK,BST_CHECKED,0);
@@ -856,12 +879,20 @@ static BOOL CALLBACK DialogProc1(HWND hwnd,UINT msg,WPARAM wp,LPARAM lp)
                 // set the keyboard focus to the selected radio button
                 SetFocus(GetDlgItem(data.pages[0],r));
 
-                SendMessage(GetDlgItem(data.pages[0],IDD_P1_ZOOMI),TBM_SETRANGE,1,MAKELONG(-350,-150));
+                // i wonder why the track bar min and max are negative ?
+
+//                SendMessage(GetDlgItem(data.pages[0],IDD_P1_ZOOMI),TBM_SETRANGE,1,MAKELONG(-350,-150));
+                SendMessage(GetDlgItem(data.pages[0],IDD_P1_ZOOMI), TBM_SETRANGEMIN, (WPARAM)TRUE, (LPARAM)-350);
+                SendMessage(GetDlgItem(data.pages[0],IDD_P1_ZOOMI), TBM_SETRANGEMAX, (WPARAM)TRUE, (LPARAM)-150);
 //                SendMessage(GetDlgItem(data.pages[0],IDD_P1_ZOOMI),TBM_SETRANGE,1,MAKELONG(150,350));
-                SendMessage(GetDlgItem(data.pages[0],IDD_P1_ZOOMI),TBM_SETPOS,1,-Settings.scale);
+                // sanity check
+                int n=-Settings.scale;
+                if(n < -350 || n > -150)n=-256;
+                SendMessage(GetDlgItem(data.pages[0],IDD_P1_ZOOMI),TBM_SETPOS,1,n);
+
                 str.sprintf(L"%d",Settings.hintdelay);
                 SetWindowText(GetDlgItem(data.pages[0],IDD_P1_HINTE),str.Get());
-
+                #ifdef USE_TORRENT
                 str.sprintf(L"%d",Updater->torrentport);
                 SetWindowText(GetDlgItem(data.pages[1],IDD_P2_PORTE),str.Get());
                 str.sprintf(L"%d",Updater->outgoingport_min);
@@ -876,8 +907,10 @@ static BOOL CALLBACK DialogProc1(HWND hwnd,UINT msg,WPARAM wp,LPARAM lp)
                 SetWindowText(GetDlgItem(data.pages[1],IDD_P2_DOWNE),str.Get());
                 str.sprintf(L"%d",Updater->uplimit);
                 SetWindowText(GetDlgItem(data.pages[1],IDD_P2_UPE),str.Get());
+                #endif
+
                 if(!(Settings.flags&FLAG_CHECKUPDATES))SendMessage(GetDlgItem(data.pages[1],IDD_P2_UPD),BM_SETCHECK,BST_CHECKED,0);
-                if(Settings.flags&FLAG_ONLYUPDATES)SendMessage(GetDlgItem(data.pages[1],IDONLYUPDATE),BM_SETCHECK,BST_CHECKED,0);
+                if(Settings.flags&FLAG_ONLYUPDATES)SendMessage(GetDlgItem(data.pages[1],ID_UPD_ONLYUPDATES),BM_SETCHECK,BST_CHECKED,0);
 
                 SetWindowText(GetDlgItem(data.pages[2],IDD_P3_DIR1E),Settings.drp_dir);
                 SetWindowText(GetDlgItem(data.pages[2],IDD_P3_DIR2E),Settings.index_dir);
@@ -890,8 +923,9 @@ static BOOL CALLBACK DialogProc1(HWND hwnd,UINT msg,WPARAM wp,LPARAM lp)
                 SetWindowText(GetDlgItem(data.pages[3],IDD_P4_CMD3E),Settings.finish_upd);
                 if(Settings.flags&FLAG_SHOWCONSOLE)SendMessage(GetDlgItem(data.pages[3],IDD_P4_CONSL),BM_SETCHECK,BST_CHECKED,0);
 
-                SetWindowText(GetDlgItem(hwnd,IDOK),STR(STR_UPD_BTN_OK));
-                SetWindowText(GetDlgItem(hwnd,IDCANCEL),STR(STR_UPD_BTN_CANCEL));
+
+                SetWindowText(GetDlgItem(hwnd,IDOK),STR(STR_OPTION_OK_BUTTON));
+                SetWindowText(GetDlgItem(hwnd,IDCANCEL),STR(STR_OPTION_CANCEL_BUTTON));
 
                 OnSelChange();
 
@@ -946,13 +980,14 @@ static BOOL CALLBACK DialogProc1(HWND hwnd,UINT msg,WPARAM wp,LPARAM lp)
                     GetWindowText(GetDlgItem(data.pages[0],IDD_P1_HINTE),num,32);
                     Settings.hintdelay=_wtoi_my(num);
 
+                    #ifdef USE_TORRENT
+
                     GetWindowText(GetDlgItem(data.pages[1],IDD_P2_PORTE),num,32);
                     Updater->torrentport=_wtoi_my(num);
                     GetWindowText(GetDlgItem(data.pages[1],IDD_P2_MINPORTE),num,32);
                     Updater->outgoingport_min=_wtoi_my(num);
                     GetWindowText(GetDlgItem(data.pages[1],IDD_P2_MAXPORTE),num,32);
                     Updater->outgoingport_max=_wtoi_my(num);
-
 
                     GetWindowText(GetDlgItem(data.pages[1],IDD_P2_CONE),num,32);
                     Updater->connections=_wtoi_my(num);
@@ -962,15 +997,18 @@ static BOOL CALLBACK DialogProc1(HWND hwnd,UINT msg,WPARAM wp,LPARAM lp)
                     Updater->uplimit=_wtoi_my(num);
                     Updater->SetLimits();
 
+                    #endif
+
                     if(!SendMessage(GetDlgItem(data.pages[1],IDD_P2_UPD),BM_GETCHECK,0,0))
                         Settings.flags|=FLAG_CHECKUPDATES;
                     else
                         Settings.flags&=~FLAG_CHECKUPDATES;
 
-                    if(SendMessage(GetDlgItem(data.pages[1],IDONLYUPDATE),BM_GETCHECK,0,0))
+                    if(SendMessage(GetDlgItem(data.pages[1],ID_UPD_ONLYUPDATES),BM_GETCHECK,0,0))
                         Settings.flags|=FLAG_ONLYUPDATES;
                     else
                         Settings.flags&=~FLAG_ONLYUPDATES;
+
 
                     GetWindowText(GetDlgItem(data.pages[2],IDD_P3_DIR1E),Settings.drp_dir,BUFLEN);
                     GetWindowText(GetDlgItem(data.pages[2],IDD_P3_DIR2E),Settings.index_dir,BUFLEN);
@@ -1010,7 +1048,7 @@ static BOOL CALLBACK DialogProc1(HWND hwnd,UINT msg,WPARAM wp,LPARAM lp)
     return FALSE;
 }
 
-static BOOL CALLBACK AboutBoxProc(HWND hwnd,UINT msg,WPARAM wParam,LPARAM lParam)
+static INT_PTR CALLBACK AboutBoxProc(HWND hwnd,UINT msg,WPARAM wParam,LPARAM lParam)
 {
     switch (msg)
     {
@@ -1327,86 +1365,6 @@ void MainWindow_t::ShowProgressInTaskbar(bool show,long long complited,long long
     CoUninitialize();
 }
 
-void MainWindow_t::DownloadedTorrent(int TorrentResults)
-{
-    // a torrent has just been downloaded
-
-    // update the menu items
-    ModifyMenuItem(pSysMenu,MIIM_STATE,IDM_SEED,MFS_ENABLED,nullptr);
-    UpdateTorrentItems(Updater->activetorrent);
-
-	// get driver count, index count, command line count
-    wchar_t spec1[BUFLEN];
-    wchar_t spec2[BUFLEN];
-    wcscpy(spec1,Settings.drp_dir);wcscat(spec1,L"\\*.*");
-    wcscpy(spec2,Settings.index_dir);wcscat(spec2,L"\\*.*");
-    int argc;
-    CommandLineToArgvW(GetCommandLineW(),&argc);
-
-    // torrent results
-    int NewVersion=TorrentResults>>8;
-    int LatestExeVersion=System.FindLatestExeVersion();
-    int DriverPacksAvailable=TorrentResults&0xFF;
-
-    if(TorrentSelectionMode==TSM_AUTO)
-	{
-        // just finished downloading the first torrent after startup
-        // if there are no drivers and no indexes
-        // and no command line then show the welcome screen
-        if(!System.FileExists2(spec1)&&!System.FileExists2(spec2)&&(argc<2))
-        {
-            TorrentSelectionMode=TSM_NONE;
-            DialogBox(ghInst,MAKEINTRESOURCE(IDD_WELCOME), MainWindow.hMain,(DLGPROC)WelcomeProcedure);
-        }
-        // otherwise if there are updates on the current torrent then stop switching
-        else if((NewVersion>LatestExeVersion)||(DriverPacksAvailable>0))
-            TorrentSelectionMode=TSM_NONE;
-        // no updates on this torrent so try the next one then stop
-        else if(Updater->activetorrent==1)
-        {
-            TorrentSelectionMode=TSM_NONE;
-            ResetUpdater(2);
-        }
-	}
- }
-
-void MainWindow_t::ResetUpdater(int activetorrent)
-{
-    #ifdef USE_TORRENT
-    // update the menu items
-    ModifyMenuItem(pSysMenu,MIIM_STRING|MIIM_STATE,IDM_SEED,MFS_DISABLED,const_cast<wchar_t *>STR(STR_SYST_START_SEED));
-    UpdateTorrentItems(0);
-    Settings.flags|=FLAG_CHECKUPDATES;
-
-    delete Updater;
-    if(activetorrent>0)
-        Updater_t::activetorrent=activetorrent;
-    Updater=CreateUpdater();
-    Updater->checkUpdates();
-    UpdateTorrentItems(Updater_t::activetorrent);
-
-    #endif // USE_TORRENT
-}
-
-void MainWindow_t::UpdateTorrentItems(int activetorrent)
-{
-    switch (activetorrent)
-    {
-        case 0:
-            ModifyMenuItem(UpdatesMenu,MIIM_STATE|MIIM_ID,IDM_UPDATES_SDIO,MFS_UNCHECKED,nullptr);
-            ModifyMenuItem(UpdatesMenu,MIIM_STATE|MIIM_ID,IDM_UPDATES_DRIVERS,MFS_UNCHECKED,nullptr);
-            break;
-        case 1:
-            ModifyMenuItem(UpdatesMenu,MIIM_STATE|MIIM_ID,IDM_UPDATES_SDIO,MFS_CHECKED,nullptr);
-            break;
-        case 2:
-            ModifyMenuItem(UpdatesMenu,MIIM_STATE|MIIM_ID,IDM_UPDATES_DRIVERS,MFS_CHECKED,nullptr);
-            break;
-        default:
-            break;
-    }
-}
-
 void MainWindow_t::tabadvance(int v)
 {
     if(v>0)
@@ -1642,6 +1600,8 @@ LRESULT MainWindow_t::WndProcMain(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lP
             f=hTheme->FindItem(Settings.curtheme);
             if(f==CB_ERR)f=vTheme->AutoPick();
 			vTheme->SwitchData((int)f);
+			// this overrides size changes to the theme txt file
+			// when developing themes, remove -wndwx and -wndwy from sdio.cfg
             if(Settings.wndwx)D(MAINWND_WX)=Settings.wndwx;
             if(Settings.wndwy)D(MAINWND_WY)=Settings.wndwy;
             hTheme->SetCurSel(f);
@@ -1656,22 +1616,6 @@ LRESULT MainWindow_t::WndProcMain(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lP
             wndp.rcNormalPosition.right=wndp.rcNormalPosition.left+D(MAINWND_WX);
             wndp.rcNormalPosition.bottom=wndp.rcNormalPosition.top+D(MAINWND_WY);
             SetWindowPlacement(hwnd, &wndp);
-            break;
-
-        case WM_SEEDING:
-            {
-                switch(lParam)
-                {
-                    case 1:
-                        ModifyMenuItem(pSysMenu,MIIM_STRING|MIIM_ID,IDM_SEED,0,const_cast<wchar_t *>STR(STR_SYST_STOP_SEED));
-                        break;
-                    case 0:
-                        ModifyMenuItem(pSysMenu,MIIM_STRING|MIIM_ID,IDM_SEED,0,const_cast<wchar_t *>STR(STR_SYST_START_SEED));
-                        break;
-                    default:
-                        break;
-                }
-            }
             break;
 
         case WM_BUNDLEREADY:
@@ -1689,11 +1633,6 @@ LRESULT MainWindow_t::WndProcMain(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lP
             }
             break;
 
-        case WM_TORRENT:
-            {
-                DownloadedTorrent(lParam);
-                break;
-            }
         case WM_INDEXESSAVED:
             {
                 break;
@@ -1916,12 +1855,10 @@ LRESULT MainWindow_t::WndProcMain(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lP
             break;
 
         case WM_TIMER:
-            if(manager_g->animate())redrawfield();
+            if(manager_g->animate())
+                redrawfield();
             else
-            {
-                if(wParam==2)MainWindow.ResetUpdater(Updater_t::activetorrent);
                 KillTimer(hwnd,wParam);
-            }
             break;
 
         case WM_PAINT:
@@ -1944,29 +1881,6 @@ LRESULT MainWindow_t::WndProcMain(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lP
                         DialogBox( ghInst,MAKEINTRESOURCE(IDD_ABOUT), MainWindow.hMain,(DLGPROC)AboutBoxProc);
                         return 0;
                     }
-                    case IDM_SEED:
-                    {
-                        #ifdef USE_TORRENT
-                        if(Updater)
-                        {
-                            if(Updater->isSeedingDrivers())Updater->StopSeedingDrivers();
-                            else Updater->StartSeedingDrivers();
-                        }
-                        #endif // USE_TORRENT
-                        return 0;
-                    }
-                    case IDM_UPDATES_SDIO:
-                        {
-                            TorrentSelectionMode=TSM_NONE;
-                            MainWindow.ResetUpdater(1);
-                            return 0;
-                        }
-                    case IDM_UPDATES_DRIVERS:
-                        {
-                            TorrentSelectionMode=TSM_NONE;
-                            MainWindow.ResetUpdater(2);
-                            return 0;
-                        }
                     case ID_COMPMNG:
                         {
                             // works on Windows XP and up
@@ -2178,31 +2092,38 @@ LRESULT MainWindow_t::WndProcMain(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lP
                 Settings.virtual_os_version=wp;
                 invalidate(INVALIDATE_SYSINFO|INVALIDATE_MANAGER);
             }
-            if(wp>=ID_HWID_CLIP&&wp<=ID_HWID_WEB+100)
+            // copy hwid to clipboard
+            if(wp>=ID_HWID_CLIP&&wp<ID_HWID_WEB)
             {
                 int id=wp%100;
-                if(wp>=ID_HWID_WEB)
-                {
-                    wchar_t buf[BUFLEN];
-                    wchar_t buf2[BUFLEN];
-                    const wchar_t *str=manager_g->getHWIDby(id);
-                    wsprintf(buf,L"http://catalog.update.microsoft.com/v7/site/search.aspx?q=%s",str);
-                    escapeAmpUrl(buf2,buf);
-                    System.run_command(L"open",buf2,SW_SHOW,0);
-
-                }
-                else
-                {
-                    const wchar_t *str=manager_g->getHWIDby(id);
-                    size_t len=wcslen(str)*2+2;
-                    HGLOBAL hMem=GlobalAlloc(GMEM_MOVEABLE,len);
-                    memcpy(GlobalLock(hMem),str,len);
-                    GlobalUnlock(hMem);
-                    OpenClipboard(nullptr);
-                    EmptyClipboard();
-                    SetClipboardData(CF_UNICODETEXT,hMem);
-                    CloseClipboard();
-                }
+                const wchar_t *str=manager_g->getHWIDby(id);
+                size_t len=wcslen(str)*2+2;
+                HGLOBAL hMem=GlobalAlloc(GMEM_MOVEABLE,len);
+                memcpy(GlobalLock(hMem),str,len);
+                GlobalUnlock(hMem);
+                OpenClipboard(nullptr);
+                EmptyClipboard();
+                SetClipboardData(CF_UNICODETEXT,hMem);
+                CloseClipboard();
+            }
+            // search hwid at microsoft catalog
+            else if(wp>=ID_HWID_WEB&&wp<ID_HWID_IGNORE)
+            {
+                int id=wp%100;
+                wchar_t buf[BUFLEN];
+                wchar_t buf2[BUFLEN];
+                const wchar_t *str=manager_g->getHWIDby(id);
+                wsprintf(buf,L"http://catalog.update.microsoft.com/v7/site/search.aspx?q=%s",str);
+                escapeAmpUrl(buf2,buf);
+                System.run_command(L"open",buf2,SW_SHOW,0);
+            }
+            // add hwid to ignore list
+            else if(wp>=ID_HWID_IGNORE&&wp<ID_OS_ITEMS)
+            {
+                int id=wp%100;
+                const wchar_t *str=manager_g->getHWIDby(id);
+                Settings.addIgnoreList(str);
+                invalidate(INVALIDATE_DEVICES|INVALIDATE_SYSINFO|INVALIDATE_INDEXES|INVALIDATE_MANAGER);
             }
 
             if(HIWORD(wParam)==CBN_SELCHANGE)
@@ -2267,6 +2188,13 @@ void DrvDirCommand::LeftClick(bool)
 void DrvOptionsCommand::LeftClick(bool)
 {
     DialogBox(ghInst,MAKEINTRESOURCE(IDD_DIALOG3),MainWindow.hMain,(DLGPROC)DialogProc1);
+}
+
+void DrvUpdatesCommand::LeftClick(bool)
+{
+    #ifdef USE_TORRENT
+    Updater->OpenDialog();
+    #endif
 }
 
 void InstallCommand::LeftClick(bool)
@@ -2382,8 +2310,8 @@ LRESULT MainWindow_t::WndProcField(HWND hwnd,UINT message,WPARAM wParam,LPARAM l
             if(Popup->floating_itembar==SLOT_DOWNLOAD)
             {
                 #ifdef USE_TORRENT
-                if(Updater->isSeedingDrivers())Updater->StopSeedingDrivers();
-                else Updater->OpenDialog();
+                /*if(Updater->IsSeedingDrivers())Updater->StopTorrent();
+                else*/ Updater->OpenDialog();
                 #endif
                 break;
             }
@@ -2599,222 +2527,3 @@ LRESULT Popup_t::PopupProcedure2(HWND hwnd,UINT message,WPARAM wParam,LPARAM lPa
     }
     return 0;
 }
-
-BOOL CALLBACK LicenseProcedure(HWND hwnd,UINT Message,WPARAM wParam,LPARAM lParam)
-{
-    WINDOWPOS *wpos;
-    HWND hEditBox;
-    RECT rect;
-    LPCSTR s;
-    size_t sz;
-
-    switch(Message)
-    {
-        case WM_INITDIALOG:
-            get_resource(IDR_LICENSE,(void **)&s,&sz);
-            hEditBox=GetDlgItem(hwnd,IDC_EDIT1);
-            SetWindowTextA(hEditBox,s);
-            SendMessage(hEditBox,EM_SETREADONLY,1,0);
-            // only show decline button on startup
-            if(GetParent(hwnd))
-            {
-                ShowWindow(GetDlgItem(hwnd,IDCANCEL),SW_HIDE);
-                SetFocus(GetDlgItem(hwnd,IDOK));
-            }
-            return TRUE;
-
-        case WM_COMMAND:
-            switch(LOWORD(wParam))
-            {
-                case IDOK:
-                    Settings.license=2;
-                    EndDialog(hwnd,IDOK);
-                    return TRUE;
-
-                case IDCANCEL:
-                    if(!GetParent(hwnd))Settings.license=0;
-                    EndDialog(hwnd,IDCANCEL);
-                    return TRUE;
-
-                default:
-                    break;
-            }
-            break;
-
-        case WM_WINDOWPOSCHANGED:
-            wpos=(WINDOWPOS*)lParam;
-            {
-                int r=SystemParametersInfo(SPI_GETWORKAREA,0,&rect,0);
-                if(r&&wpos->cy-rect.bottom>0)
-                {
-                    int sz1=rect.bottom-20-wpos->cy;
-                    wpos->y=10;
-                    wpos->cy=rect.bottom-20;
-                    MoveWindow(hwnd,wpos->x,wpos->y,wpos->cx,wpos->cy,1);
-
-                    GetRelativeCtrlRect(GetDlgItem(hwnd,IDC_EDIT1),&rect);
-                    rect.bottom+=sz1;
-                    MoveWindow(GetDlgItem(hwnd,IDC_EDIT1),rect.left,rect.top,rect.right,rect.bottom,1);
-
-                    GetRelativeCtrlRect(GetDlgItem(hwnd,IDOK),&rect);
-                    rect.top+=sz1;
-                    MoveWindow(GetDlgItem(hwnd,IDOK),rect.left,rect.top,rect.right,rect.bottom,1);
-
-                    GetRelativeCtrlRect(GetDlgItem(hwnd,IDCANCEL),&rect);
-                    rect.top+=sz1;
-                    MoveWindow(GetDlgItem(hwnd,IDCANCEL),rect.left,rect.top,rect.right,rect.bottom,1);
-                }
-            }
-            return TRUE;
-
-        case WM_CTLCOLORSTATIC:
-            hEditBox=GetDlgItem(hwnd,IDC_EDIT1);
-            if((HWND)lParam==hEditBox)
-            {
-                HDC hdcStatic=(HDC)wParam;
-                SetTextColor(hdcStatic, GetSysColor(COLOR_WINDOWTEXT));
-                SetBkColor(hdcStatic, GetSysColor(COLOR_WINDOW));
-                return (LRESULT)GetStockObject(HOLLOW_BRUSH);
-            }
-            else
-            {
-                HDC hdcStatic=(HDC)wParam;
-                SetBkMode(hdcStatic,TRANSPARENT);
-                return (INT_PTR)g_hbrDlgBackground;
-            }
-
-        case WM_CTLCOLORDLG:
-            return (INT_PTR)g_hbrDlgBackground;
-
-        default:
-            break;
-    }
-    return FALSE;
-}
-
-BOOL CALLBACK WelcomeProcedure(HWND hwnd,UINT msg,WPARAM wParam,LPARAM lParam)
-{
-    HWND Ctl1;
-    HWND Ctl2;
-    HWND Ctl3;
-    HWND Ctl4;
-
-    switch (msg)
-    {
-    case WM_INITDIALOG:
-        // languages
-        SetWindowText(GetDlgItem(hwnd,IDD_WELC_TITLE),STR(STR_WELCOME_TITLE));
-        SetWindowText(GetDlgItem(hwnd,IDD_WELC_SUBTITLE),STR(STR_WELCOME_SUBTITLE));
-        SetWindowText(GetDlgItem(hwnd,IDD_WELC_INTRO),STR(STR_WELCOME_INTRO));
-        SetWindowText(GetDlgItem(hwnd,IDD_WELC_INTRO2),STR(STR_WELCOME_INTRO2));
-        SetWindowText(GetDlgItem(hwnd,IDD_WELC_BUTTON1),STR(STR_WELCOME_BUTTON1));
-        SetWindowText(GetDlgItem(hwnd,IDD_WELC_BUTTON1_DESC),STR(STR_WELCOME_BUTTON1_DESC));
-        SetWindowText(GetDlgItem(hwnd,IDD_WELC_BUTTON2),STR(STR_WELCOME_BUTTON2));
-        SetWindowText(GetDlgItem(hwnd,IDD_WELC_BUTTON2_DESC),STR(STR_WELCOME_BUTTON2_DESC));
-        SetWindowText(GetDlgItem(hwnd,IDD_WELC_BUTTON3),STR(STR_WELCOME_BUTTON3));
-        SetWindowText(GetDlgItem(hwnd,IDD_WELC_BUTTON3_DESC),STR(STR_WELCOME_BUTTON3_DESC));
-        SetWindowText(GetDlgItem(hwnd,IDD_WELC_CLOSE),STR(STR_WELCOME_CLOSE));
-        // set focus to first button
-        SetFocus(GetDlgItem(hwnd,IDD_WELC_BUTTON1));
-        return TRUE;
-
-    case WM_SETCURSOR:
-        // 2 hyperlinks
-        if ((LOWORD(lParam)==HTCLIENT) &&
-            ((GetDlgCtrlID((HWND)wParam) == IDD_WELC_LINK1)||
-             (GetDlgCtrlID((HWND)wParam) == IDD_WELC_LINK2)))
-        {
-            SetCursor(LoadCursor(nullptr, IDC_HAND));
-            SetWindowLongPtr(hwnd, DWLP_MSGRESULT, TRUE);
-            return true;
-        }
-        break;
-
-    case WM_COMMAND:
-        switch(wParam)
-        {
-            case IDD_WELC_CLOSE:
-                EndDialog(hwnd,wParam);
-                return TRUE;
-            case IDCANCEL:
-                EndDialog(hwnd,wParam);
-                break;
-            case IDD_WELC_BUTTON1:
-                // download everything
-                EndDialog(hwnd,wParam);
-                Settings.flags&=~FLAG_AUTOUPDATE;
-                Updater->DownloadAll();
-                return TRUE;
-            case IDD_WELC_BUTTON2:
-                // download network only
-                EndDialog(hwnd,wParam);
-                Settings.flags&=~FLAG_AUTOUPDATE;
-                Updater->DownloadNetwork();
-                return TRUE;
-            case IDD_WELC_BUTTON3:
-                // download indexes only
-                EndDialog(hwnd,wParam);
-                Settings.flags&=~FLAG_AUTOUPDATE;
-                Updater->DownloadIndexes();
-                return TRUE;
-            case IDD_WELC_LINK1:
-                System.run_command(L"open",WEB_HOMEPAGE,SW_SHOWNORMAL,0);
-                break;
-            default:
-                break;
-        }
-        break;
-
-    case WM_CTLCOLORSTATIC:
-        {
-            // modify the fonts for colours and bold and size etc
-            Ctl1=GetDlgItem(hwnd,IDD_WELC_TITLE);
-            Ctl2=GetDlgItem(hwnd,IDD_WELC_LINK1);
-            Ctl3=GetDlgItem(hwnd,IDD_WELC_LINK2);
-            Ctl4=GetDlgItem(hwnd,IDD_WELC_SUBTITLE);
-            HDC hdcStatic=(HDC)wParam;
-
-            if((HWND)lParam==Ctl1)
-            {
-                HFONT hTitleFont = CreateFont(28,12,0,0,620,
-                                             FALSE,FALSE,FALSE,
-                                             ANSI_CHARSET,OUT_DEVICE_PRECIS,CLIP_MASK,
-                                             ANTIALIASED_QUALITY,DEFAULT_PITCH,
-                                             L"Tahoma");
-                SetTextColor(hdcStatic, RGB(248,171,3));
-                SelectObject(hdcStatic,hTitleFont);
-            }
-            else if((HWND)lParam==Ctl4)
-            {
-                HFONT hFont = CreateFont(9,0,0,0,700,
-                                             FALSE,FALSE,FALSE,
-                                             ANSI_CHARSET,OUT_DEVICE_PRECIS,CLIP_MASK,
-                                             ANTIALIASED_QUALITY,DEFAULT_PITCH,
-                                             L"MS Sans Serif");
-                SelectObject(hdcStatic,hFont);
-            }
-            else if(((HWND)lParam==Ctl2)||(HWND)lParam==Ctl3)
-            {
-                HFONT hFont = CreateFont(10,0,0,0,550,
-                                             FALSE,FALSE,FALSE,
-                                             ANSI_CHARSET,OUT_DEVICE_PRECIS,CLIP_MASK,
-                                             ANTIALIASED_QUALITY,DEFAULT_PITCH,
-                                             L"MS Sans Serif");
-                SetTextColor(hdcStatic, RGB(0,0,255));
-                SelectObject(hdcStatic,hFont);
-            }
-
-            SetBkMode(hdcStatic,TRANSPARENT);
-            return (INT_PTR)g_hbrDlgBackground;
-        }
-
-    case WM_CTLCOLORDLG:
-        return (INT_PTR)g_hbrDlgBackground;
-    default:
-        break;
-    }
-    return FALSE;
-}
-
-
-//}

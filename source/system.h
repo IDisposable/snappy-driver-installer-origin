@@ -24,7 +24,7 @@ class Event
 {
 public:
     virtual ~Event(){}
-    virtual void wait()=0;
+    virtual void wait(DWORD dwMilliseconds)=0;
     virtual bool isRaised()=0;
     virtual void raise()=0;
     virtual void reset()=0;
@@ -78,13 +78,16 @@ public:
 //    int canWrite(const wchar_t *path);
     int canWriteFile(const wchar_t *path,const wchar_t *mode);
     int canWriteDirectory(const wchar_t *path);
+    int canWriteDirectory(const std::string path);
     int run_command(const wchar_t* file,const wchar_t* cmd,int show,int wait);
     int run_command32(const wchar_t* file,const wchar_t* cmd,int show,int wait);
     void run_controlpanel(const wchar_t* cmd);
     void benchmark();
 
     void deletefile(const wchar_t *filename);
+    void DeleteFilesWithWildcard(const std::wstring& directory, const std::wstring& pattern);
     bool FileAvailable(const wchar_t *path, int numRetries, int waitTime);
+    bool FileExists(const std::string path);
     bool FileExists(const wchar_t *filename);
     bool FileExists2(const wchar_t *spec);
     bool DirectoryExists(const wchar_t *spec);
@@ -97,6 +100,8 @@ public:
     void CreateDir(const wchar_t *filename);
     void fileDelSpec(wchar_t *filename);
     int DriveNumber(const wchar_t *filename);
+    bool MoveFile(std::wstring SourceFile,std::wstring DestFile);
+    std::wstring GetCurrentWorkingDirectory();
 
     int UnregisterClass_log(const wchar_t *lpClassName,const wchar_t *func,const wchar_t *obj);
     int _vscwprintf_dll(const wchar_t * _Format,va_list _ArgList);
@@ -111,6 +116,9 @@ public:
     int getver(const char *s);
     int getcurver(const char *s);
     bool GetNonPresentDevices();
+    void ProcessMessages();
+
+    std::string getDateTimeStr();
 };
 extern SystemImp System;
 //}
