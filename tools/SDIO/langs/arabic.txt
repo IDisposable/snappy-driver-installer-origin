@@ -318,6 +318,7 @@ STR_UPD_BTN_SHARE             = "Share"
 STR_UPD_BTN_UPDATE            = "Start"
 STR_UPD_BTN_STOP              = "Stop"
 STR_UPD_BTN_CLOSE             = "Close"
+
 STR_UPD_COL_NAME              = "حزمة التعريفات"
 STR_UPD_COL_SIZE              = "الحجم"
 STR_UPD_COL_PER               = "%"
@@ -355,7 +356,6 @@ STR_UPD_PROMPT_08             = "Unable to get updates. Try again later."
 STR_UPD_PROMPT_09             = "Resetting. Please wait..."
 STR_UPD_PROMPT_10             = "Starting share mode. Please wait..."
 STR_UPD_PROMPT_11             = "Ending share mode. Please wait..."
-
 
 // Update hint
 STR_UPD_CHECKING              = "البحث عن تحديثات"

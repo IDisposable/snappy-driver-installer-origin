@@ -290,10 +290,9 @@ STR_UPD_TITLE                 = "به‌روزرسانی"
 STR_UPD_SELECTION             = "انتخاب"
 STR_UPD_BTN_ALL               = "انتخاب همه"
 STR_UPD_BTN_NONE              = "انتخاب هیچ‌کدام"
-STR_UPD_BTN_NETWORK           = "فقط شبکه"
 STR_UPD_BTN_THISPC            = "فقط انتخاب موارد موردنیاز این سیستم"
 STR_UPD_BTN_THISPC_H          = "برای تشخیص درایورهای موردنیاز اول باید نمایه‌ها را دانلود کنید."
-
+STR_UPD_BTN_NETWORK           = "فقط شبکه"
 
 STR_UPD_SELECTED              = "Selected: %d / %d"
 STR_UPD_TOTALSIZE             = "مجموع اندازه دانلود شده: %s"
