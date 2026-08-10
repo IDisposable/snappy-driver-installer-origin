@@ -6,10 +6,10 @@
 		<Option makefile="makefile" />
 		<Option execution_dir=".." />
 		<Option pch_mode="2" />
-		<Option default_target="Win32 Debug" />
 		<Option compiler="gcc" />
 		<Build>
 			<Target title="Win32 Release">
+				<Option platforms="Windows;" />
 				<Option output="../SDIO_R" prefix_auto="1" extension_auto="1" />
 				<Option working_dir=".." />
 				<Option object_output="../obj/Release" />
@@ -21,21 +21,42 @@
 					<Add option="-fomit-frame-pointer" />
 					<Add option="-fexpensive-optimizations" />
 					<Add option="-O3" />
+					<Add option="-Wfatal-errors" />
+					<Add option="-std=c++11" />
 					<Add option="-m32" />
+					<Add option="-DBOOST_ASIO_HEADER_ONLY" />
+					<Add option="-DTORRENT_ABI_VERSION=1" />
 					<Add option="-DNDEBUG" />
 					<Add option="-DUSE_TORRENT" />
+					<Add option="-DTORRENT_LINKING_STATIC" />
+					<Add option="-DBOOST_ASIO_SEPARATE_COMPILATION" />
+					<Add directory="C:/mingw/mingw32/i686-w64-mingw32/include" />
+					<Add directory="C:/LIBTORRENT32/include" />
+					<Add directory="C:/BOOST32_81/include" />
 				</Compiler>
 				<Linker>
 					<Add option="-s" />
+					<Add option="-static" />
 					<Add option="-m32" />
+					<Add library="torrent-rasterbar" />
+					<Add library="boost_system" />
+					<Add library="boost_filesystem" />
 					<Add library="webp" />
-					<Add library="torrent" />
+					<Add library="iphlpapi" />
+					<Add library="urlmon" />
 					<Add library="wsock32" />
 					<Add library="ws2_32" />
+					<Add library="uuid" />
+					<Add library="ole32" />
+					<Add library="oleaut32" />
+					<Add directory="C:/mingw/mingw32/i686-w64-mingw32/lib" />
+					<Add directory="C:/LIBTORRENT32/lib" />
+					<Add directory="C:/BOOST32_81/lib" />
 					<Add directory="../lib/Release" />
 				</Linker>
 			</Target>
 			<Target title="Win32 Debug">
+				<Option platforms="Windows;" />
 				<Option output="../SDIO_RD" prefix_auto="1" extension_auto="1" />
 				<Option working_dir=".." />
 				<Option object_output="../obj/Debug" />
@@ -44,74 +65,198 @@
 				<Option use_console_runner="0" />
 				<Option parameters="-disableinstall -extractdir:temp1 -showconsole" />
 				<Compiler>
-					<Add option="-pg" />
+					<Add option="-Wfatal-errors" />
+					<Add option="-Wall" />
+					<Add option="-std=c++11" />
 					<Add option="-m32" />
 					<Add option="-g" />
+					<Add option="-DBOOST_ASIO_HEADER_ONLY" />
+					<Add option="-DTORRENT_ABI_VERSION=1" />
 					<Add option="-D_DEBUG" />
 					<Add option="-DUSE_TORRENT" />
+					<Add option="-DTORRENT_LINKING_STATIC" />
+					<Add option="-DBOOST_ASIO_SEPARATE_COMPILATION" />
+					<Add directory="C:/mingw/mingw32/i686-w64-mingw32/include" />
+					<Add directory="C:/LIBTORRENT32/DEBUG/include/" />
+					<Add directory="C:/BOOST32_81/DEBUG/include" />
 				</Compiler>
 				<Linker>
-					<Add option="-pg -lgmon" />
+					<Add option="-static" />
 					<Add option="-m32" />
+					<Add library="torrent-rasterbar" />
+					<Add library="boost_system" />
+					<Add library="boost_filesystem" />
 					<Add library="webp" />
-					<Add library="torrent" />
+					<Add library="iphlpapi" />
+					<Add library="urlmon" />
 					<Add library="wsock32" />
 					<Add library="ws2_32" />
+					<Add library="uuid" />
+					<Add library="ole32" />
+					<Add library="oleaut32" />
+					<Add directory="C:/mingw/mingw32/i686-w64-mingw32/lib" />
+					<Add directory="C:/LIBTORRENT32/DEBUG/lib" />
+					<Add directory="C:/BOOST32_81/DEBUG/lib" />
 					<Add directory="../lib/Debug" />
 				</Linker>
 			</Target>
 			<Target title="Win64 Release">
+				<Option platforms="Windows;" />
 				<Option output="../SDIO_x64_R" prefix_auto="1" extension_auto="1" />
 				<Option working_dir=".." />
 				<Option object_output="../obj/Release64" />
 				<Option type="1" />
 				<Option compiler="gcc_64" />
 				<Option use_console_runner="0" />
-				<Option parameters="-disableinstall -extractdir:temp1 -showconsole" />
+				<Option parameters="-disableinstall -extractdir:temp1 -showconsole -keeptempfiles" />
 				<Compiler>
 					<Add option="-fomit-frame-pointer" />
 					<Add option="-fexpensive-optimizations" />
 					<Add option="-O3" />
+					<Add option="-Wfatal-errors" />
+					<Add option="-std=c++11" />
 					<Add option="-m64" />
+					<Add option="-DBOOST_ASIO_HEADER_ONLY" />
+					<Add option="-DTORRENT_ABI_VERSION=1" />
 					<Add option="-DNDEBUG" />
 					<Add option="-DUSE_TORRENT" />
+					<Add option="-D_WIN64" />
+					<Add directory="C:/mingw/mingw64/x86_64-w64-mingw32/include" />
+					<Add directory="C:/LIBTORRENT64/include" />
+					<Add directory="C:/BOOST64_81/include" />
 				</Compiler>
 				<Linker>
 					<Add option="-s" />
+					<Add option="-static" />
 					<Add option="-m64" />
-					<Add library="webp" />
-					<Add library="torrent" />
 					<Add library="wsock32" />
 					<Add library="ws2_32" />
+					<Add directory="C:/mingw/mingw64/x86_64-w64-mingw32/lib" />
+					<Add directory="C:/LIBTORRENT64/lib" />
+					<Add directory="C:/BOOST64_81/lib" />
 					<Add directory="../lib/Release64" />
 				</Linker>
 			</Target>
 			<Target title="Win64 Debug">
+				<Option platforms="Windows;" />
 				<Option output="../SDIO_x64_RD" prefix_auto="1" extension_auto="1" />
 				<Option working_dir=".." />
 				<Option object_output="../obj/Debug64" />
 				<Option type="1" />
 				<Option compiler="gcc_64" />
 				<Option use_console_runner="0" />
-				<Option parameters="-disableinstall -extractdir:temp1 -showconsole" />
+				<Option parameters="-disableinstall -extractdir:temp1 -showconsole -keeptempfiles" />
 				<Compiler>
 					<Add option="-Wfatal-errors" />
 					<Add option="-Wextra" />
 					<Add option="-Wall" />
-					<Add option="-pg" />
+					<Add option="-std=c++11" />
 					<Add option="-m64" />
 					<Add option="-g" />
+					<Add option="-DBOOST_ASIO_HEADER_ONLY" />
+					<Add option="-DTORRENT_ABI_VERSION=1" />
 					<Add option="-D_DEBUG" />
 					<Add option="-DUSE_TORRENT" />
+					<Add option="-D_WIN64" />
+					<Add directory="C:/mingw/mingw64/x86_64-w64-mingw32/include" />
+					<Add directory="C:/LIBTORRENT64/DEBUG/include" />
+					<Add directory="C:/BOOST64_81/DEBUG/include" />
 				</Compiler>
 				<Linker>
-					<Add option="-pg -lgmon" />
+					<Add option="-static" />
 					<Add option="-m64" />
-					<Add library="webp" />
-					<Add library="torrent" />
 					<Add library="wsock32" />
 					<Add library="ws2_32" />
+					<Add directory="C:/mingw/mingw64/x86_64-w64-mingw32/lib" />
+					<Add directory="C:/LIBTORRENT64/DEBUG/lib" />
+					<Add directory="C:/BOOST64_81/DEBUG/lib" />
 					<Add directory="../lib/Debug64" />
+				</Linker>
+			</Target>
+			<Target title="Win32 XP Release">
+				<Option platforms="Windows;" />
+				<Option output="../SDIO-XP_R" prefix_auto="1" extension_auto="1" />
+				<Option working_dir=".." />
+				<Option object_output="../obj/Release" />
+				<Option type="1" />
+				<Option compiler="gcc" />
+				<Option use_console_runner="0" />
+				<Option parameters="-disableinstall -extractdir:temp1 -showconsole" />
+				<Compiler>
+					<Add option="-fomit-frame-pointer" />
+					<Add option="-fexpensive-optimizations" />
+					<Add option="-O3" />
+					<Add option="-Wfatal-errors" />
+					<Add option="-std=c++11" />
+					<Add option="-m32" />
+					<Add option="-DBOOST_ASIO_HEADER_ONLY" />
+					<Add option="-DNDEBUG" />
+					<Add directory="C:/mingw/mingw32/i686-w64-mingw32/include" />
+					<Add directory="C:/LIBTORRENT32/include" />
+					<Add directory="C:/BOOST32_81/include" />
+				</Compiler>
+				<Linker>
+					<Add option="-s" />
+					<Add option="-static" />
+					<Add option="-m32" />
+					<Add library="torrent-rasterbar" />
+					<Add library="boost_system" />
+					<Add library="boost_filesystem" />
+					<Add library="webp" />
+					<Add library="iphlpapi" />
+					<Add library="urlmon" />
+					<Add library="wsock32" />
+					<Add library="ws2_32" />
+					<Add library="uuid" />
+					<Add library="ole32" />
+					<Add library="oleaut32" />
+					<Add directory="C:/mingw/mingw32/i686-w64-mingw32/lib" />
+					<Add directory="C:/LIBTORRENT32/lib" />
+					<Add directory="C:/BOOST32_81/lib" />
+					<Add directory="../lib/Release" />
+				</Linker>
+			</Target>
+			<Target title="Win64 XP Release">
+				<Option platforms="Windows;" />
+				<Option output="../SDIO-XP_x64_R" prefix_auto="1" extension_auto="1" />
+				<Option working_dir=".." />
+				<Option object_output="../obj/Release64" />
+				<Option type="1" />
+				<Option compiler="gcc_64" />
+				<Option use_console_runner="0" />
+				<Option parameters="-disableinstall -extractdir:temp1 -showconsole " />
+				<Compiler>
+					<Add option="-fomit-frame-pointer" />
+					<Add option="-fexpensive-optimizations" />
+					<Add option="-O3" />
+					<Add option="-Wfatal-errors" />
+					<Add option="-std=c++11" />
+					<Add option="-m64" />
+					<Add option="-DBOOST_ASIO_HEADER_ONLY" />
+					<Add option="-DNDEBUG" />
+					<Add option="-D_WIN64" />
+					<Add directory="C:/mingw/mingw64/x86_64-w64-mingw32/include" />
+					<Add directory="C:/LIBTORRENT64/include" />
+					<Add directory="C:/BOOST64_81/include" />
+				</Compiler>
+				<Linker>
+					<Add option="-static" />
+					<Add option="-m64" />
+					<Add library="torrent-rasterbar" />
+					<Add library="boost_system" />
+					<Add library="boost_filesystem" />
+					<Add library="webp" />
+					<Add library="iphlpapi" />
+					<Add library="urlmon" />
+					<Add library="wsock32" />
+					<Add library="ws2_32" />
+					<Add library="uuid" />
+					<Add library="ole32" />
+					<Add library="oleaut32" />
+					<Add directory="C:/mingw/mingw64/x86_64-w64-mingw32/lib" />
+					<Add directory="C:/LIBTORRENT64/lib" />
+					<Add directory="C:/BOOST64_81/lib" />
+					<Add directory="../lib/Release64" />
 				</Linker>
 			</Target>
 		</Build>
@@ -124,33 +269,38 @@
 			<Add option="-Wunreachable-code" />
 			<Add option="-Wmissing-declarations" />
 			<Add option="-Wmissing-include-dirs" />
-			<Add option="-Wswitch-enum" />
 			<Add option="-Wswitch-default" />
 			<Add option="-Wzero-as-null-pointer-constant" />
 			<Add option="-Wmain" />
 			<Add option="-Wextra" />
 			<Add option="-Wall" />
-			<Add option="-std=c++11" />
 			<Add option="-fexceptions" />
 			<Add option="-finput-charset=CP1251" />
 			<Add option="-Wunused" />
 			<Add option="-mthreads" />
+			<Add option="-Wno-zero-as-null-pointer-constant" />
 			<Add option="-DWIN32" />
 			<Add option="-DUNICODE" />
 			<Add option="-D_UNICODE" />
-			<Add option="-D_WIN32_WINNT=0x0500" />
-			<Add option="-DWINVER=0x0500" />
+			<Add option="-D_WIN32_WINNT=0x0501" />
+			<Add option="-DWINVER=0x0501" />
+			<Add option="-DBOOST_USE_WINAPI_VERSION=0x0501" />
+			<Add option="-DBOOST_USE_NTDDI_VERSION=0x05010000" />
 			<Add directory="../resources" />
 			<Add directory="../external/SevenZ/build/C" />
-			<Add directory="../external/boost_1_65_0" />
 		</Compiler>
 		<Linker>
 			<Add option="-static" />
-			<Add library="msimg32" />
+			<Add library="torrent-rasterbar" />
+			<Add library="boost_system" />
+			<Add library="boost_filesystem" />
 			<Add library="7z" />
+			<Add library="comctl32" />
+			<Add library="gdi32" />
+			<Add library="iphlpapi" />
+			<Add library="msimg32" />
 			<Add library="kernel32" />
 			<Add library="user32" />
-			<Add library="gdi32" />
 			<Add library="comdlg32" />
 			<Add library="advapi32" />
 			<Add library="shell32" />
@@ -159,12 +309,11 @@
 			<Add library="setupapi" />
 			<Add library="shlwapi" />
 			<Add library="newdev" />
-			<Add library="boost_system_tr" />
 			<Add library="uuid" />
 			<Add library="wbemuuid" />
 			<Add library="sapi" />
-			<Add library="comctl32" />
-			<Add directory="../external" />
+			<Add library="webp" />
+			<Add library="urlmon" />
 		</Linker>
 		<ExtraCommands>
 			<Add before="SubWCRev.exe .. ..\source\svnrev_template.h ..\source\svnrev.h" />
@@ -199,6 +348,8 @@
 		<Unit filename="../source/install.h" />
 		<Unit filename="../source/langlist.cpp" />
 		<Unit filename="../source/langlist.h" />
+		<Unit filename="../source/license.cpp" />
+		<Unit filename="../source/license.h" />
 		<Unit filename="../source/logging.cpp" />
 		<Unit filename="../source/logging.h" />
 		<Unit filename="../source/main.cpp" />
@@ -226,10 +377,9 @@
 		<Unit filename="../source/update.h" />
 		<Unit filename="../source/usbwizard.cpp" />
 		<Unit filename="../source/usbwizard.h" />
-		<Extensions>
-			<code_completion />
-			<envvars />
-			<debugger />
-		</Extensions>
+		<Unit filename="../source/welcome.cpp" />
+		<Unit filename="../source/welcome.h" />
+		<Unit filename="../tools/SDIO/langs/english.txt" />
+		<Extensions />
 	</Project>
 </CodeBlocks_project_file>
