@@ -445,13 +445,13 @@ DRVLIST_BITMAP_FILL      = 0
 
 // Driver items
 DRVITEM_WX               = -10
-DRVITEM_WY               = 40
+DRVITEM_WY               = 38
 DRVITEM_OFSX             = 10
 DRVITEM_OFSY             = 5
 DRVITEM_LINE_INTEND      = 30
 DRVITEM_LINE_COLOR       = 0
 DRVITEM_LINE_WIDTH       = 3
-DRVITEM_DIST_Y0          = 43
+DRVITEM_DIST_Y0          = 40
 DRVITEM_DIST_Y1          = DRVITEM_DIST_Y0
 DRVITEM_DIST_Y2          = 0
 
