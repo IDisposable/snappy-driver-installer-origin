@@ -156,7 +156,7 @@ public:
     const wchar_t *getHWIDby(int id)const;
     static unsigned int __stdcall thread_install(void *arg);
 
-    friend int _7z_setcomplited(long long i); // TODO: friend
+    friend int _7z_setcomplited(long long i);
 };
 
 #endif

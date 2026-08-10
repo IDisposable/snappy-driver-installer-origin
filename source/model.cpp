@@ -214,8 +214,8 @@ void Bundle::bundle_load(Bundle *pbundle)
 
 void Bundle::bundle_lowpriority()
 {
-    Timers.stoponce(time_startup,time_total);
-    Timers.print();
+    //Timers.stoponce(time_startup,time_total);
+    //Timers.print();
 
     MainWindow.redrawmainwnd();
 
@@ -239,6 +239,9 @@ void Bundle::bundle_lowpriority()
     if(Settings.flags&FLAG_CHECKUPDATES&&!Timers.get(time_chkupdate))
         Updater->checkUpdates();
     #endif
+
+    Timers.stoponce(time_startup,time_total);
+    Timers.print();
 
     collection.save();
     Log.gen_timestamp();

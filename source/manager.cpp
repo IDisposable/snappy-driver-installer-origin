@@ -21,7 +21,11 @@ Snappy Driver Installer Origin.  If not, see <http://www.gnu.org/licenses/>.
 #include "matcher.h"
 #include "indexing.h"
 #include "manager.h"
+
+#ifdef USE_TORRENT
 #include "update.h"
+#endif
+
 #include "install.h"
 #include "gui.h"
 #include "draw.h"
@@ -308,6 +312,7 @@ void itembar_t::contextmenu(int x,int y)
     int i=0;
     HMENU hSub1=CreatePopupMenu();
     HMENU hSub2=CreatePopupMenu();
+    HMENU hSub3=CreatePopupMenu();
     if(devicematch->device->getHardwareID())
     {
         wchar_t *p=txt->getwV(devicematch->device->getHardwareID());
@@ -316,6 +321,7 @@ void itembar_t::contextmenu(int x,int y)
             escapeAmp(buf,p);
             InsertMenu(hSub1,i,MF_BYPOSITION|MF_STRING,ID_HWID_WEB+i,buf);
             InsertMenu(hSub2,i,MF_BYPOSITION|MF_STRING,ID_HWID_CLIP+i,buf);
+            InsertMenu(hSub3,i,MF_BYPOSITION|MF_STRING,ID_HWID_IGNORE+i,buf);
             p+=wcslen(p)+1;
             i++;
         }
@@ -328,6 +334,7 @@ void itembar_t::contextmenu(int x,int y)
             escapeAmp(buf,p);
             InsertMenu(hSub1,i,MF_BYPOSITION|MF_STRING,ID_HWID_WEB+i,buf);
             InsertMenu(hSub2,i,MF_BYPOSITION|MF_STRING,ID_HWID_CLIP+i,buf);
+            InsertMenu(hSub3,i,MF_BYPOSITION|MF_STRING,ID_HWID_IGNORE+i,buf);
             p+=wcslen(p)+1;
             i++;
         }
@@ -340,6 +347,7 @@ void itembar_t::contextmenu(int x,int y)
     InsertMenu(hPopupMenu,i++,MF_BYPOSITION|MF_SEPARATOR,0,nullptr);
     InsertMenu(hPopupMenu,i++,MF_BYPOSITION|MF_STRING|MF_POPUP|flagssubmenu,(UINT_PTR)hSub1,STR(STR_CONT_HWID_SEARCH));
     InsertMenu(hPopupMenu,i++,MF_BYPOSITION|MF_STRING|MF_POPUP|flagssubmenu,(UINT_PTR)hSub2,STR(STR_CONT_HWID_CLIP));
+    InsertMenu(hPopupMenu,i++,MF_BYPOSITION|MF_STRING|MF_POPUP|flagssubmenu,(UINT_PTR)hSub3,STR(STR_CONT_HWID_IGNORE));
     InsertMenu(hPopupMenu,i++,MF_BYPOSITION|MF_SEPARATOR,0,nullptr);
     InsertMenu(hPopupMenu,i++,MF_BYPOSITION|MF_STRING|flags3,ID_OPENINF,  STR(STR_CONT_OPENINF));
     InsertMenu(hPopupMenu,i++,MF_BYPOSITION|MF_STRING|flags3,ID_LOCATEINF,STR(STR_CONT_LOCATEINF));
@@ -790,7 +798,7 @@ void Manager::filter(int options,std::vector<std::wstring> *drpfilter)
                 for(std::vector<std::wstring>::iterator txt = drpfilter->begin(); txt != drpfilter->end(); ++txt)
                 {
                     std::wstring w=*txt;
-                    w.insert(0,L"dp_");w.append(L"_");
+                    w.insert(0,L"DP_");w.append(L"_");
                     if(StrStrIW(drpname.c_str(),w.c_str()))
                     {
                         filtermatch=true;
@@ -1017,8 +1025,13 @@ void Manager::updateoverall()
         items_list[SLOT_EXTRACTING].percent=_processeditems*1000/_totalitems+d;
         items_list[SLOT_EXTRACTING].val1=_processeditems;
         items_list[SLOT_EXTRACTING].val2=_totalitems;
-        if(manager_g->items_list[SLOT_EXTRACTING].percent>0&&installmode==MODE_INSTALLING&&Updater->isPaused())
+        #ifdef USE_TORRENT
+        if(manager_g->items_list[SLOT_EXTRACTING].percent>0&&installmode==MODE_INSTALLING&&Updater->IsPaused())
             MainWindow.ShowProgressInTaskbar(true,items_list[SLOT_EXTRACTING].percent,1000);
+        #else
+        if(manager_g->items_list[SLOT_EXTRACTING].percent>0&&installmode==MODE_INSTALLING)
+            MainWindow.ShowProgressInTaskbar(true,items_list[SLOT_EXTRACTING].percent,1000);
+        #endif
     }
 }
 size_t Manager::install(int flagsv)
@@ -1092,7 +1105,7 @@ void Manager::toggle(size_t index)
     size_t group;
 
     #ifdef USE_TORRENT
-    if(installmode&&!Updater->isPaused())return;
+    if(installmode&&!Updater->IsPaused())return;
     #endif
 
     itembar1=&items_list[index];
@@ -1162,7 +1175,7 @@ void Manager::selectnone()
     size_t i;
 
     #ifdef USE_TORRENT
-    if(installmode&&!Updater->isPaused())return;
+    if(installmode&&!Updater->IsPaused())return;
     #endif
 
     if(items_list[SLOT_RESTORE_POINT].isactive)
@@ -1180,7 +1193,7 @@ void Manager::selectall()
     size_t group=0;
 
     #ifdef USE_TORRENT
-    if(installmode&&!Updater->isPaused())return;
+    if(installmode&&!Updater->IsPaused())return;
     #endif
 
     itembar=&items_list[SLOT_RESTORE_POINT];
@@ -1445,7 +1458,6 @@ int Manager::drawitem(Canvas &canvas,size_t index,int ofsy,int zone,int cutoff)
         canvas.DrawWidget(x,pos,(int)(x+wx*itembar->percent/1000),pos+D_X(DRVITEM_WY),a);
     }
 
-    canvas.SetTextColor(0); // todo: color
     switch(index)
     {
         case SLOT_RESTORE_POINT:
@@ -1530,18 +1542,18 @@ int Manager::drawitem(Canvas &canvas,size_t index,int ofsy,int zone,int cutoff)
             else if(itembar->val1&0xff)
                 wsprintf(bufw,STR(STR_UPD_AVAIL2),static_cast<int>(itembar->val1&0xFF));
 
-#ifdef USE_TORRENT
-            if(!Updater->isPaused())
+            #ifdef USE_TORRENT
+            if(!Updater->IsPaused())
             {
                 Updater->ShowProgress(bufw);
-                if(Updater->isSeedingDrivers())
+                //if(Updater->IsSeedingDrivers())
                     itembar->drawbutton(canvas,x,pos,bufw,STR(STR_DWN_MODIFY));
-                else
-                    itembar->drawbutton(canvas,x,pos,bufw,STR(STR_UPD_MODIFY));
+                //else
+                //    itembar->drawbutton(canvas,x,pos,bufw,STR(STR_UPD_MODIFY));
             }
             else
-#endif
-                itembar->drawbutton(canvas,x,pos,bufw,STR(STR_UPD_START));
+            #endif
+                itembar->drawbutton(canvas,x,pos,bufw,STR(STR_UPD_MODIFY));
 
             break;
 
@@ -1566,6 +1578,7 @@ int Manager::drawitem(Canvas &canvas,size_t index,int ofsy,int zone,int cutoff)
             break;
 
         default:
+            canvas.SetTextColor(D_C(MAINWND_TEXT_COLOR));// 0
             if(itembar->first&2&&itembar->hwidmatch)
             {
                     /*wsprintf(bufw,L"%ws",matcher->state->text+itembar->devicematch->device->Devicedesc);
@@ -1661,7 +1674,7 @@ int Manager::drawitem(Canvas &canvas,size_t index,int ofsy,int zone,int cutoff)
                     size_t len=wcslen(matcher->getCol()->getDriverpack_dir());
                     size_t lnn=len-wcslen(itembar->hwidmatch->getdrp_packpath());
 
-                    canvas.SetTextColor(0);// todo: color
+                    canvas.SetTextColor(D_C(MAINWND_TEXT_COLOR));// 0
                     WStringShort packname;
                     itembar->hwidmatch->getdrp_packnameVirtual(packname);
 
@@ -1818,8 +1831,10 @@ void Manager::restorepos1(Manager *manager_prev)
     if(CRITICAL_SECTION_ACTIVE)LeaveCriticalSection(&sync);
 
     #ifdef USE_TORRENT
+    // something changed so refresh the update list
     Updater->Populate(0);
-    #endif
+    #endif // USE_TORRENT
+
     //Log.print_con("Mode in WM_BUNDLEREADY: %d\n",installmode);
     if(Settings.flags&FLAG_AUTOINSTALL)
     {
