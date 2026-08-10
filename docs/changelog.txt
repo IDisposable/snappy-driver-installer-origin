@@ -7,10 +7,50 @@ www.glenn.delahoy.com
 
 Change Log
 
+Version 2.0.0.872
+11 August 2026
+ 
+I've completely deconstructed and rewritten the toolchain build 
+process so I can update the tools and dependant libraries in a more 
+controlled fashion. Jumping ahead 8 years in the libtorrent-rasterbar 
+code and 5 years in the boost code inevitably resulted in a large 
+chunk of the SDIO code base being broken. As a result, much code, 
+including the entire updates code, has been rewritten. This I think 
+has resulted in nicer, easier to maintain code and better front-end 
+functionality. The downside is the new torrent code no longer supports
+Windows XP/Vista so I've created a special build without Updates code
+that will run on XP. The upside is we now have a special build 
+completely devoid of torrent code that we can run in 'sensitive'
+environments on any Windows version. I am yet to see a bad cast error 
+or any issues with ipv6. No doubt we'll see brand new issues instead.  
+The language files have been heavily modified for the new functions. 
+Translations gratefully accepted.
+
+* SamLab Driver Packs 26.06.1
+* SDIO Driver Packs 26.08.2
+* Added hwid ignore list (right click on a device in the list)
+* Moved redundant driver pack removal into the code
+* Added spaces as appropriate to some language strings
+* Removed update menu options
+* Added an Updates button to the main screen
+* Updated the Updates dialog for more functions and info.
+* New XP build with torrent code removed.
+* Updated all themes for readability.
+* Updated Welcome dialog.
+* Added new Clean theme
+* Tools updated as follows:
+  code blocks v25.03
+  msys2 v20220503
+  gcc v8.1.0
+  boost v1.79.0
+  libwebp v1.6.0
+  libtorrent v1.2.20
+  7-Zip v26.01
+
 Version 1.18.0.830
 25 April 2026
 * SamLab Driver Packs 26.04.0
-* SDIO Driver Packs 26.04.04
+* SDIO Driver Packs 26.04.4
 * Updated markers
 * Updated languages
 * Added torrent min/max outgoing port
@@ -325,9 +365,9 @@ Version 1.10.3.732
   gcc/mingw v8.1.0 code so I've rolled back gcc to the previous working version.
 * Tools updated as follows:
   msys2 v20200903
-  gcc v7.3.0
+  gcc v8.1.0
   boost v1.65.0
-  webp v1.1.0
+  libwebp v1.1.0
   libtorrent v1.0.11
   7-Zip v17.01
 
@@ -350,7 +390,7 @@ knows how to do this please let me know.
   msys2 v20200903
   gcc v8.1.0
   boost v1.65.0
-  webp v1.1.0
+  libwebp v1.1.0
   libtorrent v1.0.11
   7-Zip v17.01
 
@@ -361,7 +401,7 @@ Version 1.9.0.728
   msys2 v20200903
   gcc v7.3.0
   boost v1.65.0
-  webp v0.6.1
+  libwebp v0.6.1
   libtorrent v1.0.11
   7-Zip v16.04
 
@@ -378,7 +418,7 @@ Version 1.8.0.722
   msys2 v20200903
   gcc v7.3.0
   boost v1.64.0
-  webp v0.6.1
+  libwebp v0.6.1
   libtorrent v1.0.11
   7-Zip v16.04
 
@@ -391,7 +431,7 @@ Version 1.7.1.721
   msys2 v20200903
   gcc v7.1.0
   boost v1.63.0
-  webp v0.6.1
+  libwebp v0.6.1
   libtorrent v1.0.8
   7-Zip v16.02
 
@@ -414,7 +454,7 @@ Version 1.7.0.720
   msys2 v20200903
   gcc v7.1.0
   boost v1.63.0
-  webp v0.5.2
+  libwebp v0.5.2
   libtorrent v1.0.8
   7-Zip v16.02
 
