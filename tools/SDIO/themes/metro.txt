@@ -329,7 +329,7 @@ CENTER_TEXT_PANEL10      = 0
 
 // Panel, selectnone button
 PANEL11_OFSX             = PANEL9_OFSX
-PANEL11_OFSY             = 244
+PANEL11_OFSY             = 242
 PANEL11_WX               = PANEL9_WX
 PANEL11_WY               = PANEL9_WY
 PANEL11_INSIDE_COLOR     = PANEL9_INSIDE_COLOR

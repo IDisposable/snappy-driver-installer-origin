@@ -214,9 +214,6 @@ void Bundle::bundle_load(Bundle *pbundle)
 
 void Bundle::bundle_lowpriority()
 {
-    //Timers.stoponce(time_startup,time_total);
-    //Timers.print();
-
     MainWindow.redrawmainwnd();
 
     // write the driver packs stats to the log file
@@ -237,7 +234,7 @@ void Bundle::bundle_lowpriority()
 
     #ifdef USE_TORRENT
     if(Settings.flags&FLAG_CHECKUPDATES&&!Timers.get(time_chkupdate))
-        Updater->checkUpdates();
+        Updater->HardwareChanged();
     #endif
 
     Timers.stoponce(time_startup,time_total);

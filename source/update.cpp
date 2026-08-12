@@ -142,7 +142,7 @@ public:
     void ShowProgress(wchar_t *buf);
     void ShowPopup(Canvas &canvas);
 
-    void checkUpdates();
+    void HardwareChanged();
     void pause();
 
     void SetActiveTorrent(const int torrent);
@@ -561,7 +561,12 @@ bool UpdateDialog_t::PerformAutoMode()
             {
                 *buf=0;
                 ListView.GetItemText(i,0,buf,32);
-                bool chk=StrStrIW(buf,L"_Net_")||StrStrIW(buf,L"_LAN_")||StrStrIW(buf,L"_WLAN-WiFi_")||StrStrIW(buf,L"_WWAN-4G_")||StrStrIW(buf,L"Indexes");
+                bool chk=StrStrIW(buf,L"_Net_")||
+                         StrStrIW(buf,L"_LAN_")||
+                         StrStrIW(buf,L"_WLAN-WiFi_")||
+                         StrStrIW(buf,L"_WWAN-4G_")||
+                         StrStrIW(buf,L"_WWAN_")||
+                         StrStrIW(buf,L"Indexes");
                 ListView.SetCheckState(i,chk);
                 if(chk)cnt++;
             }
@@ -1272,7 +1277,12 @@ INT_PTR CALLBACK UpdateDialog_t::UpdateProcedure(HWND hwnd,UINT Message,WPARAM w
                     {
                         *buf=0;
                         ListView.GetItemText(i,0,buf,32);
-                        bool chk=StrStrIW(buf,L"_Net_")||StrStrIW(buf,L"_LAN_")||StrStrIW(buf,L"_WLAN-WiFi_")||StrStrIW(buf,L"_WWAN-4G_")||StrStrIW(buf,L"Indexes");
+                        bool chk=StrStrIW(buf,L"_Net_")||
+                                 StrStrIW(buf,L"_LAN_")||
+                                 StrStrIW(buf,L"_WLAN-WiFi_")||
+                                 StrStrIW(buf,L"_WWAN-4G_")||
+                                 StrStrIW(buf,L"_WWAN_")||
+                                 StrStrIW(buf,L"Indexes");
                         ListView.SetCheckState(i,chk);
                     }
                 default:
@@ -2510,18 +2520,22 @@ void UpdaterImp::RemoveOldDriverpacks(const wchar_t *ptr)
     }
 }
 
-void UpdaterImp::checkUpdates()
+void UpdaterImp::HardwareChanged()
 {
-    // called from main and scripts
+    // called from model.cpp after device scan
     #ifdef USE_TORRENT
-    Timers.start(time_chkupdate);
-    SetActiveTorrent(activetorrent);
-    Timers.stop(time_chkupdate);
-
-    if(Settings.flags&FLAG_AUTOUPDATE)
+    if(IsPaused())
     {
-        Settings.flags&=~FLAG_AUTOUPDATE;
-        WelcomeDownloadAll();
+        Log.print_torr("Torrent: Devices changed\n");
+        Timers.start(time_chkupdate);
+        SetActiveTorrent(activetorrent);
+        Timers.stop(time_chkupdate);
+
+        if(Settings.flags&FLAG_AUTOUPDATE)
+        {
+            Settings.flags&=~FLAG_AUTOUPDATE;
+            WelcomeDownloadAll();
+        }
     }
     #endif // USE_TORRENT
 }
@@ -2553,6 +2567,8 @@ void UpdaterImp::ShowProgress(wchar_t *buf)
     // this is the special seed mode of the drivers directory
     if(st.upload_mode&&!(st.state==libtorrent::torrent_status::state_t::checking_files))
         wsprintf(buf,STR(STR_DWN_SEEDING),num4,num3);
+    else if(IsInitializing)
+        wsprintf(buf,STR(STR_INITIALIZING));
     else if(IsMovingFiles)
         wsprintf(buf,STR(STR_TR_ST8));
     else if(IsFlushing)
@@ -2639,6 +2655,19 @@ UpdaterImp::~UpdaterImp()
  *
 */
 
+bool inline FilterTorrentAlert(std::string s)
+{
+    // true = show the alert
+    // false = hide the alert
+    bool ret=true;
+
+    if(s.find("state updates for 0 torrents")!=std::string::npos)ret=false;
+    if(s.find("partfile_read")!=std::string::npos)ret=false;
+    if( (s.find("url seed")!=std::string::npos) && (s.find("failed")!=std::string::npos) ) ret=false;
+    if( (s.find("file_open")!=std::string::npos) && (s.find("The system cannot find the file specified")!=std::string::npos) ) ret=false;
+    return ret;
+}
+
 unsigned int __stdcall UpdaterImp::thread_download(void *arg)
 {
     // this is the thread that handles the torrent session
@@ -2668,7 +2697,7 @@ unsigned int __stdcall UpdaterImp::thread_download(void *arg)
     {
 
         // let the torrent do it's thing
-        ThreadManager_event->wait(2000);
+        ThreadManager_event->wait(800);
 
         // i've been told to quit the thread
         if(ThreadManager_exitflag==THREAD_STATUS_ABORT)
@@ -2691,129 +2720,101 @@ unsigned int __stdcall UpdaterImp::thread_download(void *arg)
             hSession->post_torrent_updates();
             if(hSession->wait_for_alert(std::chrono::seconds(2)))
             {
+
+                // update the list view items progress
+                UpdateDialog.UpdateProgress();
+
+                // update the stats panel
+                UpdateDialog.UpdateTorrentStats();
+
+                // set the controls for the heart of the sun
+                UpdateDialog.SetControls();
+
                 // get a list of queued up alerts
                 hSession->pop_alerts(&alerts);
+
                 // iterate the returned alerts
                 for (libtorrent::alert const* a : alerts)
                 {
-                    // update the stats msg
-                    UpdateDialog.UpdateTorrentAlert(a->message());
-                    UpdateDialog.SetControls();
+                    // update the alert msg
                     std::string s=a->message();
-                    if( (s!="state updates for 0 torrents") &&
-                        (s.find("partfile_read")==std::string::npos) )
-                        Log.print_torr("Torrent Alert: %s\n",s.c_str());
+                    if(FilterTorrentAlert(s))
+                    {
+                        Log.print_torr("Torrent: %s\n",s.c_str());
+                        UpdateDialog.UpdateTorrentAlert(s);
+                    }
 
 
                     //
                     // Process specific alerts using alert_cast
                     //
 
-                    // state update
-                    if (lt::alert_cast<lt::state_update_alert>(a))
-                    {
-                        UpdateDialog.UpdateTorrentStats();
-                        // update the progress without repopulating the listview
-                        UpdateDialog.UpdateProgress();
-                    }
 
-                    else if (lt::alert_cast<lt::add_torrent_alert>(a))
+                    // torrent removed
+                    // comes from StartSpecialShare and StopSpecialShare
+                    if(lt::alert_cast<lt::torrent_removed_alert>(a))
                     {
-                        UpdateDialog.UpdateTorrentStats();
-                        // update the progress without repopulating the listview
-                        UpdateDialog.UpdateProgress();
-                    }
-
-
-                    // error
-                    else if(lt::alert_cast<lt::torrent_error_alert>(a))
-                    {
-                        if(auto* tc=lt::alert_cast<lt::torrent_error_alert>(a))
+                        //Log.print_torr("Torrent: removed\n");
+                        if(IsEndingShareMode)
                         {
-                            // i only want to react to the active torrent
-                            int tn=Updater1->GetTorrentNumFromAlert(tc);
-                            if(tn==activetorrent)
-                            {
-                                UpdateDialog.UpdateTorrentStats();
-                            }
+                            // reload the torrent from the file for normal operations
+                            Updater1->CreateTorrentFromFile(Torrents[activetorrent].FileName, Torrents[activetorrent].SavePath, Torrents[activetorrent].handle,false);
+                            // let the torrent catch up
+                            ThreadManager_event->wait(2000);
+                            UpdateDialog.Populate(true);
+                            UpdateDialog.SetControls();
+                            IsEndingShareMode=false;
                         }
                     }
 
 
-                    // torrent removed - hopefully this only comes from StopSpecialShare
-                    else if(lt::alert_cast<lt::torrent_removed_alert>(a))
-                    {
-                        if(auto* tc=lt::alert_cast<lt::torrent_removed_alert>(a))
-                        {
-                            // i only want to react to the active torrent
-                            int tn=Updater1->GetTorrentNumFromAlert(tc);
-                            if(tn==activetorrent)
-                            {
-                                // reload the torrent from the file
-                                Updater1->CreateTorrentFromFile(Torrents[0].FileName, Torrents[0].SavePath, Torrents[0].handle,false);
-                                // let the torrent catch up
-                                ThreadManager_event->wait(2000);
-                                UpdateDialog.Populate(true);
-                                UpdateDialog.SetControls();
-                                IsEndingShareMode=false;
-                            }
-                        }
-                    }
+                    // my current theory is when a torrent is added, libtorrent will
+                    // put it in the state in which it will begin when it gets started
+                    // so, it will look for resume data. if found it will put the torrent
+                    // state in checking, if not then it will put the torrent
+                    // state in downloading, *then* when the torrent is started it
+                    // will "resume" checking or downloading until done, then
+                    // move to the next state
+                    // added -> checking -> downloading -> finished/seeding
 
-                    // torrent paused
-                    else if(lt::alert_cast<lt::torrent_paused_alert>(a))
+                    else if(lt::alert_cast<lt::torrent_checked_alert>(a))
                     {
-                        if(auto* tc=lt::alert_cast<lt::torrent_paused_alert>(a))
-                        {
-                            // i only want to react to the active torrent
-                            int tn=Updater1->GetTorrentNumFromAlert(tc);
-                            if(tn==activetorrent)
-                            {
-                                Updater1->ProcessFinishedTorrent();
-                                ThreadManager_exitflag=THREAD_STATUS_WAITING;
-                            }
-                        }
+                        //Log.print_torr("Torrent: finished checking\n");
                     }
 
 
                     // torrent finished
-                    // might be finished checking files
+                    // it's unclear exactly what it's finished doing
+                    // switches from being a downloader to a seeder
                     else if(lt::alert_cast<lt::torrent_finished_alert>(a))
                     {
-                        if(auto* tc=lt::alert_cast<lt::torrent_finished_alert>(a))
-                        {
-                            // i only want to react to the active torrent
-                            int tn=Updater1->GetTorrentNumFromAlert(tc);
-                            if(tn==activetorrent)
-                            {
-                                UpdateDialog.UpdatePromptMessage();
-                                if(tn==0)
-                                    Updater1->FlushTorrentCache(tn);
-                                UpdateDialog.UpdateTorrentStats();
-                            }
-                        }
+                        //Log.print_torr("Torrent: finished\n");
+                        Updater1->FlushTorrentCache(activetorrent);
                     }
+
 
                     // cache flushed
                     else if(lt::alert_cast<lt::cache_flushed_alert>(a))
                     {
-                        if(auto* tc=lt::alert_cast<lt::cache_flushed_alert>(a))
+                        //Log.print_torr("Torrent: finished flushing\n");
+                        if(IsFlushing)
                         {
-                            // i only want to react to the active torrent
-                            int tn=Updater1->GetTorrentNumFromAlert(tc);
-                            if(tn==activetorrent)
-                            {
-                                if(IsFlushing)
-                                {
-                                    // if checkbox is checked then leave the torrent active
-                                    if(Settings.flags&FLAG_KEEPSEEDING)
-                                        Torrents[activetorrent].handle.resume();
-                                    else
-                                        Torrents[activetorrent].handle.pause();
-                                }
-                                IsFlushing=false;
-                            }
+                            // if checkbox is checked then leave the torrent active
+                            if(Settings.flags&FLAG_KEEPSEEDING)
+                                Torrents[activetorrent].handle.resume();
+                            else
+                                Torrents[activetorrent].handle.pause();
                         }
+                        IsFlushing=false;
+                    }
+
+
+                    // torrent paused
+                    else if(lt::alert_cast<lt::torrent_paused_alert>(a))
+                    {
+                        //Log.print_torr("Torrent: paused\n");
+                        Updater1->ProcessFinishedTorrent();
+                        ThreadManager_exitflag=THREAD_STATUS_WAITING;
                     }
 
 
@@ -3080,7 +3081,6 @@ int UpdaterImp::CreateTorrentFromFile(std::string FileName, std::string SavePath
         return 0;
     }
 
-    //handle.pause();
     std::shared_ptr<const libtorrent::torrent_info> info=handle.torrent_file();
 
     // set everything to 'no download' in anticipation of user
@@ -3204,7 +3204,7 @@ void UpdaterImp::StartSpecialShare()
     std::shared_ptr<const libtorrent::torrent_info> info=CurrentTorrent.torrent_file();
     const libtorrent::file_storage& fs = info->files();
 
-    Log.print_con("Torrent: start share mode");
+    Log.print_con("Torrent: start share mode\n");
     IsStartingShareMode=true;
     UpdateDialog.UpdatePromptMessage();
     UpdateDialog.SetControls();
@@ -3353,7 +3353,6 @@ void UpdaterImp::StartTorrent()
 void UpdaterImp::StopTorrent()
 {
     // called from UpdateDialog stop button
-    // and main form download slot thing
 
     #ifdef USE_TORRENT
 
@@ -3872,45 +3871,124 @@ void UpdaterImp::WelcomeDownloadAll()
 {
     // called from the Welcome dialog
 
-    #ifdef USE_TORRENT
+
+    int count=0;
 
     if(!hSession)
         return;
     libtorrent::torrent_handle CurrentTorrent=Torrents[activetorrent].handle;
     if(!CurrentTorrent.is_valid())
         return;
-    Settings.flags&=~FLAG_AUTOUPDATE;
-    OpenDialog(1);
-    #endif // USE_TORRENT
+
+    std::shared_ptr<const libtorrent::torrent_info> info=CurrentTorrent.torrent_file();
+    const libtorrent::file_storage& fs = info->files();
+    libtorrent::torrent_status status=CurrentTorrent.status(status_flags_t::all());
+
+    // set priority for all drivers
+    for(int i=0;i<info->num_files();i++)
+    {
+        // reset
+        CurrentTorrent.file_priority(i,0);
+        // set drivers
+        std::string fp=fs.file_path(i);
+        if(StrStrIA(fp.c_str(),"drivers\\"))
+        {
+            CurrentTorrent.file_priority(i,1);
+            count++;
+        }
+    }
+
+    // start downloading
+    if(count)
+    {
+        Log.print_con("Torrent %d: resuming, %d files to get...\n",activetorrent,count);
+        CurrentTorrent.resume();
+        TorrentStartTime=System.GetTickCountWr();
+    }
+
 }
 
 void UpdaterImp::WelcomeDownloadNetwork()
 {
     // called from the Welcome dialog
-    #ifdef USE_TORRENT
+
+    int count=0;
 
     if(!hSession)
         return;
     libtorrent::torrent_handle CurrentTorrent=Torrents[activetorrent].handle;
     if(!CurrentTorrent.is_valid())
         return;
-    OpenDialog(2);
-    #endif // USE_TORRENT
+
+    std::shared_ptr<const libtorrent::torrent_info> info=CurrentTorrent.torrent_file();
+    const libtorrent::file_storage& fs = info->files();
+    libtorrent::torrent_status status=CurrentTorrent.status(status_flags_t::all());
+
+    // set priority for all network drivers
+    for(int i=0;i<info->num_files();i++)
+    {
+        // reset
+        CurrentTorrent.file_priority(i,0);
+        // set network drivers
+        std::string fp=fs.file_path(i);
+        if(  StrStrIA(fp.c_str(),"_Net_")||
+             StrStrIA(fp.c_str(),"_LAN_")||
+             StrStrIA(fp.c_str(),"_WLAN-WiFi_")||
+             StrStrIA(fp.c_str(),"_WWAN-4G_")||
+             StrStrIA(fp.c_str(),"_WWAN_")  )
+        {
+            CurrentTorrent.file_priority(i,1);
+            count++;
+        }
+    }
+
+    // start downloading
+    if(count)
+    {
+        Log.print_con("Torrent %d: resuming, %d files to get...\n",activetorrent,count);
+        CurrentTorrent.resume();
+        TorrentStartTime=System.GetTickCountWr();
+    }
 }
 
 void UpdaterImp::WelcomeDownloadIndexes()
 {
     // called from the Welcome dialog
 
-    #ifdef USE_TORRENT
+    int count=0;
 
     if(!hSession)
         return;
     libtorrent::torrent_handle CurrentTorrent=Torrents[activetorrent].handle;
     if(!CurrentTorrent.is_valid())
         return;
-    OpenDialog(3);
-    #endif // USE_TORRENT
+
+    std::shared_ptr<const libtorrent::torrent_info> info=CurrentTorrent.torrent_file();
+    const libtorrent::file_storage& fs = info->files();
+    libtorrent::torrent_status status=CurrentTorrent.status(status_flags_t::all());
+
+    // set priority for all indexes
+    for(int i=0;i<info->num_files();i++)
+    {
+        // reset
+        CurrentTorrent.file_priority(i,0);
+        // set indexes
+        std::string fp=fs.file_path(i);
+        if(StrStrIA(fp.c_str(),"indexes\\"))
+        {
+            CurrentTorrent.file_priority(i,2);
+            count++;
+        }
+    }
+
+    // start downloading
+    if(count)
+    {
+        Log.print_con("Torrent %d: resuming, %d files to get...\n",activetorrent,count);
+        CurrentTorrent.resume();
+        TorrentStartTime=System.GetTickCountWr();
+    }
+
 }
 
 

@@ -56,23 +56,20 @@ public:
     virtual void ShowProgress(wchar_t *buf)=0;
     virtual void ShowPopup(Canvas &canvas)=0;
 
-    virtual void checkUpdates()=0;
+    virtual void HardwareChanged()=0;
     virtual void pause()=0;
 
-//    virtual bool isTorrentReady()=0;
     virtual bool IsPaused()=0;
     virtual bool IsUpdateCompleted()=0;
     virtual bool IsSeedingDrivers()=0;
 
     virtual int  Populate(bool reload)=0;
-//    virtual void SetFilePriority(const wchar_t *name,int pri)=0;
     virtual void SetLimits()=0;
     virtual void OpenDialog(int automode=0)=0;
     virtual void StartSpecialShare()=0;
     virtual void StopSpecialShare()=0;
     virtual void StopTorrent()=0;
     virtual void SetActiveTorrent(const int torrent)=0;
-//    virtual bool NextTorrent()=0;
     virtual void StartTorrent()=0;
     virtual void StartInstallDownload(std::vector<std::wstring> filenames)=0;
     virtual void EndInstallDownload()=0;

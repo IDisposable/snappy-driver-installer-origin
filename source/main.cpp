@@ -1181,7 +1181,14 @@ void MainWindow_t::selectDrpDir()
 void invalidate(int v)
 {
     invaidate_set|=v;
-    deviceupdate_event->raise();
+    try
+    {
+        deviceupdate_event->raise();
+    }
+    catch(...)
+    {
+        std::cerr << "Caught an unknown exception.\n";
+    }
 }
 //}
 

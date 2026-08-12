@@ -7,11 +7,16 @@ www.glenn.delahoy.com
 
 Change Log
 
+Version 2.0.1.878
+* Minor bug fixes
+* Tinkering with the torrent timing
+* Welcome options won't open Updates dialog
+
 Version 2.0.0.875
 11 August 2026
  
 I've completely deconstructed and rewritten the toolchain build 
-process so I can update the tools and dependant libraries in a more 
+process so I can update the tools and dependent libraries in a more 
 controlled fashion. Jumping ahead 8 years in the libtorrent-rasterbar 
 code and 5 years in the boost code inevitably resulted in a large 
 chunk of the SDIO code base being broken. As a result, much code, 
@@ -54,7 +59,6 @@ Version 1.18.0.830
 * Updated markers
 * Updated languages
 * Added torrent min/max outgoing port
-
 
 Version 1.17.8.829
 07 March 2026
