@@ -846,7 +846,8 @@ static INT_PTR CALLBACK DialogProc1(HWND hwnd,UINT msg,WPARAM wp,LPARAM lp)
                 SetWindowText(GetDlgItem(data.pages[1],IDD_P2_DOWN),STR(STR_OPTION_MAX_DOWNLOAD));
                 SetWindowText(GetDlgItem(data.pages[1],IDD_P2_UP),STR(STR_OPTION_MAX_UPLOAD));
                 SetWindowText(GetDlgItem(data.pages[1],IDD_P2_UPD),STR(STR_OPTION_CHECKUPDATES));
-                SetWindowText(GetDlgItem(data.pages[1],ID_UPD_ONLYUPDATES),STR(STR_UPD_ONLYUPDATES));
+                SetWindowText(GetDlgItem(data.pages[1],IDD_P2_ONLYUPDATES),STR(STR_OPTION_ONLYUPDATES));
+                SetWindowText(GetDlgItem(data.pages[1],IDD_P2_TORRENTALERTS),STR(STR_OPTION_TORRENTALERTS));
 
                 SetWindowText(GetDlgItem(data.pages[2],IDD_P3_DIR1),STR(STR_OPTION_DIR_DRIVERS));
                 SetWindowText(GetDlgItem(data.pages[2],IDD_P3_DIR2),STR(STR_OPTION_DIR_INDEXES));
@@ -910,7 +911,8 @@ static INT_PTR CALLBACK DialogProc1(HWND hwnd,UINT msg,WPARAM wp,LPARAM lp)
                 #endif
 
                 if(!(Settings.flags&FLAG_CHECKUPDATES))SendMessage(GetDlgItem(data.pages[1],IDD_P2_UPD),BM_SETCHECK,BST_CHECKED,0);
-                if(Settings.flags&FLAG_ONLYUPDATES)SendMessage(GetDlgItem(data.pages[1],ID_UPD_ONLYUPDATES),BM_SETCHECK,BST_CHECKED,0);
+                if(Settings.flags&FLAG_ONLYUPDATES)SendMessage(GetDlgItem(data.pages[1],IDD_P2_ONLYUPDATES),BM_SETCHECK,BST_CHECKED,0);
+                if(Settings.flags&FLAG_TORRENTALERTS)SendMessage(GetDlgItem(data.pages[1],IDD_P2_TORRENTALERTS),BM_SETCHECK,BST_CHECKED,0);
 
                 SetWindowText(GetDlgItem(data.pages[2],IDD_P3_DIR1E),Settings.drp_dir);
                 SetWindowText(GetDlgItem(data.pages[2],IDD_P3_DIR2E),Settings.index_dir);
@@ -1004,10 +1006,15 @@ static INT_PTR CALLBACK DialogProc1(HWND hwnd,UINT msg,WPARAM wp,LPARAM lp)
                     else
                         Settings.flags&=~FLAG_CHECKUPDATES;
 
-                    if(SendMessage(GetDlgItem(data.pages[1],ID_UPD_ONLYUPDATES),BM_GETCHECK,0,0))
+                    if(SendMessage(GetDlgItem(data.pages[1],IDD_P2_ONLYUPDATES),BM_GETCHECK,0,0))
                         Settings.flags|=FLAG_ONLYUPDATES;
                     else
                         Settings.flags&=~FLAG_ONLYUPDATES;
+
+                    if(SendMessage(GetDlgItem(data.pages[1],IDD_P2_TORRENTALERTS),BM_GETCHECK,0,0))
+                        Settings.flags|=FLAG_TORRENTALERTS;
+                    else
+                        Settings.flags&=~FLAG_TORRENTALERTS;
 
 
                     GetWindowText(GetDlgItem(data.pages[2],IDD_P3_DIR1E),Settings.drp_dir,BUFLEN);
@@ -1773,7 +1780,7 @@ LRESULT MainWindow_t::WndProcMain(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lP
                 Settings.savedscale=Settings.scale;
                 PostMessage(hwnd,WM_UPDATETHEME,0,0);
             }
-            if(ctrl_down&&wParam==L'Z'){Log.print_con("\n*************\n");}
+            if(ctrl_down&&wParam==L'Z'){Log.print_con("\n************* %s\n",System.getDateTimeStr().c_str());}
             if(ctrl_down&&wParam==L'A'){SelectAllCommand c;c.LeftClick();}
             if(ctrl_down&&wParam==L'N'){SelectNoneCommand c;c.LeftClick();}
             if(ctrl_down&&wParam==L'I'){InstallCommand c;c.LeftClick();}
