@@ -444,13 +444,19 @@ void Settings_t::loadIgnoreList()
 {
     FILE *f;
     wchar_t Buff[BUFLEN];
+    wchar_t hostname[BUFLEN];
+    wchar_t filename[BUFLEN];
+
+    DWORD sz=BUFLEN;
+    GetComputerName(hostname,&sz);
+    wsprintf(filename,L"hwid-ignore_%s.txt",hostname);
+    Log.print_con("Opening '%S'\n",filename);
 
     ignoreList.clear();
-    Log.print_con("Opening '%S'\n",L"hwid-ignore.txt");
-    f=_wfopen(L"hwid-ignore.txt",L"rt");
+    f=_wfopen(filename,L"rt");
     if(!f)
     {
-        Log.print_err("Failed to open '%S'\n",Buff);
+        Log.print_err("Failed to open '%S'\n",filename);
         return;
     }
 
@@ -469,12 +475,19 @@ void Settings_t::loadIgnoreList()
 
 void Settings_t::addIgnoreList(const wchar_t *hwid)
 {
+    wchar_t hostname[BUFLEN];
+    wchar_t filename[BUFLEN];
+
+    DWORD sz=BUFLEN;
+    GetComputerName(hostname,&sz);
+    wsprintf(filename,L"hwid-ignore_%s.txt",hostname);
+    std::string sfilename=CopyWcharToUtf8String(filename);
+    Log.print_con("Writing '%s'\n",sfilename.c_str());
+
     // called from driver list context menu
     ignoreList.push_back(hwid);
 
-    Log.print_con("Writing '%S'\n",L"hwid-ignore.txt");
-
-    std::wofstream f("hwid-ignore.txt");
+    std::wofstream f(sfilename);
 
     if (f.is_open())
     {

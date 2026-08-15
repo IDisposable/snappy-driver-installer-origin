@@ -7,10 +7,19 @@ www.glenn.delahoy.com
 
 Change Log
 
+Version 2.0.2.884
+16 August 2026
+* Minor bug fixes and code cleanups
+* Welcome buttons will only download what you don't already have
+* Added option to show torrent alerts on the Updates dialog
+* Added host name to hwid-ignore file name
+
 Version 2.0.1.878
+13 August 2026
 * Minor bug fixes
 * Tinkering with the torrent timing
 * Welcome options won't open Updates dialog
+* Added Heavy Metal theme
 
 Version 2.0.0.875
 11 August 2026

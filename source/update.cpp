@@ -63,7 +63,6 @@ using namespace libtorrent;
 // UpdateDialog
 class UpdateDialog_t
 {
-    static const int cxn[];
     static WNDPROC wpOrigButtonProc;
     static int bMouseInWindow;
     static HWND hUpdate;
@@ -204,8 +203,7 @@ enum THREAD_STATUS
 };
 
 // UpdateDialog (static)
-// listview column widths
-const int UpdateDialog_t::cxn[]={260,60,44,80,80,70};
+
 HWND UpdateDialog_t::hUpdate=nullptr;
 WNDPROC UpdateDialog_t::wpOrigButtonProc;
 int UpdateDialog_t::bMouseInWindow=0;
@@ -237,7 +235,6 @@ int Updater_t::outgoingport_max=0;
 int Updater_t::downlimit=0;
 int Updater_t::uplimit=0;
 int Updater_t::connections=0;
-int Updater_t::torrentalerts=0;
 int UpdaterImp::ThreadManager_exitflag;
 bool UpdaterImp::finishedupdating;
 bool UpdaterImp::InstallDownloadRunning;
@@ -247,16 +244,23 @@ ThreadAbs *UpdaterImp::thandle_download=nullptr;
 
 
 
-//{ ListView
+//
+// LIST VIEW
+//
+
+
 class ListView_t
 {
 public:
     HWND hListg;
+    std::vector<int>ColWidths;
 
-    void init(HWND hwnd)
+    void init(HWND hwnd,int id,std::vector<int> w)
     {
-        hListg=GetDlgItem(hwnd,ID_UPD_LIST);
+        // list
+        hListg=GetDlgItem(hwnd,id);
         SendMessage(hListg,LVM_SETEXTENDEDLISTVIEWSTYLE,0,LVS_EX_CHECKBOXES|LVS_EX_FULLROWSELECT|LVS_EX_DOUBLEBUFFER);
+        ColWidths=w;
     }
     void close()
     {
@@ -378,7 +382,7 @@ public:
 };
 ListView_t ListView;
 
-//}
+
 
 
 /*
@@ -482,11 +486,9 @@ void UpdateDialog_t::InitTexts()
     SetWindowText(GetDlgItem(hUpdate,ID_UPD_STREAM_SESSDL),STR(STR_UPD_STREAM_SESSDL));
     SetWindowText(GetDlgItem(hUpdate,ID_UPD_STREAM_SESSUL),STR(STR_UPD_STREAM_SESSUL));
     SetWindowText(GetDlgItem(hUpdate,ID_UPD_STREAM_SEEDS),STR(STR_UPD_STREAM_SEEDS));
-    if(Updater->torrentalerts)
-        SetWindowText(GetDlgItem(hUpdate,ID_UPD_STREAM_ALERT),STR(STR_UPD_STREAM_ALERT));
-    else
-        SetWindowText(GetDlgItem(hUpdate,ID_UPD_STREAM_ALERT),L"");
-
+    // show or hide the control according to options
+    ShowWindow(GetDlgItem(hUpdate,ID_UPD_STREAM_ALERT),(Settings.flags&FLAG_TORRENTALERTS)?SW_SHOW:SW_HIDE);
+    UpdateTorrentAlert("");
 
     SetWindowText(GetDlgItem(hUpdate,ID_UPD_OPTIONS),STR(STR_UPD_OPTIONS));
     SetWindowText(GetDlgItem(hUpdate,ID_UPD_ONLYUPDATES),STR(STR_UPD_ONLYUPDATES));
@@ -622,7 +624,7 @@ void UpdateDialog_t::ResizeForm(int width, int height)
     // list view
     hwnd=GetDlgItem(hUpdate,ID_UPD_LIST);
     // these are the number from the resources.rc file
-    rc.left=5;rc.top=5;rc.right=rc.left+429;rc.bottom=rc.top+200;
+    rc.left=5;rc.top=5;rc.right=rc.left+424;rc.bottom=rc.top+200;
     if(MapDialogRect(hUpdate,&rc))
     {
         LONG x=rc.left;                       LONG y=rc.top;
@@ -634,7 +636,7 @@ void UpdateDialog_t::ResizeForm(int width, int height)
 
     // progress bar
     hwnd=GetDlgItem(hUpdate,ID_UPD_PROGRESSBAR);
-    rc.left=5;rc.top=208;rc.right=rc.left+429;rc.bottom=rc.top+21;
+    rc.left=5;rc.top=208;rc.right=rc.left+424;rc.bottom=rc.top+21;
     if(MapDialogRect(hUpdate,&rc))
     {
         LONG x=rc.left;                       LONG y=rc.top+height-origHeight;
@@ -644,7 +646,7 @@ void UpdateDialog_t::ResizeForm(int width, int height)
 
     // user prompt
     hwnd=GetDlgItem(hUpdate,ID_UPD_PROMPT);
-    rc.left=15;rc.top=212;rc.right=rc.left+419;rc.bottom=rc.top+14;
+    rc.left=15;rc.top=212;rc.right=rc.left+414;rc.bottom=rc.top+14;
     if(MapDialogRect(hUpdate,&rc))
     {
         LONG x=rc.left;                       LONG y=rc.top+height-origHeight;
@@ -736,9 +738,13 @@ void UpdateDialog_t::ResizeForm(int width, int height)
 
     // LEFT SIDE
 
+    // this spreads the text lines a little when the alert control is off
+    int StatsY=316;
+    int StatsYInc=(Settings.flags&FLAG_TORRENTALERTS)?10:12;
+
     // stream stats box
     hwnd=GetDlgItem(hUpdate,ID_UPD_STREAM_STATS);
-    rc.left=5;rc.top=316;rc.right=rc.left+208;rc.bottom=rc.top+91;
+    rc.left=5;rc.top=StatsY;rc.right=rc.left+208;rc.bottom=rc.top+91;
     if(MapDialogRect(hUpdate,&rc))
     {
         LONG x=rc.left;                       LONG y=rc.top+height-origHeight;
@@ -748,7 +754,8 @@ void UpdateDialog_t::ResizeForm(int width, int height)
 
     // stream state
     hwnd=GetDlgItem(hUpdate,ID_UPD_STREAM_STATE);
-    rc.left=9;rc.top=326;rc.right=rc.left+196;rc.bottom=rc.top+11;
+    StatsY+=StatsYInc;
+    rc.left=9;rc.top=StatsY;rc.right=rc.left+196;rc.bottom=rc.top+11;
     if(MapDialogRect(hUpdate,&rc))
     {
         LONG x=rc.left;                       LONG y=rc.top+height-origHeight;
@@ -758,7 +765,8 @@ void UpdateDialog_t::ResizeForm(int width, int height)
 
     // stream wanted
     hwnd=GetDlgItem(hUpdate,ID_UPD_STREAM_COMPLETE);
-    rc.left=9;rc.top=336;rc.right=rc.left+196;rc.bottom=rc.top+11;
+    StatsY+=StatsYInc;
+    rc.left=9;rc.top=StatsY;rc.right=rc.left+196;rc.bottom=rc.top+11;
     if(MapDialogRect(hUpdate,&rc))
     {
         LONG x=rc.left;                       LONG y=rc.top+height-origHeight;
@@ -768,7 +776,8 @@ void UpdateDialog_t::ResizeForm(int width, int height)
 
     // stream remaining
     hwnd=GetDlgItem(hUpdate,ID_UPD_STREAM_TIME);
-    rc.left=9;rc.top=346;rc.right=rc.left+196;rc.bottom=rc.top+11;
+    StatsY+=StatsYInc;
+    rc.left=9;rc.top=StatsY;rc.right=rc.left+196;rc.bottom=rc.top+11;
     if(MapDialogRect(hUpdate,&rc))
     {
         LONG x=rc.left;                       LONG y=rc.top+height-origHeight;
@@ -778,7 +787,8 @@ void UpdateDialog_t::ResizeForm(int width, int height)
 
     // stream sessdl
     hwnd=GetDlgItem(hUpdate,ID_UPD_STREAM_SESSDL);
-    rc.left=9;rc.top=356;rc.right=rc.left+196;rc.bottom=rc.top+11;
+    StatsY+=StatsYInc;
+    rc.left=9;rc.top=StatsY;rc.right=rc.left+196;rc.bottom=rc.top+11;
     if(MapDialogRect(hUpdate,&rc))
     {
         LONG x=rc.left;                       LONG y=rc.top+height-origHeight;
@@ -788,7 +798,8 @@ void UpdateDialog_t::ResizeForm(int width, int height)
 
     // stream sessul
     hwnd=GetDlgItem(hUpdate,ID_UPD_STREAM_SESSUL);
-    rc.left=9;rc.top=366;rc.right=rc.left+196;rc.bottom=rc.top+11;
+    StatsY+=StatsYInc;
+    rc.left=9;rc.top=StatsY;rc.right=rc.left+196;rc.bottom=rc.top+11;
     if(MapDialogRect(hUpdate,&rc))
     {
         LONG x=rc.left;                       LONG y=rc.top+height-origHeight;
@@ -798,7 +809,8 @@ void UpdateDialog_t::ResizeForm(int width, int height)
 
     // stream seeds
     hwnd=GetDlgItem(hUpdate,ID_UPD_STREAM_SEEDS);
-    rc.left=9;rc.top=376;rc.right=rc.left+196;rc.bottom=rc.top+11;
+    StatsY+=StatsYInc;
+    rc.left=9;rc.top=StatsY;rc.right=rc.left+196;rc.bottom=rc.top+11;
     if(MapDialogRect(hUpdate,&rc))
     {
         LONG x=rc.left;                       LONG y=rc.top+height-origHeight;
@@ -808,10 +820,11 @@ void UpdateDialog_t::ResizeForm(int width, int height)
 
     // stream alert
     hwnd=GetDlgItem(hUpdate,ID_UPD_STREAM_ALERT);
-    rc.left=9;rc.top=386;rc.right=rc.left+196;rc.bottom=rc.top+19;
+    StatsY+=StatsYInc;
+    rc.left=9;rc.top=StatsY;rc.right=rc.left+196;rc.bottom=rc.top+19;
     if(MapDialogRect(hUpdate,&rc))
     {
-        LONG x=rc.left;                       LONG y=rc.top+height-origHeight;
+        LONG x=rc.left;                            LONG y=rc.top+height-origHeight;
         LONG w=rc.right-rc.left+width-origWidth;   LONG h=rc.bottom-rc.top;
         MoveWindow(hwnd, x, y, w, h, TRUE);
     }
@@ -1093,13 +1106,14 @@ INT_PTR CALLBACK UpdateDialog_t::UpdateProcedure(HWND hwnd,UINT Message,WPARAM w
             if(r.top<0)r.top=0;
             SetWindowPos(hwnd,NULL,r.left,r.top,0,0, SWP_NOSIZE | SWP_NOZORDER);
 
+            // list view
             setMirroring(hwnd);
-            ListView.init(hwnd);
+            ListView.init(hwnd,ID_UPD_LIST,std::vector<int>{260,60,44,80,80,70});
             lvc.mask=LVCF_FMT|LVCF_WIDTH|LVCF_SUBITEM|LVCF_TEXT;
             lvc.pszText=const_cast<wchar_t *>(L"");
             for(i=0;i<6;i++)
             {
-                lvc.cx=cxn[i];
+                lvc.cx=ListView.ColWidths[i];
                 lvc.iSubItem=i;
                 lvc.fmt=i?LVCFMT_RIGHT:LVCFMT_LEFT;
                 ListView.InsertColumn(i,&lvc);
@@ -1694,16 +1708,13 @@ void UpdateDialog_t::UpdatePromptMessage()
 
 void UpdateDialog_t::UpdateTorrentAlert(const std::string msg)
 {
-    if(Updater->torrentalerts)
-    {
-        // the torrent alert status message at the bottom of the stats section
-        wchar_t buf[BUFLEN];
+    // the torrent alert status message at the bottom of the stats section
+    wchar_t buf[BUFLEN];
 
-        std::wstring ws1=STR(STR_UPD_STREAM_ALERT);
-        std::wstring ws2=utf8_to_wstring(msg);
-        wsprintf(buf,ws1.c_str(),ws2.c_str());
-        SetWindowText(GetDlgItem(UpdateDialog.hUpdate,ID_UPD_STREAM_ALERT),buf);
-    }
+    std::wstring ws1=STR(STR_UPD_STREAM_ALERT);
+    std::wstring ws2=utf8_to_wstring(msg);
+    wsprintf(buf,ws1.c_str(),ws2.c_str());
+    SetWindowText(GetDlgItem(UpdateDialog.hUpdate,ID_UPD_STREAM_ALERT),buf);
 }
 
 void UpdateDialog_t::UpdateTorrentStats()
@@ -2301,7 +2312,6 @@ void UpdateDialog_t::SetControls()
     EnableWindow(GetDlgItem(hUpdate, ID_UPD_CHECKNETWORK),IsPaused);
     EnableWindow(GetDlgItem(hUpdate, ID_UPD_CHECKTHISPC),IsPaused);
 
-    //EnableWindow(GetDlgItem(hUpdate, ID_UPD_OPTIONS),IsPaused);
     EnableWindow(GetDlgItem(hUpdate, ID_UPD_ONLYUPDATES),IsPaused && System.FileExists2(spec));
     EnableWindow(GetDlgItem(hUpdate, ID_UPD_KEEPSEEDING), !CurrentTorrent.status().upload_mode);
 
@@ -2692,7 +2702,7 @@ unsigned int __stdcall UpdaterImp::thread_download(void *arg)
     // main thread loop
     //
 
-    Log.print_con("Torrent thread started\n");
+    Log.print_torr("Torrent thread started\n");
     while(true)
     {
 
@@ -2828,7 +2838,7 @@ unsigned int __stdcall UpdaterImp::thread_download(void *arg)
     } // thread loop - keep looping until program ends
 
 
-    Log.print_con("Torrent thread ended\n");
+    Log.print_torr("Torrent thread ended\n");
     return 0;
 }
 
@@ -2904,14 +2914,14 @@ void UpdaterImp::StartTorrentSession()
         // new settings can be applied to an existing session by using:
         // hSession->apply_settings(pack);
 
-        Log.print_con("Torrent session started\n");
-        Log.print_con("Listen port: %d (%s)\nDownload limit: %dKb\nUpload limit: %dKb\n",
+        Log.print_torr("Torrent session started\n");
+        Log.print_torr("Listen port: %d (%s)\nDownload limit: %dKb\nUpload limit: %dKb\n",
                 torrentport,hSession->is_listening()?"connected":"disconnected",
                 downlimit,uplimit);
         if(outgoingport_min)
         {
-            Log.print_con("Min outgoing port: %d\n",outgoingport_min);
-            Log.print_con("Max outgoing port: %d\n",outgoingport_max);
+            Log.print_torr("Min outgoing port: %d\n",outgoingport_min);
+            Log.print_torr("Max outgoing port: %d\n",outgoingport_max);
         }
     }
     #endif // USE_TORRENT
@@ -3077,7 +3087,7 @@ int UpdaterImp::CreateTorrentFromFile(std::string FileName, std::string SavePath
     {
         if(emptydrp) manager_g->itembar_settext(SLOT_NODRIVERS,1);
         Log.print_err("ERROR: Torrent is not valid\n");
-        Log.print_con("FAILED\n");
+        Log.print_torr("FAILED\n");
         return 0;
     }
 
@@ -3143,7 +3153,7 @@ void UpdaterImp::StartInstallDownload(std::vector<std::wstring> filenames)
                 {
                     // found the file - set the priority to 1
                     CurrentTorrent.file_priority(i,1);
-                    Log.print_con("Torrent %d: req %s\n",activetorrent,f.c_str());
+                    Log.print_torr("Torrent %d: req %s\n",activetorrent,f.c_str());
                     foundcount++;
                 }
             }
@@ -3152,7 +3162,7 @@ void UpdaterImp::StartInstallDownload(std::vector<std::wstring> filenames)
         // see if i found the files in the torrent
         if(!foundcount)
         {
-            Log.print_con("Torrent %d: requested files not found\n",activetorrent);
+            Log.print_torr("Torrent %d: requested files not found\n",activetorrent);
         }
         else
         {
@@ -3204,7 +3214,7 @@ void UpdaterImp::StartSpecialShare()
     std::shared_ptr<const libtorrent::torrent_info> info=CurrentTorrent.torrent_file();
     const libtorrent::file_storage& fs = info->files();
 
-    Log.print_con("Torrent: start share mode\n");
+    Log.print_torr("Torrent: start share mode\n");
     IsStartingShareMode=true;
     UpdateDialog.UpdatePromptMessage();
     UpdateDialog.SetControls();
@@ -3263,7 +3273,7 @@ void UpdaterImp::StartSpecialShare()
 
     if(cnt==0)
     {
-        Log.print_con(", nothing to share\n");
+        Log.print_torr(", nothing to share\n");
         StopSpecialShare();
         IsStartingShareMode=false;
         return;
@@ -3272,7 +3282,7 @@ void UpdaterImp::StartSpecialShare()
     // let the torrent catch up
     ThreadManager_event->wait(2000);
 
-    Log.print_con(", %d drivers to share\n",cnt);
+    Log.print_torr(", %d drivers to share\n",cnt);
 
     // resume first then set seeding mode
     CurrentTorrent.set_upload_mode(true);
@@ -3296,7 +3306,7 @@ void UpdaterImp::StopSpecialShare()
     if(!CurrentTorrent.is_valid())
         return;
 
-    Log.print_con("Torrent: stop share mode\n");
+    Log.print_torr("Torrent: stop share mode\n");
     IsEndingShareMode=true;
     UpdateDialog.UpdatePromptMessage();
     UpdateDialog.SetControls();
@@ -3356,8 +3366,7 @@ void UpdaterImp::StopTorrent()
 
     #ifdef USE_TORRENT
 
-    if(!hSession)
-        return;
+    if(!hSession)return;
     libtorrent::torrent_handle CurrentTorrent=Torrents[activetorrent].handle;
 
     if(CurrentTorrent.is_valid())
@@ -3523,7 +3532,7 @@ void UpdaterImp::FlushTorrentCache(const int torrent_num)
     // which will call ProcessFinishedTorrent
     // etc ....
 
-    Log.print_con("Torrent %d: flushing cache...\n",torrent_num);
+    Log.print_torr("Torrent %d: flushing cache...\n",torrent_num);
 
     #ifdef USE_TORRENT
     if(Torrents[torrent_num].handle.is_valid())
@@ -3631,7 +3640,7 @@ int UpdaterImp::MoveNewFiles()
                 {
                     SourceFile=utf8_to_wstring("update\\"+fp);
                     DestFile=utf8_to_wstring(fp.substr(fp.find("\\")+1));
-                    Log.print_con("Move: %S\n",DestFile.c_str());
+                    Log.print_torr("Move: %S\n",DestFile.c_str());
                     if(!System.FileExists(SourceFile.c_str()))
                         Log.print_err("File not found: %S\n",SourceFile.c_str());
                     else if(!System.MoveFile(SourceFile,DestFile))
@@ -3680,7 +3689,7 @@ int UpdaterImp::MoveNewFiles()
                     SourceFile=utf8_to_wstring("update\\"+fp);
                     DestFile=utf8_to_wstring(fp.substr(fp.rfind("\\")+1));
                     DestFile=IndexDir + L"\\_" + DestFile.substr(1);
-                    Log.print_con("Move: %S\n",DestFile.c_str());
+                    Log.print_torr("Move: %S\n",DestFile.c_str());
                     if(!System.FileExists(SourceFile.c_str()))
                         Log.print_err("File not found: %S\n",SourceFile.c_str());
                     else if(!System.MoveFile(SourceFile,DestFile))
@@ -3716,7 +3725,7 @@ int UpdaterImp::MoveNewFiles()
                 wsprintf(ws,L"%ws",DestFile.c_str());
                 RemoveOldDriverpacks(ws+8);
                 // move new driver pack
-                Log.print_con("Move: %S\n",DestFile.c_str());
+                Log.print_torr("Move: %S\n",DestFile.c_str());
                 if(!System.FileExists(SourceFile.c_str()))
                     Log.print_err("File not found: %S\n",SourceFile.c_str());
                 else if(!System.MoveFile(SourceFile,DestFile))
@@ -3872,6 +3881,10 @@ void UpdaterImp::WelcomeDownloadAll()
     // called from the Welcome dialog
 
 
+    std::wstring SourceFile;
+    std::wstring DestFile;
+    std::wstring IndexDir={Settings.index_dir};
+    std::wstring DrpDir={Settings.drp_dir};
     int count=0;
 
     if(!hSession)
@@ -3884,24 +3897,49 @@ void UpdaterImp::WelcomeDownloadAll()
     const libtorrent::file_storage& fs = info->files();
     libtorrent::torrent_status status=CurrentTorrent.status(status_flags_t::all());
 
-    // set priority for all drivers
+
+    // set priority for all files
+    // that i haven't yet downloaded
+
     for(int i=0;i<info->num_files();i++)
     {
         // reset
         CurrentTorrent.file_priority(i,0);
-        // set drivers
+
         std::string fp=fs.file_path(i);
-        if(StrStrIA(fp.c_str(),"drivers\\"))
+        std::string fn=to_lower(fp);
+
+        // check if indexes have already been downloaded
+        if(fn.find("sdio_update\\indexes")!=std::string::npos)
         {
-            CurrentTorrent.file_priority(i,1);
-            count++;
+            DestFile=utf8_to_wstring(fp.substr(fp.rfind("\\")+1));
+            DestFile=L"_"+DestFile.substr(1);
+            DestFile=IndexDir + L"\\" + DestFile;
+            if(!System.FileExists(DestFile.c_str()))
+            {
+                CurrentTorrent.file_priority(i,2);
+                count++;
+            }
+        }
+
+
+        // check if drivers have already been downloaded
+        if(fn.find("sdio_update\\drivers")!=std::string::npos)
+        {
+            DestFile=utf8_to_wstring(fp.substr(fp.rfind("\\")+1));
+            DestFile=DrpDir + L"\\" + DestFile;
+            if(!System.FileExists(DestFile.c_str()))
+            {
+                CurrentTorrent.file_priority(i,1);
+                count++;
+            }
         }
     }
 
     // start downloading
     if(count)
     {
-        Log.print_con("Torrent %d: resuming, %d files to get...\n",activetorrent,count);
+        Log.print_con("Torrent: resuming, %d files to get...\n",count);
         CurrentTorrent.resume();
         TorrentStartTime=System.GetTickCountWr();
     }
@@ -3912,7 +3950,12 @@ void UpdaterImp::WelcomeDownloadNetwork()
 {
     // called from the Welcome dialog
 
+    std::wstring SourceFile;
+    std::wstring DestFile;
+    std::wstring IndexDir={Settings.index_dir};
+    std::wstring DrpDir={Settings.drp_dir};
     int count=0;
+
 
     if(!hSession)
         return;
@@ -3925,20 +3968,30 @@ void UpdaterImp::WelcomeDownloadNetwork()
     libtorrent::torrent_status status=CurrentTorrent.status(status_flags_t::all());
 
     // set priority for all network drivers
+    // that i haven't yet downloaded
+
     for(int i=0;i<info->num_files();i++)
     {
         // reset
         CurrentTorrent.file_priority(i,0);
-        // set network drivers
+
         std::string fp=fs.file_path(i);
-        if(  StrStrIA(fp.c_str(),"_Net_")||
-             StrStrIA(fp.c_str(),"_LAN_")||
-             StrStrIA(fp.c_str(),"_WLAN-WiFi_")||
-             StrStrIA(fp.c_str(),"_WWAN-4G_")||
-             StrStrIA(fp.c_str(),"_WWAN_")  )
+        std::string fn=to_lower(fp);
+
+        // check if network drivers have already been downloaded
+        if( (fn.find("_net_")!=std::string::npos) ||
+            (fn.find("_lan_")!=std::string::npos) ||
+            (fn.find("_wlan-wifi_")!=std::string::npos) ||
+            (fn.find("_wwan-4g_")!=std::string::npos) ||
+            (fn.find("_wwan_")!=std::string::npos) )
         {
-            CurrentTorrent.file_priority(i,1);
-            count++;
+            DestFile=utf8_to_wstring(fp.substr(fp.rfind("\\")+1));
+            DestFile=DrpDir + L"\\" + DestFile;
+            if(!System.FileExists(DestFile.c_str()))
+            {
+                CurrentTorrent.file_priority(i,1);
+                count++;
+            }
         }
     }
 
@@ -3955,6 +4008,10 @@ void UpdaterImp::WelcomeDownloadIndexes()
 {
     // called from the Welcome dialog
 
+    std::wstring SourceFile;
+    std::wstring DestFile;
+    std::wstring IndexDir={Settings.index_dir};
+    std::wstring DrpDir={Settings.drp_dir};
     int count=0;
 
     if(!hSession)
@@ -3972,13 +4029,23 @@ void UpdaterImp::WelcomeDownloadIndexes()
     {
         // reset
         CurrentTorrent.file_priority(i,0);
-        // set indexes
+
         std::string fp=fs.file_path(i);
-        if(StrStrIA(fp.c_str(),"indexes\\"))
+        std::string fn=to_lower(fp);
+
+        // check if indexes have already been downloaded
+        if(fn.find("sdio_update\\indexes")!=std::string::npos)
         {
-            CurrentTorrent.file_priority(i,2);
-            count++;
+            DestFile=utf8_to_wstring(fp.substr(fp.rfind("\\")+1));
+            DestFile=L"_"+DestFile.substr(1);
+            DestFile=IndexDir + L"\\" + DestFile;
+            if(!System.FileExists(DestFile.c_str()))
+            {
+                CurrentTorrent.file_priority(i,2);
+                count++;
+            }
         }
+
     }
 
     // start downloading
@@ -4025,7 +4092,7 @@ int UpdaterImp::scriptInitUpdates(int _torrentport)
 
 
     Settings.flags|=FLAG_UPDATESOK;
-    Log.print_con("Torrent %d: initialized\n",activetorrent);
+    Log.print_torr("Torrent %d: initialized\n",activetorrent);
     #endif // USE_TORRENT
 
     return 0;

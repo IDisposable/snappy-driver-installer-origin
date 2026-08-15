@@ -45,7 +45,6 @@ class Updater_t
 {
 public:
     static int torrentport,outgoingport_min,outgoingport_max,downlimit,uplimit,connections;
-    static int torrentalerts;
     static const std::wstring torrent_url;
     static const std::wstring torrent2_url;
     static const std::wstring torrent_save_path;
