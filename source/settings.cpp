@@ -144,8 +144,6 @@ void Settings_t::parse(const wchar_t *str,size_t ind)
         if(argint(pr,L"-downlimit:",     &Updater->downlimit))continue;
         if(argint(pr,L"-uplimit:",       &Updater->uplimit))continue;
         if(argint(pr,L"-connections:",   &Updater->connections))continue;
-//        if(argint(pr,L"-activetorrent:", &activetorrent))continue;
-        if(argint(pr,L"-torrentalerts:", &Updater->torrentalerts))continue;
         #endif
 
         if(argopt(pr,L"-expertmode",     &expertmode))continue;
@@ -160,6 +158,7 @@ void Settings_t::parse(const wchar_t *str,size_t ind)
 
         if(argflg(pr,L"-checkupdates",   FLAG_CHECKUPDATES))continue;
         if(argflg(pr,L"-onlyupdates",    FLAG_ONLYUPDATES))continue;
+        if(argflg(pr,L"-torrentalerts",  FLAG_TORRENTALERTS))continue;
 
         if(!_wcsicmp(pr,L"-7z"))
         {
@@ -275,8 +274,7 @@ void Settings_t::save()
               L"-wndwx:%d\n-wndwy:%d\n-wndsc:%d\n-scale:%d\n-filters:%d\n-verbose:%d\n\n"
               #ifdef USE_TORRENT
               L"-port:%d\n-minport:%d\n-maxport:%d\n\n"
-              L"-downlimit:%d\n-uplimit:%d\n-connections:%d\n"
-              L"-torrentalerts:%d\n\n"
+              L"-downlimit:%d\n-uplimit:%d\n-connections:%d\n\n"
               #endif
               ,
             drp_dir,index_dir,output_dir,
@@ -286,8 +284,7 @@ void Settings_t::save()
             #ifdef USE_TORRENT
              ,
             Updater->torrentport,Updater->outgoingport_min,Updater->outgoingport_max,
-            Updater->downlimit,Updater->uplimit,Updater->connections,
-            Updater->torrentalerts
+            Updater->downlimit,Updater->uplimit,Updater->connections
             #endif
             );
 
@@ -303,6 +300,7 @@ void Settings_t::save()
 
     if(flags&FLAG_CHECKUPDATES)fwprintf(f,L"-checkupdates ");
     if(flags&FLAG_ONLYUPDATES)fwprintf(f,L"-onlyupdates ");
+    if(flags&FLAG_TORRENTALERTS)fwprintf(f,L"-torrentalerts ");
     if(flags&FLAG_KEEPUNPACKINDEX)fwprintf(f,L"-keepunpackedindex ");
     fclose(f);
 }
