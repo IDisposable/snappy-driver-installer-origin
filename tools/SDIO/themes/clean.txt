@@ -1,6 +1,8 @@
 //
 // CLEAN by Glenn Delahoy
 //
+// Hint: Press Control + F6 to show all possible item bars.
+
 
 THEME_NAME              = "Clean"
 // Anchor             //  CCAA

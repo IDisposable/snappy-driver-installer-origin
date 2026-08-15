@@ -424,13 +424,14 @@ STR_OPTION_HINT               = "Hint"
 STR_OPTION_HINT_LABEL         = "Vertraging in milliseconden"
 
 // Updates tab
-STR_OPTION_CHECKUPDATES       = "Niet controleren op nieuwe versie van de app/driver packs"
-STR_OPTION_ONLYUPDATES        = STR_UPD_ONLYUPDATES
 STR_OPTION_TORRENT            = "Torrent"
 STR_OPTION_PORT               = "Poort"
 STR_OPTION_MAX_CON            = "Max connecties (0 - onbeperkt)"
 STR_OPTION_MAX_DOWNLOAD       = "Max downloadsnelheid in KB/s (0 - onbeperkt)"
 STR_OPTION_MAX_UPLOAD         = "Max upload snelheid in KB/s (0 - onbeperkt)"
+STR_OPTION_CHECKUPDATES       = "Niet controleren op nieuwe versie van de app/driver packs"
+STR_OPTION_ONLYUPDATES        = "Only show updates for driver packs you already have."
+STR_OPTION_TORRENTALERTS      = "Show torrent alerts."
 
 // Paths tab
 STR_OPTION_DIR_DRIVERS        = "Stuurprogramma's"

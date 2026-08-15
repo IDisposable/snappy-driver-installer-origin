@@ -424,13 +424,14 @@ STR_OPTION_HINT               = "Парада"
 STR_OPTION_HINT_LABEL         = "Затрымка перад з'яўленнем у мс"
 
 // Updates tab
-STR_OPTION_CHECKUPDATES       = "Не правяраць абнаўленні"
-STR_OPTION_ONLYUPDATES        = STR_UPD_ONLYUPDATES
 STR_OPTION_TORRENT            = "Торэнт"
 STR_OPTION_PORT               = "Порт"
 STR_OPTION_MAX_CON            = "Максімальная колькасць злучэнняў (0 - не абмежавана)"
 STR_OPTION_MAX_DOWNLOAD       = "Максімальная хуткасць загрузкі ў КБ/сек (0 - не абмежавана)"
 STR_OPTION_MAX_UPLOAD         = "Максімальная хуткасць аддачы ў КБ/сек (0 - не абмежавана)"
+STR_OPTION_CHECKUPDATES       = "Do not check for new version of app/driver packs"
+STR_OPTION_ONLYUPDATES        = "Only show updates for driver packs you already have."
+STR_OPTION_TORRENTALERTS      = "Show torrent alerts."
 
 // Paths tab
 STR_OPTION_DIR_DRIVERS        = "Драйверы"

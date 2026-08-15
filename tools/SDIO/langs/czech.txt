@@ -424,13 +424,14 @@ STR_OPTION_HINT               = "TIP"
 STR_OPTION_HINT_LABEL         = "Zpoždění v milisekundách"
 
 // Updates tab
-STR_OPTION_CHECKUPDATES       = "Nekontrolovat novou verzi aplikace/balíčku ovladačů"
-STR_OPTION_ONLYUPDATES        = STR_UPD_ONLYUPDATES
 STR_OPTION_TORRENT            = "Torrent"
 STR_OPTION_PORT               = "Port"
 STR_OPTION_MAX_CON            = "Maximální počet připojení (0 - bez omezení)"
 STR_OPTION_MAX_DOWNLOAD       = "Maximální rychlost stažení v KB/s (0 - bez omezení)"
 STR_OPTION_MAX_UPLOAD         = "Maximální rychlost odeslání v KB/s (0 - bez omezení)"
+STR_OPTION_CHECKUPDATES       = "Nekontrolovat novou verzi aplikace/balíčku ovladačů"
+STR_OPTION_ONLYUPDATES        = "Only show updates for driver packs you already have."
+STR_OPTION_TORRENTALERTS      = "Show torrent alerts."
 
 // Paths tab
 STR_OPTION_DIR_DRIVERS        = "Ovladače"

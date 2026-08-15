@@ -424,13 +424,14 @@ STR_OPTION_HINT               = "Savjet"
 STR_OPTION_HINT_LABEL         = "Odaziv u milisekundama"
 
 // Updates tab
-STR_OPTION_CHECKUPDATES       = "Ne provjeravaj za nove verzije aplikacija/paketa upravljačkih programa"
-STR_OPTION_ONLYUPDATES        = STR_UPD_ONLYUPDATES
 STR_OPTION_TORRENT            = "Torrent"
 STR_OPTION_PORT               = "Ulaz"
 STR_OPTION_MAX_CON            = "Maks. konekcija (0 - neograničeno)"
 STR_OPTION_MAX_DOWNLOAD       = "Maks. brzina preuzimanja u KB/s (0 - neograničeno)"
 STR_OPTION_MAX_UPLOAD         = "Maks. brzina prijenosa u KB/s (0 - neograničeno)"
+STR_OPTION_CHECKUPDATES       = "Ne provjeravaj za nove verzije aplikacija/paketa upravljačkih programa"
+STR_OPTION_ONLYUPDATES        = "Only show updates for driver packs you already have."
+STR_OPTION_TORRENTALERTS      = "Show torrent alerts."
 
 // Paths tab
 STR_OPTION_DIR_DRIVERS        = "Upravljački programi"

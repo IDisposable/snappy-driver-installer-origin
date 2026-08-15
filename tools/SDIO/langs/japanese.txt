@@ -424,13 +424,14 @@ STR_OPTION_HINT               = "ヒント"
 STR_OPTION_HINT_LABEL         = "表示時間 (ミリ秒)"
 
 // Updates tab
-STR_OPTION_CHECKUPDATES       = "App/driver packs の新バージョンをチェック"
-STR_OPTION_ONLYUPDATES        = STR_UPD_ONLYUPDATES
 STR_OPTION_TORRENT            = "Torrent"
 STR_OPTION_PORT               = "ポート"
 STR_OPTION_MAX_CON            = "最大接続数 (0 - 無制限)"
 STR_OPTION_MAX_DOWNLOAD       = "最大ダウンロード速度 - bytes/秒 (0: 無制限)"
 STR_OPTION_MAX_UPLOAD         = "最大アップロード速度 - bytes/秒 (0: 無制限)"
+STR_OPTION_CHECKUPDATES       = "App/driver packs の新バージョンをチェック"
+STR_OPTION_ONLYUPDATES        = "Only show updates for driver packs you already have."
+STR_OPTION_TORRENTALERTS      = "Show torrent alerts."
 
 // Paths tab
 STR_OPTION_DIR_DRIVERS        = "ドライバー"

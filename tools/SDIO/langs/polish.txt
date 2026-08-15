@@ -424,13 +424,14 @@ STR_OPTION_HINT               = "Wskazówka"
 STR_OPTION_HINT_LABEL         = "Opóźnienie w milisekundach"
 
 // Updates tab
-STR_OPTION_CHECKUPDATES       = "Nie sprawdzaj dostępności nowych wersji programu/sterowników"
-STR_OPTION_ONLYUPDATES        = STR_UPD_ONLYUPDATES
 STR_OPTION_TORRENT            = "Torrent"
 STR_OPTION_PORT               = "Port"
 STR_OPTION_MAX_CON            = "Maks. połączeń (0 - bez limitu)"
 STR_OPTION_MAX_DOWNLOAD       = "Maks. prędkość pobierania w KB/s (0 - bez limitu)"
 STR_OPTION_MAX_UPLOAD         = "Maks. prędkość wysyłania w KB/s (0 - bez limitu)"
+STR_OPTION_CHECKUPDATES       = "Nie sprawdzaj dostępności nowych wersji programu/sterowników"
+STR_OPTION_ONLYUPDATES        = "Only show updates for driver packs you already have."
+STR_OPTION_TORRENTALERTS      = "Show torrent alerts."
 
 // Paths tab
 STR_OPTION_DIR_DRIVERS        = "Sterowniki"

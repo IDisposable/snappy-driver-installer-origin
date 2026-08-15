@@ -424,13 +424,14 @@ STR_OPTION_HINT               = "დახმარება"
 STR_OPTION_HINT_LABEL         = "დაგვიანება გამოჩენების შემდეგ მს"
 
 // Updates tab
-STR_OPTION_CHECKUPDATES       = "განახლებების არასოდეს შემოწმება"
-STR_OPTION_ONLYUPDATES        = STR_UPD_ONLYUPDATES
 STR_OPTION_TORRENT            = "ტორენტი"
 STR_OPTION_PORT               = "პორტი"
 STR_OPTION_MAX_CON            = "მაქსიმალური კავშირების რაოდენობა (0 - შეუზღუდავი)"
 STR_OPTION_MAX_DOWNLOAD       = "მაქსიმალური ჩამოტვირთვა სიჩქარე კბ/ს (0 - შეუზღუდავი)"
 STR_OPTION_MAX_UPLOAD         = "მაქსიმალური ატვირთვის სიჩქარე კბ/ს (0 - შეუზღუდავი)"
+STR_OPTION_CHECKUPDATES       = "განახლებების არასოდეს შემოწმება"
+STR_OPTION_ONLYUPDATES        = "Only show updates for driver packs you already have."
+STR_OPTION_TORRENTALERTS      = "Show torrent alerts."
 
 // Paths tab
 STR_OPTION_DIR_DRIVERS        = "დრაივერები"

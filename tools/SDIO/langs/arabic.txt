@@ -424,13 +424,14 @@ STR_OPTION_HINT               = "تلميح"
 STR_OPTION_HINT_LABEL         = "التأخير بالمللي ثانية"
 
 // Updates tab
-STR_OPTION_CHECKUPDATES       = "لا تحقق من وجود إصدار جديد من التطبيق او حزمة التعريفات"
-STR_OPTION_ONLYUPDATES        = STR_UPD_ONLYUPDATES
 STR_OPTION_TORRENT            = "تورنت"
 STR_OPTION_PORT               = "المنفذ"
 STR_OPTION_MAX_CON            = "أقصي عدد الاتصال (0 - غير محدود)"
 STR_OPTION_MAX_DOWNLOAD       = "أقصى سرعة التحميل في الكيلو بايت / ثانية (0 - غير محدود)"
 STR_OPTION_MAX_UPLOAD         = "أقصى سرعة الرفع في الكيلو بايت / ثانية (0 - غير محدود)"
+STR_OPTION_CHECKUPDATES       = "لا تحقق من وجود إصدار جديد من التطبيق او حزمة التعريفات"
+STR_OPTION_ONLYUPDATES        = "Only show updates for driver packs you already have."
+STR_OPTION_TORRENTALERTS      = "Show torrent alerts."
 
 // Paths tab
 STR_OPTION_DIR_DRIVERS        = "التعريفات"

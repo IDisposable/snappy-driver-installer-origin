@@ -424,13 +424,14 @@ STR_OPTION_HINT               = "Ակնարկ"
 STR_OPTION_HINT_LABEL         = "Տևողությունը միլլիվայրկյաններով"
 
 // Updates tab
-STR_OPTION_CHECKUPDATES       = "Չստուգել ծրագրերի/դրայվերների նոր տարբերակները"
-STR_OPTION_ONLYUPDATES        = STR_UPD_ONLYUPDATES
 STR_OPTION_TORRENT            = "Հեղեղ"
 STR_OPTION_PORT               = "Port"
 STR_OPTION_MAX_CON            = "Առավելագույն համակցումներ(0-անսահմանափակ)"
 STR_OPTION_MAX_DOWNLOAD       = "Բեռնման առավելագույն արագություն կբայտ/վրկ (0:անսահմանափակ)"
 STR_OPTION_MAX_UPLOAD         = "Ներբեռմնան առավելագույն արագություն կբայտ/վրկ (0:անսահմանափակ)"
+STR_OPTION_CHECKUPDATES       = "Չստուգել ծրագրերի/դրայվերների նոր տարբերակները"
+STR_OPTION_ONLYUPDATES        = "Only show updates for driver packs you already have."
+STR_OPTION_TORRENTALERTS      = "Show torrent alerts."
 
 // Paths tab
 STR_OPTION_DIR_DRIVERS        = "Դրայվերներ"

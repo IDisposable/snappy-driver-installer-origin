@@ -424,13 +424,14 @@ STR_OPTION_HINT               = "Съвет"
 STR_OPTION_HINT_LABEL         = "Закъснение в милисекунди"
 
 // Updates tab
-STR_OPTION_CHECKUPDATES       = "Не проверявай за нови версии на програмата/пакетите с драйвери"
-STR_OPTION_ONLYUPDATES        = STR_UPD_ONLYUPDATES
 STR_OPTION_TORRENT            = "Торент"
 STR_OPTION_PORT               = "Порт"
 STR_OPTION_MAX_CON            = "Максимален брой връзки (0 - неограничени)"
 STR_OPTION_MAX_DOWNLOAD       = "Максимална скорост на изтегляне в KБ/сек. (0 - неограничена)"
 STR_OPTION_MAX_UPLOAD         = "Максимална скорост на качване в KБ/сек. (0 - неограничена)"
+STR_OPTION_CHECKUPDATES       = "Do not check for new version of app/driver packs"
+STR_OPTION_ONLYUPDATES        = "Only show updates for driver packs you already have."
+STR_OPTION_TORRENTALERTS      = "Show torrent alerts."
 
 // Paths tab
 STR_OPTION_DIR_DRIVERS        = "Драйвери"

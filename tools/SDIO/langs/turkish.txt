@@ -424,13 +424,14 @@ STR_OPTION_HINT               = "İpucu penceresi"
 STR_OPTION_HINT_LABEL         = "Milisaniye cinsinden görüntülenme süresi"
 
 // Updates tab
-STR_OPTION_CHECKUPDATES       = "Uygulama ve sürücü paketleri için güncelleme kontrolü yapma"
-STR_OPTION_ONLYUPDATES        = STR_UPD_ONLYUPDATES
 STR_OPTION_TORRENT            = "Torrent"
 STR_OPTION_PORT               = "Bağlantı noktası"
 STR_OPTION_MAX_CON            = "En fazla bağlantı sayısı (0 - sınırsız)"
 STR_OPTION_MAX_DOWNLOAD       = "En fazla indirme hızı KB/s (0 - sınırsız)"
 STR_OPTION_MAX_UPLOAD         = "En fazla gönderme hızı KB/s (0 - sınırsız)"
+STR_OPTION_CHECKUPDATES       = "Uygulama ve sürücü paketleri için güncelleme kontrolü yapma"
+STR_OPTION_ONLYUPDATES        = "Only show updates for driver packs you already have."
+STR_OPTION_TORRENTALERTS      = "Show torrent alerts."
 
 // Paths tab
 STR_OPTION_DIR_DRIVERS        = "Sürücü paketleri"

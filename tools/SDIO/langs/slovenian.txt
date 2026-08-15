@@ -424,13 +424,14 @@ STR_OPTION_HINT             = "Namig"
 STR_OPTION_HINT_LABEL       = "Zakasnitev v milisekundah"
 
 // Updates tab
-STR_OPTION_CHECKUPDATES     = "Ne preverjaj nove različice aplikacij/paketov gonilnikov"
-STR_OPTION_ONLYUPDATES      = STR_UPD_ONLYUPDATES
 STR_OPTION_TORRENT          = "Torrent"
 STR_OPTION_PORT             = "Vrata"
 STR_OPTION_MAX_CON          = "Največje število povezav (0 - neomejeno)"
 STR_OPTION_MAX_DOWNLOAD     = "Največja hitrost prenosa v KB/s (0 - neomejeno)"
 STR_OPTION_MAX_UPLOAD       = "Največja hitrost nalaganja v KB/s (0 - neomejeno)"
+STR_OPTION_CHECKUPDATES     = "Ne preverjaj nove različice aplikacij/paketov gonilnikov"
+STR_OPTION_ONLYUPDATES        = "Only show updates for driver packs you already have."
+STR_OPTION_TORRENTALERTS      = "Show torrent alerts."
 
 // Paths tab
 STR_OPTION_DIR_DRIVERS      = "Gonilniki"

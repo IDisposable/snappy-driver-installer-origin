@@ -424,13 +424,14 @@ STR_OPTION_HINT               = "İpucu"
 STR_OPTION_HINT_LABEL         = "Mili saniyədə gecikmə"
 
 // Updates tab
-STR_OPTION_CHECKUPDATES       = "Do not check for new version of app/driver packs"
-STR_OPTION_ONLYUPDATES        = STR_UPD_ONLYUPDATES
 STR_OPTION_TORRENT            = "Torrent"
 STR_OPTION_PORT               = "Port"
 STR_OPTION_MAX_CON            = "Max əlaqələri (0 - unlimited)"
 STR_OPTION_MAX_DOWNLOAD       = "Maksimum yükləmə sürəti KB/s (0 - unlimited)"
 STR_OPTION_MAX_UPLOAD         = "Maksimum yükləmə sürəti KB/s (0 - unlimited)"
+STR_OPTION_CHECKUPDATES       = "Do not check for new version of app/driver packs"
+STR_OPTION_ONLYUPDATES        = "Only show updates for driver packs you already have."
+STR_OPTION_TORRENTALERTS      = "Show torrent alerts."
 
 // Paths tab
 STR_OPTION_DIR_DRIVERS        = "Sürücülər"

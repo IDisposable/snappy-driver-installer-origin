@@ -424,13 +424,14 @@ STR_OPTION_HINT               = "Савет"
 STR_OPTION_HINT_LABEL         = "Одлагање приказа у милисекундама"
 
 // Updates tab
-STR_OPTION_CHECKUPDATES       = "Не проверавај за новом верзијом апликације/пакета"
-STR_OPTION_ONLYUPDATES        = STR_UPD_ONLYUPDATES
 STR_OPTION_TORRENT            = "Торент"
 STR_OPTION_PORT               = "Порт"
 STR_OPTION_MAX_CON            = "Максимално конекција (0 - неограничено)"
 STR_OPTION_MAX_DOWNLOAD       = "Макс. брзина преузимања у KB/s (0 - неограничено)"
 STR_OPTION_MAX_UPLOAD         = "Макс. брзина слања у KB/s (0 - неограничено)"
+STR_OPTION_CHECKUPDATES       = "Не проверавај за новом верзијом апликације/пакета"
+STR_OPTION_ONLYUPDATES        = "Only show updates for driver packs you already have."
+STR_OPTION_TORRENTALERTS      = "Show torrent alerts."
 
 // Paths tab
 STR_OPTION_DIR_DRIVERS        = "Управљачки програми"

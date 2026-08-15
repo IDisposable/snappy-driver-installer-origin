@@ -424,13 +424,14 @@ STR_OPTION_HINT               = "Всплывающая подсказка"
 STR_OPTION_HINT_LABEL         = "Задержка перед появлением в мс"
 
 // Updates tab
-STR_OPTION_CHECKUPDATES       = "Не проверять обновления"
-STR_OPTION_ONLYUPDATES        = STR_UPD_ONLYUPDATES
 STR_OPTION_TORRENT            = "Торрент"
 STR_OPTION_PORT               = "Порт"
 STR_OPTION_MAX_CON            = "Максимальное количество соединений (0 - не ограничено)"
 STR_OPTION_MAX_DOWNLOAD       = "Максимальная скорость загрузки в КБ/сек (0 - не ограничено)"
 STR_OPTION_MAX_UPLOAD         = "Максимальная скорость отдачи в КБ/сек (0 - не ограничено)"
+STR_OPTION_CHECKUPDATES       = "Не проверять обновления"
+STR_OPTION_ONLYUPDATES        = "Only show updates for driver packs you already have."
+STR_OPTION_TORRENTALERTS      = "Show torrent alerts."
 
 // Paths tab
 STR_OPTION_DIR_DRIVERS        = "Драйверы"

@@ -424,13 +424,14 @@ STR_OPTION_HINT               = "도움말"
 STR_OPTION_HINT_LABEL         = "밀리 초 당 딜레이"
 
 // Updates tab
-STR_OPTION_CHECKUPDATES       = "앱/드라이버팩의 새 버전 확인하지 않음"
-STR_OPTION_ONLYUPDATES        = STR_UPD_ONLYUPDATES
 STR_OPTION_TORRENT            = "토렌트"
 STR_OPTION_PORT               = "포트"
 STR_OPTION_MAX_CON            = "최대 연결 (0 - 무제한)"
 STR_OPTION_MAX_DOWNLOAD       = "최대 다운로드 속도 - KB/s (0 - 무제한)"
 STR_OPTION_MAX_UPLOAD         = "최대 업로드 속도 - KB/s (0 - 무제한)"
+STR_OPTION_CHECKUPDATES       = "앱/드라이버팩의 새 버전 확인하지 않음"
+STR_OPTION_ONLYUPDATES        = "Only show updates for driver packs you already have."
+STR_OPTION_TORRENTALERTS      = "Show torrent alerts."
 
 // Paths tab
 STR_OPTION_DIR_DRIVERS        = "드라이버"

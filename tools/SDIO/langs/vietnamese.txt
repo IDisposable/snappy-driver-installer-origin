@@ -424,13 +424,14 @@ STR_OPTION_HINT               = "Chú ý"
 STR_OPTION_HINT_LABEL         = "Trì hoãn trong mili giây"
 
 // Updates tab
-STR_OPTION_CHECKUPDATES       = "Không kiểm tra bản mới ứng dụng/bộ cài"
-STR_OPTION_ONLYUPDATES        = STR_UPD_ONLYUPDATES
 STR_OPTION_TORRENT            = "Torrent"
 STR_OPTION_PORT               = "Cổng"
 STR_OPTION_MAX_CON            = "Số kết nối tối đa (0-không giới hạn)"
 STR_OPTION_MAX_DOWNLOAD       = "Tốc độ tải tối đa KB/s (0 - không giới hạn)"
 STR_OPTION_MAX_UPLOAD         = "Tốc độ tải lên tối đa KB/s (0 - không giới hạn)"
+STR_OPTION_CHECKUPDATES       = "Không kiểm tra bản mới ứng dụng/bộ cài"
+STR_OPTION_ONLYUPDATES        = "Only show updates for driver packs you already have."
+STR_OPTION_TORRENTALERTS      = "Show torrent alerts."
 
 // Paths tab
 STR_OPTION_DIR_DRIVERS        = "Trình điều khiển"

@@ -424,13 +424,14 @@ STR_OPTION_HINT               = "Dica"
 STR_OPTION_HINT_LABEL         = "Atraso em mili-segundos"
 
 // Updates tab
-STR_OPTION_CHECKUPDATES       = "Não procurar novas versões da aplicação/pacotes"
-STR_OPTION_ONLYUPDATES        = STR_UPD_ONLYUPDATES
 STR_OPTION_TORRENT            = "Torrent"
 STR_OPTION_PORT               = "Porta"
 STR_OPTION_MAX_CON            = "Máx. de ligações (0 - ilimitado)"
 STR_OPTION_MAX_DOWNLOAD       = "Velocidade de transferência máx. em KB/s (0 - ilimitado)"
 STR_OPTION_MAX_UPLOAD         = "Velocidade de envio máx. em KB/s (0 - ilimitado)"
+STR_OPTION_CHECKUPDATES       = "Não procurar novas versões da aplicação/pacotes"
+STR_OPTION_ONLYUPDATES        = "Only show updates for driver packs you already have."
+STR_OPTION_TORRENTALERTS      = "Show torrent alerts."
 
 // Paths tab
 STR_OPTION_DIR_DRIVERS        = "Controladores"

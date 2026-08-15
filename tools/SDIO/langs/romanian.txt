@@ -424,13 +424,14 @@ STR_OPTION_HINT               = "Aluzie"
 STR_OPTION_HINT_LABEL         = "Întârziere în milisecunde"
 
 // Updates tab
-STR_OPTION_CHECKUPDATES       = "Do not check for new version of app/driverpacks"
-STR_OPTION_ONLYUPDATES        = STR_UPD_ONLYUPDATES
 STR_OPTION_TORRENT            = "Torent"
 STR_OPTION_PORT               = "Port"
 STR_OPTION_MAX_CON            = "Conexiuni maxime (0 - unlimited)"
 STR_OPTION_MAX_DOWNLOAD       = "Viteza maximă de descărcare în KB/s (0 - unlimited)"
 STR_OPTION_MAX_UPLOAD         = "Viteza maximă de încărcare în KB/s (0 - unlimited)"
+STR_OPTION_CHECKUPDATES       = "Do not check for new version of app/driverpacks"
+STR_OPTION_ONLYUPDATES        = "Only show updates for driver packs you already have."
+STR_OPTION_TORRENTALERTS      = "Show torrent alerts."
 
 // Paths tab
 STR_OPTION_DIR_DRIVERS        = "Conducătorii auto"

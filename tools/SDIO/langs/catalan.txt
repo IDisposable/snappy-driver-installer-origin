@@ -424,13 +424,14 @@ STR_OPTION_HINT               = "Pista"
 STR_OPTION_HINT_LABEL         = "Demora en millisegons"
 
 // Updates tab
-STR_OPTION_CHECKUPDATES       = "No fer comprovacions de versions noves d'app/paquets de controladors"
-STR_OPTION_ONLYUPDATES        = STR_UPD_ONLYUPDATES
 STR_OPTION_TORRENT            = "Torrent"
 STR_OPTION_PORT               = "Port"
 STR_OPTION_MAX_CON            = "Connexions màxims (0- sense límit)"
 STR_OPTION_MAX_DOWNLOAD       = "Velocitat màxim de baixada en KB/s (0 - sense límit)"
 STR_OPTION_MAX_UPLOAD         = "Velocitat màxim de pujada en KB/s (0 - sense límit)"
+STR_OPTION_CHECKUPDATES       = "Do not check for new version of app/driver packs"
+STR_OPTION_ONLYUPDATES        = "Only show updates for driver packs you already have."
+STR_OPTION_TORRENTALERTS      = "Show torrent alerts."
 
 // Paths tab
 STR_OPTION_DIR_DRIVERS        = "Controladors"

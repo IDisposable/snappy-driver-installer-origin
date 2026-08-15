@@ -424,13 +424,14 @@ STR_OPTION_HINT               = "Vihje viivitus"
 STR_OPTION_HINT_LABEL         = "Viivitus millisekundites"
 
 // Updates tab
-STR_OPTION_CHECKUPDATES       = "Ära kontorlli programmi ja kogumikkude uuendusi"
-STR_OPTION_ONLYUPDATES        = STR_UPD_ONLYUPDATES
 STR_OPTION_TORRENT            = "Torrent"
 STR_OPTION_PORT               = "Port"
 STR_OPTION_MAX_CON            = "Maksimaalne number ühendusi (0 - piiramatu)"
 STR_OPTION_MAX_DOWNLOAD       = "Maksimaalne allalaadimise kiirus KB/s (0 - piiramatu)"
 STR_OPTION_MAX_UPLOAD         = "Maksimaalne üleslaadimise kiirus KB/s (0 - piiramatu)"
+STR_OPTION_CHECKUPDATES       = "Ära kontorlli programmi ja kogumikkude uuendusi"
+STR_OPTION_ONLYUPDATES        = "Only show updates for driver packs you already have."
+STR_OPTION_TORRENTALERTS      = "Show torrent alerts."
 
 // Paths tab
 STR_OPTION_DIR_DRIVERS        = "Draiverid"

@@ -424,13 +424,14 @@ STR_OPTION_HINT               = "提示"
 STR_OPTION_HINT_LABEL         = "延迟时间（以毫秒为单位）"
 
 // Updates tab
-STR_OPTION_CHECKUPDATES       = "不要检查应用程序／驱动程序包的新版本"
-STR_OPTION_ONLYUPDATES        = STR_UPD_ONLYUPDATES
 STR_OPTION_TORRENT            = "Torrent"
 STR_OPTION_PORT               = "端口"
 STR_OPTION_MAX_CON            = "最大连接数（0表示无限制）"
 STR_OPTION_MAX_DOWNLOAD       = "最大下载速度，每秒幾KB（0表示无限制）"
 STR_OPTION_MAX_UPLOAD         = "最大上传速度，每秒幾KB（0表示无限制）"
+STR_OPTION_CHECKUPDATES       = "Do not check for new version of app/driver packs"
+STR_OPTION_ONLYUPDATES        = "Only show updates for driver packs you already have."
+STR_OPTION_TORRENTALERTS      = "Show torrent alerts."
 
 // Paths tab
 STR_OPTION_DIR_DRIVERS        = "驱动程序"

@@ -424,13 +424,14 @@ STR_OPTION_HINT               = "Συμβουλή"
 STR_OPTION_HINT_LABEL         = "Καθυστέρηση σε χιλιοστά του δευτερολέπτου"
 
 // Updates tab
-STR_OPTION_CHECKUPDATES       = "Να μην γίνεται έλεγχος για νέα έκδοση"
-STR_OPTION_ONLYUPDATES        = STR_UPD_ONLYUPDATES
 STR_OPTION_TORRENT            = "Torrent"
 STR_OPTION_PORT               = "Θήρα"
 STR_OPTION_MAX_CON            = "Max συνδέσεις (0 - απεριόριστο)"
 STR_OPTION_MAX_DOWNLOAD       = "Μέγιστη ταχύτητα λήψης σε KB /s (0 - απεριόριστο)"
 STR_OPTION_MAX_UPLOAD         = "Μέγιστη ταχύτητα αποστολής σε KB/s (0 - απεριόριστο)"
+STR_OPTION_CHECKUPDATES       = "Να μην γίνεται έλεγχος για νέα έκδοση"
+STR_OPTION_ONLYUPDATES        = "Only show updates for driver packs you already have."
+STR_OPTION_TORRENTALERTS      = "Show torrent alerts."
 
 // Paths tab
 STR_OPTION_DIR_DRIVERS        = "Οι οδηγοί"

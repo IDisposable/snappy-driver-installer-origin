@@ -424,13 +424,14 @@ STR_OPTION_HINT               = "Patarimas"
 STR_OPTION_HINT_LABEL         = "Delsa milisekundėmis"
 
 // Updates tab
-STR_OPTION_CHECKUPDATES       = "Ne tikrinti, ar nėra naujos programos/driver packs versijos"
-STR_OPTION_ONLYUPDATES        = STR_UPD_ONLYUPDATES
 STR_OPTION_TORRENT            = "Torentas"
 STR_OPTION_PORT               = "Prievadas"
 STR_OPTION_MAX_CON            = "Maks. skačius ryšių (0 - neribotas)"
 STR_OPTION_MAX_DOWNLOAD       = "Maks. atsisiuntimo sparta KB/s (0 - neribota)"
 STR_OPTION_MAX_UPLOAD         = "Maks. įkėlimo sparta KB/s (0 - neribota)"
+STR_OPTION_CHECKUPDATES       = "Ne tikrinti, ar nėra naujos programos/driver packs versijos"
+STR_OPTION_ONLYUPDATES        = "Only show updates for driver packs you already have."
+STR_OPTION_TORRENTALERTS      = "Show torrent alerts."
 
 // Paths tab
 STR_OPTION_DIR_DRIVERS        = "Tvarkyklės"

@@ -424,13 +424,14 @@ STR_OPTION_HINT               = "Hinweis"
 STR_OPTION_HINT_LABEL         = "Verzögerung in Millisekunden"
 
 // Updates tab
-STR_OPTION_CHECKUPDATES       = "Nicht auf neue Versionen prüfen"
-STR_OPTION_ONLYUPDATES        = STR_UPD_ONLYUPDATES
 STR_OPTION_TORRENT            = "Torrent"
 STR_OPTION_PORT               = "Anschluss"
 STR_OPTION_MAX_CON            = "Max. Verbindungen (0=unbegrenzt)"
 STR_OPTION_MAX_DOWNLOAD       = "Max. Herunterladerate in KB/s (0=unbegrenzt)"
 STR_OPTION_MAX_UPLOAD         = "Max. Hochladerate in KB/s (0=unbegrenzt)"
+STR_OPTION_CHECKUPDATES       = "Nicht auf neue Versionen prüfen"
+STR_OPTION_ONLYUPDATES        = "Only show updates for driver packs you already have."
+STR_OPTION_TORRENTALERTS      = "Show torrent alerts."
 
 // Paths tab
 STR_OPTION_DIR_DRIVERS        = "Treiber"
