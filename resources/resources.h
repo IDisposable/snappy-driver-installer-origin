@@ -22,11 +22,11 @@ Snappy Driver Installer Origin.  If not, see <http://www.gnu.org/licenses/>.
 #define SVN_REV_STR "829"
 */
 
-#define VER_FILEVERSION             2,0,1,SVN_REV
-#define VER_FILEVERSION_STR         "2.0.1." SVN_REV_STR "\0"
+#define VER_FILEVERSION             2,0,2,SVN_REV
+#define VER_FILEVERSION_STR         "2.0.2." SVN_REV_STR "\0"
 
-#define VER_VERSION_STR             "Version 2.0.1." SVN_REV_STR
-#define VER_VERSION_STR2            "v2.0.1"
+#define VER_VERSION_STR             "Version 2.0.2." SVN_REV_STR
+#define VER_VERSION_STR2            "v2.0.2"
 
 #define IDC_STATIC     -1
 
@@ -57,7 +57,7 @@ Snappy Driver Installer Origin.  If not, see <http://www.gnu.org/licenses/>.
 #define IDC_EDIT1     304
 #define IDACCEPT      305
 
-// Update
+// Update dialog
 #define ID_UPD_LIST        309
 
 #define ID_UPD_PROMPTBOX   340
@@ -94,7 +94,7 @@ Snappy Driver Installer Origin.  If not, see <http://www.gnu.org/licenses/>.
 #define ID_UPD_BTN_STOP        326
 #define ID_UPD_BTN_CLOSE       327
 
-// Options
+// Options dialog
 #define IDC_TAB1      380
 
 // View tab
@@ -132,6 +132,8 @@ Snappy Driver Installer Origin.  If not, see <http://www.gnu.org/licenses/>.
 #define IDD_P2_MAXPORTE 512
 #define IDD_P2_MINPORT  513
 #define IDD_P2_MAXPORT  514
+#define IDD_P2_ONLYUPDATES 515
+#define IDD_P2_TORRENTALERTS 516
 
 // Path tab
 #define IDD_Page3     600

@@ -71,10 +71,10 @@ STYLE DS_CENTER | DS_MODALFRAME |WS_CAPTION |WS_VISIBLE|WS_POPUP|WS_SYSMENU|WS_S
 CAPTION "Updates"
 {
     CONTROL         "", ID_UPD_LIST, WC_LISTVIEW, WS_TABSTOP | WS_BORDER | LVS_REPORT|LVS_SINGLESEL|LVS_SHOWSELALWAYS,
-        5, 5, 429, 200, WS_EX_LEFT|LVS_EX_CHECKBOXES
+        5, 5, 424, 200, WS_EX_LEFT|LVS_EX_CHECKBOXES
 
-    CONTROL         "", ID_UPD_PROGRESSBAR, "msctls_progress32", WS_CHILD | WS_VISIBLE | PBS_SMOOTH, 5, 208, 429, 21
-    CTEXT           "Ready: Select the items you want and press Start", ID_UPD_PROMPT, 15, 212, 419, 14, WS_EX_TRANSPARENT
+    CONTROL         "", ID_UPD_PROGRESSBAR, "msctls_progress32", WS_CHILD | WS_VISIBLE | PBS_SMOOTH, 5, 208, 424, 21
+    CTEXT           "Ready: Select the items you want and press Start", ID_UPD_PROMPT, 15, 212, 414, 14, WS_EX_TRANSPARENT
 
     GROUPBOX        "Selection",ID_UPD_SELECTION,5,234,208,80
     PUSHBUTTON      "Check All",   ID_UPD_CHECKALL,   10, 244, 94, 14
@@ -231,9 +231,9 @@ STYLE DS_SETFONT|WS_CHILD|DS_CONTROL
 FONT 8,"MS Shell Dlg"
 BEGIN
     GROUPBOX        "Torrent", IDD_P2_TOR, 5, 5, GROUPW, 91+70-4, 0
-    LTEXT           "Port", IDD_P2_PORT, 5+OFSX, OFSY, LABELW, 14, SS_LEFT
-    LTEXT           "Min Outgoing", IDD_P2_MINPORT, 60+OFSX, OFSY, LABELW, 14, SS_LEFT
-    LTEXT           "Max Outgoing", IDD_P2_MAXPORT, 115+OFSX, OFSY, LABELW, 14, SS_LEFT
+    LTEXT           "Port", IDD_P2_PORT, 5+OFSX, OFSY, 60, 14, SS_LEFT
+    LTEXT           "Min Outgoing", IDD_P2_MINPORT, 60+OFSX, OFSY, 60, 14, SS_LEFT
+    LTEXT           "Max Outgoing", IDD_P2_MAXPORT, 115+OFSX, OFSY, 60, 14, SS_LEFT
     LTEXT           "Max connections (0 - unlimited)", IDD_P2_CON, 5+OFSX, OFSY+28, LABELW, 14, SS_LEFT
     LTEXT           "Max download speed in KB/s (0 - unlimited)", IDD_P2_DOWN, 5+OFSX, OFSY+56, LABELW, 14, SS_LEFT
     LTEXT           "Max upload speed in KB/s (0 - unlimited)", IDD_P2_UP, 5+OFSX, OFSY+84, LABELW, 14, SS_LEFT
@@ -244,7 +244,8 @@ BEGIN
     EDITTEXT        IDD_P2_DOWNE, 5+OFSX, OFSYL+70, EDITW, 14, ES_AUTOHSCROLL
     EDITTEXT        IDD_P2_UPE, 5+OFSX, OFSYL+98, EDITW, 14, ES_AUTOHSCROLL
     CHECKBOX        "Do not check for updates", IDD_P2_UPD,5, 164,LABELW2,14,BS_AUTOCHECKBOX
-    CHECKBOX        "Do not notify about missing driverpacks", ID_UPD_ONLYUPDATES,5, 175,LABELW2,14,BS_AUTOCHECKBOX
+    CHECKBOX        "Only show updates for driver packs you already have.", IDD_P2_ONLYUPDATES,5, 175,LABELW2,14,BS_AUTOCHECKBOX
+    CHECKBOX        "Show torrent alerts.", IDD_P2_TORRENTALERTS,5, 186,LABELW2,14,BS_AUTOCHECKBOX
 END
 
 IDD_Page3 DIALOGEX 0,0,0,0

@@ -145,7 +145,7 @@
 				<Option type="1" />
 				<Option compiler="gcc_64" />
 				<Option use_console_runner="0" />
-				<Option parameters="-disableinstall -extractdir:temp1 -showconsole -keeptempfiles" />
+				<Option parameters="-disableinstall -extractdir:temp1 -showconsole -keeptempfiles -verbose:8576" />
 				<Compiler>
 					<Add option="-Wfatal-errors" />
 					<Add option="-Wextra" />
