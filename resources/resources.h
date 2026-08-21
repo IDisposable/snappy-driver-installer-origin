@@ -22,11 +22,13 @@ Snappy Driver Installer Origin.  If not, see <http://www.gnu.org/licenses/>.
 #define SVN_REV_STR "829"
 */
 
-#define VER_FILEVERSION             2,0,2,SVN_REV
-#define VER_FILEVERSION_STR         "2.0.2." SVN_REV_STR "\0"
+#define VER_FILEVERSION             2,0,3,SVN_REV
+#define VER_FILEVERSION_STR         "2.0.3." SVN_REV_STR "\0"
 
-#define VER_VERSION_STR             "Version 2.0.2." SVN_REV_STR
-#define VER_VERSION_STR2            "v2.0.2"
+#define VER_VERSION_STR             "Version 2.0.3." SVN_REV_STR
+#define VER_VERSION_STR2            "v2.0.3"
+
+#define VER_VERSION_FINGERPRINT     "-SO2003-"
 
 #define IDC_STATIC     -1
 

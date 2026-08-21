@@ -2892,6 +2892,8 @@ void UpdaterImp::StartTorrentSession()
         wsprintfA(listen,"0.0.0.0:%d,[::]:%d",torrentport,torrentport);
         libtorrent::settings_pack pack;
         pack.set_str(libtorrent::settings_pack::user_agent,"Snappy Driver Installer Origin " VER_VERSION_STR2 );
+        pack.set_str(libtorrent::settings_pack::handshake_client_version,"Snappy Driver Installer Origin " VER_VERSION_STR2 );
+        pack.set_str(libtorrent::settings_pack::peer_fingerprint,VER_VERSION_FINGERPRINT );
         pack.set_bool(libtorrent::settings_pack::always_send_user_agent,true);
         pack.set_bool(libtorrent::settings_pack::anonymous_mode,false);
         pack.set_int(libtorrent::settings_pack::choking_algorithm, libtorrent::settings_pack::rate_choker_initial_threshold);

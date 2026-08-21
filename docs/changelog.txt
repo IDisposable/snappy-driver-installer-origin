@@ -7,6 +7,12 @@ www.glenn.delahoy.com
 
 Change Log
 
+Version 2.0.3.885
+22 August 2026
+* SDIO Driver Packs 26.08.3
+* SamLab Driver Packs 26.06.1
+* Languages updated
+
 Version 2.0.2.884
 16 August 2026
 * Minor bug fixes and code cleanups
@@ -40,8 +46,6 @@ or any issues with ipv6. No doubt we'll see brand new issues instead.
 The language files have been heavily modified for the new functions. 
 Translations gratefully accepted.
 
-* SamLab Driver Packs 26.06.1
-* SDIO Driver Packs 26.08.2
 * Added hwid ignore list (right click on a device in the list)
 * Moved redundant driver pack removal into the code
 * Added spaces as appropriate to some language strings
