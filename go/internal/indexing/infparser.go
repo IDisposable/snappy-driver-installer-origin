@@ -227,6 +227,36 @@ func (p *InfParser) ParseField() (value string, ok bool) {
 	return "", false
 }
 
+// ParseHexByte decomposes a field value like "0x1A" into a single byte
+// value (0-255), ported from Parser::readHex. It skips a "0x"-style
+// prefix, then reads at most two hex digits.
+func ParseHexByte(s string) (val int, rest string) {
+	i := 0
+	for i < len(s) && (s[i] == '0' || s[i] == 'x') {
+		i++
+	}
+	hexDigit := func(c byte) int {
+		if c >= 'a' && c <= 'z' {
+			c -= 'a' - 'A'
+		}
+		if c <= '9' {
+			return int(c - '0')
+		}
+		return int(c-'A') + 10
+	}
+	if i < len(s) {
+		val = hexDigit(s[i])
+	}
+	i++
+	if i < len(s) {
+		val = val<<4 + hexDigit(s[i])
+	}
+	if i > len(s) {
+		i = len(s)
+	}
+	return val, s[i:]
+}
+
 // ParseNumber consumes a leading run of digits from s, plus one
 // trailing delimiter character if present, ported from
 // Parser::readNumber. It decomposes a single already-extracted field
