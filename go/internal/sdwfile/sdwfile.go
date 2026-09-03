@@ -40,6 +40,22 @@ const (
 	modeBCJ  = 1 // x86 BCJ (branch conversion) filter applied
 )
 
+// PeekVersion reads just the SDW header (magic + version), without
+// touching the LZMA payload, ported from Driverpack::checkindex - a
+// cheap "is this a valid, current-format index file" check used when
+// deciding whether a driver pack needs reindexing, without paying for
+// a full decompression.
+func PeekVersion(r io.Reader) (version int32, ok bool) {
+	var header [headerLen]byte
+	if _, err := io.ReadFull(r, header[:]); err != nil {
+		return 0, false
+	}
+	if !bytes.Equal(header[:3], magic[:]) {
+		return 0, false
+	}
+	return int32(binary.LittleEndian.Uint32(header[3:7])), true
+}
+
 // Decode reads an SDW container, returning its format version and
 // decompressed (or raw, if lzmaCompressed is false) payload. r is
 // wrapped in a bufio.Reader internally: the LZMA decoder reads its

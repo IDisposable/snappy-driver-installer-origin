@@ -7,6 +7,44 @@ import (
 	"testing"
 )
 
+func TestPeekVersion(t *testing.T) {
+	var buf bytes.Buffer
+	if err := Encode(&buf, 0x205, []byte("payload"), true); err != nil {
+		t.Fatalf("Encode() error: %v", err)
+	}
+	version, ok := PeekVersion(bytes.NewReader(buf.Bytes()))
+	if !ok || version != 0x205 {
+		t.Errorf("PeekVersion() = %#x, %v; want 0x205, true", version, ok)
+	}
+}
+
+func TestPeekVersionRejectsBadMagic(t *testing.T) {
+	if _, ok := PeekVersion(bytes.NewReader([]byte("NOTSDW!"))); ok {
+		t.Error("expected PeekVersion to reject a non-SDW header")
+	}
+}
+
+func TestPeekVersionAgainstRealIndexFiles(t *testing.T) {
+	candidates, _ := filepath.Glob("/mnt/d/OneDrive/Desktop/Reinstall/DriverInstaller/indexes/SDI/*.bin")
+	if len(candidates) == 0 {
+		t.Skip("no real installation available at the expected path; skipping")
+	}
+	for _, path := range candidates[:min(10, len(candidates))] {
+		f, err := os.Open(path)
+		if err != nil {
+			t.Fatalf("opening %s: %v", path, err)
+		}
+		version, ok := PeekVersion(f)
+		f.Close()
+		if !ok {
+			t.Errorf("PeekVersion(%s) failed", filepath.Base(path))
+		}
+		if version == 0 {
+			t.Errorf("PeekVersion(%s) = 0, want a nonzero format version", filepath.Base(path))
+		}
+	}
+}
+
 func TestEncodeDecodeRoundTrip(t *testing.T) {
 	for _, compressed := range []bool{true, false} {
 		payload := bytes.Repeat([]byte("hello driver pack index data "), 1000)
