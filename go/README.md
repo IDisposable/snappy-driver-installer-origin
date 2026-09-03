@@ -105,7 +105,8 @@ a mechanical line-by-line translation, with its own tests.
 | `manager.cpp` | - | Not started | Orchestration. |
 | `install.cpp` | - | Not started | Driver installation. |
 | `script.cpp` | - | Not started | Driver-pack script format. |
-| `update.cpp` | - | Not started | Planned: `github.com/anacrolix/torrent` instead of porting the libtorrent glue. |
+| `update.cpp`: torrent download (`Updater_t::StartInstallDownload`/`EndInstallDownload`, the selective per-file download model) | `internal/update` | Done | `Client`/`Torrent` wrap `github.com/anacrolix/torrent` instead of porting the bundled libtorrent glue. `update.h` declares `torrent_url`/`torrent2_url` but never defines them anywhere in this source snapshot, so no tracker/webseed/metadata-fetch URL is hardcoded - callers supply a `.torrent` file path or magnet URI. `Torrent.SelectFiles` ports the "download only the specific driver-pack files a device match needs from the one shared torrent" behavior. Verified against a real cached `torrent/SDIO_Update.torrent` (398 files: drivers, indexes, app binaries, docs) from a production installation, including a real end-to-end download of one small file via the torrent's HTTP webseed (`cmd/torrenttest`), confirmed byte-exact. GUI-facing bits (`ShowProgress`/`ShowPopup`/`OpenDialog`/the script* methods/pause) aren't ported. |
+| `update.cpp`: everything else (GUI dialog/list-view state, `scriptInitUpdates`/`scriptDownload*`, app-update-vs-driver-update mode switching) | - | Not started | GUI-coupled orchestration superseded by whatever the TUI needs; most of update.cpp's ~4450 lines are this. |
 | `gui.cpp`, `draw.cpp`, `theme*.cpp`, `welcome.cpp`, `usbwizard.cpp`, `license.cpp` | `cmd/sdi` + TUI (planned) | Not started | Replaced by a Bubble Tea TUI, not ported. |
 
 ## Verifying changes
