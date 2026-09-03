@@ -18,18 +18,18 @@ type MatchContext struct {
 	FilterSP            bool   // Settings.flags&FLAG_FILTERSP
 }
 
-// archForDecoration returns the architecture in matcher.DecorationScore's
+// ArchForDecoration returns the architecture in matcher.DecorationScore's
 // 1-based convention (1=x86, 2=amd64).
-func (ctx MatchContext) archForDecoration() int {
+func (ctx MatchContext) ArchForDecoration() int {
 	if ctx.IsAMD64 {
 		return 2
 	}
 	return 1
 }
 
-// archForMarker returns the architecture in matcher.MarkerScore's
+// ArchForMarker returns the architecture in matcher.MarkerScore's
 // 0-based convention (0=x86, 1=amd64).
-func (ctx MatchContext) archForMarker() int {
+func (ctx MatchContext) ArchForMarker() int {
 	if ctx.IsAMD64 {
 		return 1
 	}
@@ -101,7 +101,7 @@ func (d *Driverpack) CalcAltSectScore(hwidIndex, curScore int, ctx MatchContext,
 	for pos := 0; pos < int(manuf.SectionsN); pos++ {
 		sect := d.SectionAtPos(int(e.manufIndex), pos)
 		id := matcher.SectionDecorationIndex(sect)
-		if matcher.DecorationScore(id, ctx.Major, ctx.Minor, ctx.Build, ctx.archForDecoration()) > curScore {
+		if matcher.DecorationScore(id, ctx.Major, ctx.Minor, ctx.Build, ctx.ArchForDecoration()) > curScore {
 			return 0
 		}
 	}
@@ -135,7 +135,7 @@ func (d *Driverpack) CalcAltSectScore(hwidIndex, curScore int, ctx MatchContext,
 	}
 
 	if strings.Contains(lowerPath, `matchmarker\`) {
-		if matcher.MarkerScore(infPath, ctx.Major, ctx.Minor, ctx.archForMarker())&7 != 7 {
+		if matcher.MarkerScore(infPath, ctx.Major, ctx.Minor, ctx.ArchForMarker())&7 != 7 {
 			return 0
 		}
 	}

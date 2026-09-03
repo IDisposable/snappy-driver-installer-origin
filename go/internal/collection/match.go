@@ -1,0 +1,224 @@
+// Package collection finds and ranks driver-pack candidates for a
+// device against a whole collection of indexed driver packs, ported
+// from MatcherImp/Devicematch/Hwidmatch's orchestration in
+// matcher.cpp. It is the top-level package that ties together
+// internal/hardware (device enumeration), internal/indexing
+// (driver-pack indexes), and internal/matcher (scoring primitives) -
+// none of which can import each other in this direction (hardware
+// already imports indexing for date/version parsing, and indexing
+// imports matcher for OS-decoration data), so this orchestration lives
+// one level up from all three.
+//
+// Not ported: comparing a candidate against the currently installed
+// driver's own score (Hwidmatch::calc_status's STATUS_BETTER/WORSE/
+// SAME/NEW/OLD/CURRENT bits). That needs Driver::scaninf - matching an
+// installed driver back to the .inf file that produced it, to recover
+// its feature score and catalog-file bits - which needs the
+// not-yet-built Driverpack/inf-cache orchestration from indexing.cpp's
+// genindex (see go/README.md). Candidate.Result.Status here only ever
+// carries matcher.StatusInvalid (from AltSectScore==0) and
+// matcher.StatusMissing/StatusIgnored/StatusNFMissing/StatusNFUnknown/
+// StatusNFStandard, which don't need it.
+package collection
+
+import (
+	"strings"
+
+	"sdio/internal/hardware"
+	"sdio/internal/indexing"
+	"sdio/internal/matcher"
+)
+
+// cmProbDisabled is CM_PROB_DISABLED, duplicated from the unexported
+// hardware.deviceCMProbDisabled (see that constant's doc comment).
+const cmProbDisabled = 0x16
+
+// Candidate is one driver-pack HWID entry found for a device, ranked
+// against the running system - the scoring half of Hwidmatch
+// (matcher.cpp), decoupled from the not-yet-ported comparison against
+// an installed driver (see the package doc comment).
+type Candidate struct {
+	Driverpack   *indexing.Driverpack
+	HWIDIndex    int
+	DevPos       int
+	IsHardwareID bool
+	Result       matcher.Result
+	Dup          bool
+}
+
+// DeviceMatch is one enumerated device's collected candidate drivers,
+// ported from Devicematch (matcher.cpp). Candidates is sorted best
+// first (see matcher.Result.Cmp) with duplicates marked, matching
+// MatcherImp::sort.
+type DeviceMatch struct {
+	Device     hardware.Device
+	Status     int // matcher.Status* bits; nonzero here means Candidates is empty
+	Candidates []Candidate
+}
+
+// firstHWID returns a device's first hardware ID, or its first
+// compatible ID if it has no hardware IDs, ported from
+// Device::getHWIDby(0, ...).
+func firstHWID(d hardware.Device) string {
+	if len(d.HardwareIDs) > 0 {
+		return d.HardwareIDs[0]
+	}
+	if len(d.CompatibleIDs) > 0 {
+		return d.CompatibleIDs[0]
+	}
+	return ""
+}
+
+// isIgnored reports whether a device's primary hardware ID is on the
+// user's ignore list, ported from Devicematch::isIgnored.
+func isIgnored(d hardware.Device, ignoreList []string) bool {
+	hwid := firstHWID(d)
+	if hwid == "" {
+		return false
+	}
+	for _, ignored := range ignoreList {
+		if ignored == hwid {
+			return true
+		}
+	}
+	return false
+}
+
+// isMissing reports whether a device counts as "driver missing" for
+// status-reporting purposes, ported from Devicematch::isMissing.
+// installed is nil if the device has no installed driver.
+func isMissing(d hardware.Device, installed *hardware.InstalledDriver) bool {
+	if d.Problem == cmProbDisabled {
+		return false
+	}
+	if d.Problem != 0 && len(d.HardwareIDs) > 0 {
+		return true
+	}
+	if installed == nil {
+		upper := strings.ToUpper(firstHWID(d))
+		if strings.Contains(upper, "USBPRINT") || strings.Contains(upper, "DOT4PRT") || strings.Contains(upper, "BTHENUM") {
+			return true
+		}
+	}
+	if installed != nil && strings.EqualFold(installed.MatchingDeviceID, `PCI\CC_0300`) {
+		return true
+	}
+	return false
+}
+
+// FindHWID searches every driver pack in packs for hwid (a device's
+// hardware or compatible ID string), returning one Candidate per
+// match found via each pack's on-disk hash table, ported from
+// MatcherImp::findHWIDs. devPos/isHardwareID identify hwid's position
+// in the device's own ID list (see matcher.IdentifierScore).
+// deviceHardwareID is the device's own primary hardware ID, needed by
+// CalcAltSectScore's vendor-specific checks.
+func FindHWID(packs []*indexing.Driverpack, hwid string, devPos int, isHardwareID bool, ctx indexing.MatchContext, deviceHardwareID string) []Candidate {
+	key := int32(indexing.APHash([]byte(strings.ToUpper(hwid))))
+
+	var out []Candidate
+	for _, drp := range packs {
+		val, found := drp.Index.Hashes.Find(key)
+		for found {
+			out = append(out, buildCandidate(drp, int(val), devPos, isHardwareID, ctx, deviceHardwareID))
+			val, found = drp.Index.Hashes.FindNext()
+		}
+	}
+	return out
+}
+
+func buildCandidate(drp *indexing.Driverpack, hwidIndex, devPos int, isHardwareID bool, ctx indexing.MatchContext, deviceHardwareID string) Candidate {
+	identifierScore := matcher.IdentifierScore(devPos, isHardwareID, int(drp.InfPos(hwidIndex)))
+
+	section := drp.Section(hwidIndex)
+	decorScore := matcher.DecorationScore(matcher.SectionDecorationIndex(section), ctx.Major, ctx.Minor, ctx.Build, ctx.ArchForDecoration())
+	markerScore := matcher.MarkerScore(drp.InfPath(hwidIndex), ctx.Major, ctx.Minor, ctx.ArchForMarker())
+	altSectScore := drp.CalcAltSectScore(hwidIndex, decorScore, ctx, deviceHardwareID)
+
+	isNTSection := strings.Contains(strings.ToLower(drp.InstallPicked(hwidIndex)), ".nt")
+	score := matcher.Score(drp.CatalogFileBits(hwidIndex), drp.Feature(hwidIndex), identifierScore, ctx.Major, ctx.IsAMD64, isNTSection)
+
+	status := 0
+	if altSectScore == 0 {
+		status = matcher.StatusInvalid
+	}
+
+	return Candidate{
+		Driverpack:   drp,
+		HWIDIndex:    hwidIndex,
+		DevPos:       devPos,
+		IsHardwareID: isHardwareID,
+		Result: matcher.Result{
+			AltSectScore:  altSectScore,
+			Score:         score,
+			DriverVersion: drp.Version(hwidIndex),
+			DecorScore:    decorScore,
+			MarkerScore:   markerScore,
+			Status:        status,
+			InfCRC:        drp.InfCRC(hwidIndex),
+			HWID:          drp.HWID(hwidIndex),
+			Section:       section,
+		},
+	}
+}
+
+// Match builds a device's DeviceMatch by searching packs for each of
+// its hardware and compatible IDs, ranking and dup-marking the results,
+// ported from the Devicematch constructor plus MatcherImp::sort's
+// per-device portion. installed is nil if the device has no installed
+// driver.
+func Match(d hardware.Device, installed *hardware.InstalledDriver, packs []*indexing.Driverpack, ctx indexing.MatchContext, ignoreList []string) DeviceMatch {
+	if isIgnored(d, ignoreList) {
+		return DeviceMatch{Device: d, Status: matcher.StatusIgnored}
+	}
+
+	deviceHWID := firstHWID(d)
+	var candidates []Candidate
+	for pos, hwid := range d.HardwareIDs {
+		candidates = append(candidates, FindHWID(packs, hwid, pos, true, ctx, deviceHWID)...)
+	}
+	for pos, hwid := range d.CompatibleIDs {
+		candidates = append(candidates, FindHWID(packs, hwid, pos, false, ctx, deviceHWID)...)
+	}
+
+	if len(candidates) == 0 {
+		status := matcher.StatusNFStandard
+		switch {
+		case isMissing(d, installed):
+			status = matcher.StatusNFMissing
+		case installed != nil && strings.Contains(strings.ToLower(installed.InfPath), "oem"):
+			status = matcher.StatusNFUnknown
+		}
+		return DeviceMatch{Device: d, Status: status}
+	}
+
+	sortCandidates(candidates)
+	markDups(candidates)
+	return DeviceMatch{Device: d, Candidates: candidates}
+}
+
+// sortCandidates orders candidates best-first using matcher.Result.Cmp.
+func sortCandidates(candidates []Candidate) {
+	for i := 0; i < len(candidates); i++ {
+		best := i
+		for j := i + 1; j < len(candidates); j++ {
+			if candidates[j].Result.Cmp(candidates[best].Result) > 0 {
+				best = j
+			}
+		}
+		candidates[i], candidates[best] = candidates[best], candidates[i]
+	}
+}
+
+// markDups flags candidates that are the same underlying driver
+// reached via a different device ID, ported from the dup-marking pass
+// in MatcherImp::sort.
+func markDups(candidates []Candidate) {
+	for i := 0; i+1 < len(candidates); i++ {
+		for j := i + 1; j < len(candidates); j++ {
+			if candidates[i].Result.IsDup(candidates[j].Result) {
+				candidates[j].Dup = true
+			}
+		}
+	}
+}

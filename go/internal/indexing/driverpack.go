@@ -195,3 +195,17 @@ func (d *Driverpack) InfPos(hwidIndex int) int32 {
 func (d *Driverpack) HWID(hwidIndex int) string {
 	return d.Index.Text.GetString(d.Index.HWIDs[hwidIndex].HWID)
 }
+
+// CatalogFileBits reports which catalog-file fields (FieldCatalogFile..
+// FieldCatalogFileNTAMD64) are non-empty for this HWID entry's .inf
+// file, as a bitmask (1<<field), ported from Hwidmatch::calc_catalogfile.
+// The bit positions match matcher.CatalogFileBit..CatalogFileNTAMD64Bit.
+func (d *Driverpack) CatalogFileBits(hwidIndex int) int {
+	r := 0
+	for i := FieldCatalogFile; i <= FieldCatalogFileNTAMD64; i++ {
+		if d.Field(hwidIndex, i) != "" {
+			r |= 1 << i
+		}
+	}
+	return r
+}

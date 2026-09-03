@@ -65,7 +65,7 @@ func TestCalcAltSectScoreRealDeviceValid(t *testing.T) {
 	drp, i := realDtPortDriverpack(t)
 	ctx := MatchContext{Major: 10, Minor: 0, Build: 19045, IsAMD64: true}
 
-	decorScore := matcher.DecorationScore(matcher.SectionDecorationIndex(drp.Section(i)), ctx.Major, ctx.Minor, ctx.Build, ctx.archForDecoration())
+	decorScore := matcher.DecorationScore(matcher.SectionDecorationIndex(drp.Section(i)), ctx.Major, ctx.Minor, ctx.Build, ctx.ArchForDecoration())
 	got := drp.CalcAltSectScore(i, decorScore, ctx, `USB\VID_37DD&PID_6001`)
 	if got == 0 {
 		t.Fatalf("CalcAltSectScore() = 0, want a nonzero (valid) score for an unrestricted driver pack")
@@ -89,7 +89,7 @@ func TestCalcAltSectScoreRejectsWhenAltSectionScoresHigher(t *testing.T) {
 func TestCalcAltSectScoreRealtekBlacklist(t *testing.T) {
 	drp, i := realDtPortDriverpack(t)
 	ctx := MatchContext{Major: 10, Minor: 0, Build: 19045, IsAMD64: true}
-	decorScore := matcher.DecorationScore(matcher.SectionDecorationIndex(drp.Section(i)), ctx.Major, ctx.Minor, ctx.Build, ctx.archForDecoration())
+	decorScore := matcher.DecorationScore(matcher.SectionDecorationIndex(drp.Section(i)), ctx.Major, ctx.Minor, ctx.Build, ctx.ArchForDecoration())
 
 	blacklistedHWID := `PCI\VEN_168C&DEV_002B&SUBSYS_30A117AA`
 	// This only exercises the blacklist path if the driver's own
@@ -105,7 +105,7 @@ func TestCalcAltSectScoreRealtekBlacklist(t *testing.T) {
 func TestCalcAltSectScoreFilterSPShortCircuits(t *testing.T) {
 	drp, i := realDtPortDriverpack(t)
 	ctx := MatchContext{Major: 10, Minor: 0, Build: 19045, IsAMD64: true, FilterSP: true}
-	decorScore := matcher.DecorationScore(matcher.SectionDecorationIndex(drp.Section(i)), ctx.Major, ctx.Minor, ctx.Build, ctx.archForDecoration())
+	decorScore := matcher.DecorationScore(matcher.SectionDecorationIndex(drp.Section(i)), ctx.Major, ctx.Minor, ctx.Build, ctx.ArchForDecoration())
 
 	if got := drp.CalcAltSectScore(i, decorScore, ctx, `USB\VID_37DD&PID_6001`); got != 2 {
 		t.Errorf("CalcAltSectScore(FilterSP=true) = %d, want 2", got)
@@ -142,7 +142,7 @@ func TestCalcAltSectScoreAllRealHWIDEntries(t *testing.T) {
 		drp := &Driverpack{Path: root, Filename: strings.TrimSuffix(filepath.Base(path), ".bin") + ".7z", Index: idx}
 
 		for i := range idx.HWIDs {
-			decorScore := matcher.DecorationScore(matcher.SectionDecorationIndex(drp.Section(i)), ctx.Major, ctx.Minor, ctx.Build, ctx.archForDecoration())
+			decorScore := matcher.DecorationScore(matcher.SectionDecorationIndex(drp.Section(i)), ctx.Major, ctx.Minor, ctx.Build, ctx.ArchForDecoration())
 			got := drp.CalcAltSectScore(i, decorScore, ctx, drp.HWID(i))
 			if got < 0 || got > 2 {
 				t.Fatalf("%s HWID %d: CalcAltSectScore() = %d, want 0/1/2", filepath.Base(path), i, got)
