@@ -12,6 +12,7 @@ import (
 	"strings"
 
 	"sdio/internal/hardware"
+	"sdio/internal/install"
 )
 
 type result struct {
@@ -28,6 +29,11 @@ type result struct {
 	SampleInstalledDrivers []sampleDriver `json:"sample_installed_drivers,omitempty"`
 
 	IsLaptop *bool `json:"is_laptop,omitempty"`
+
+	InstallAPIAvailable bool   `json:"install_api_available"`
+	InstallAPIError     string `json:"install_api_error,omitempty"`
+	RestorePointFreqMin int    `json:"restore_point_frequency_min,omitempty"`
+	RestorePointFreqErr string `json:"restore_point_frequency_error,omitempty"`
 }
 
 type sampleDriver struct {
@@ -95,6 +101,17 @@ func main() {
 	if r.BaseBoard != nil && r.SysInfo != nil {
 		laptop := hardware.IsLaptop(r.BaseBoard.ChassisType, r.SysInfo.Monitors, r.SysInfo.Battery, hasACPIBattery)
 		r.IsLaptop = &laptop
+	}
+
+	if err := install.CheckAvailable(); err != nil {
+		r.InstallAPIError = err.Error()
+	} else {
+		r.InstallAPIAvailable = true
+	}
+	if freq, err := install.GetRestorePointCreationFrequency(); err != nil {
+		r.RestorePointFreqErr = err.Error()
+	} else {
+		r.RestorePointFreqMin = freq
 	}
 
 	enc := json.NewEncoder(os.Stdout)

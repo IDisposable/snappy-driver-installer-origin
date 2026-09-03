@@ -130,7 +130,7 @@ func TestSelectFilesIgnoresUnknownNames(t *testing.T) {
 func TestProgressPercent(t *testing.T) {
 	cases := []struct {
 		completed, total int64
-		want              int
+		want             int
 	}{
 		{0, 100, 0},
 		{50, 100, 50},
