@@ -9,9 +9,10 @@ import (
 )
 
 // LoadFile reads switches from a config file (one or more per line, in
-// the same "-flag=value" form accepted on the command line) and applies
-// them, then loads the per-host ignore list. filename may contain
-// %VAR% references.
+// either this rewrite's "-flag=value" syntax or the original engine's
+// "-flag:value" syntax, so an existing sdio.cfg keeps working) and
+// applies them, then loads the per-host ignore list. filename may
+// contain %VAR% references.
 func (s *Settings) LoadFile(filename string) error {
 	data, err := os.ReadFile(expandWindowsEnv(filename))
 	if err != nil {
@@ -32,10 +33,21 @@ func (s *Settings) LoadFile(filename string) error {
 		return err
 	}
 
-	if err := s.Parse(splitArgLine(sb.String())); err != nil {
+	var args []string
+	for _, tok := range splitArgLine(sb.String()) {
+		if translated, keep := translateLegacyArg(tok); keep {
+			args = append(args, translated)
+		}
+	}
+
+	if err := s.Parse(args); err != nil {
 		return err
 	}
-	return s.loadIgnoreList()
+
+	// A missing per-host ignore file is the common case, not a failure:
+	// match the original, which logs and continues with an empty list.
+	_ = s.loadIgnoreList()
+	return nil
 }
 
 // Save writes the persistent subset of settings (see boolFlagDefs) to

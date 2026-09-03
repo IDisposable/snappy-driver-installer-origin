@@ -160,6 +160,53 @@ func TestSaveSkipsWhenPreserveCfgSet(t *testing.T) {
 	}
 }
 
+func TestLoadFileAcceptsLegacyCfgSyntax(t *testing.T) {
+	dir := t.TempDir()
+	cfgPath := filepath.Join(dir, "sdio.cfg")
+	legacy := `"-drp_dir:D:\driverpacks"
+"-index_dir:D:\driverpacks\indexes"
+"-output_dir:D:\driverpacks\indexes\txt"
+"-lang:en-US"
+"-theme:dark"
+-scale:200
+-verbose:31
+-checkupdates
+-index_hr
+-a:64
+-filters:9
+`
+	if err := os.WriteFile(cfgPath, []byte(legacy), 0o644); err != nil {
+		t.Fatalf("writing legacy cfg fixture: %v", err)
+	}
+
+	s := New()
+	if err := s.LoadFile(cfgPath); err != nil {
+		t.Fatalf("LoadFile() error on legacy cfg: %v", err)
+	}
+
+	if s.DrpDir != `D:\driverpacks` {
+		t.Errorf("DrpDir = %q", s.DrpDir)
+	}
+	if s.IndexDir != `D:\driverpacks\indexes` {
+		t.Errorf("IndexDir = %q", s.IndexDir)
+	}
+	if s.OutputDir != `D:\driverpacks\indexes\txt` {
+		t.Errorf("OutputDir = %q", s.OutputDir)
+	}
+	if s.Flags&FlagCheckUpdates == 0 {
+		t.Error("expected FlagCheckUpdates set")
+	}
+	if s.Flags&FlagPrintIndex == 0 {
+		t.Error("expected -index_hr to map to FlagPrintIndex")
+	}
+	if s.VirtualArchType != 64 {
+		t.Errorf("VirtualArchType = %d, want 64", s.VirtualArchType)
+	}
+	if s.Filters != 9 {
+		t.Errorf("Filters = %d, want 9", s.Filters)
+	}
+}
+
 func TestSplitArgLineHandlesQuotedSpaces(t *testing.T) {
 	got := splitArgLine(`-drp-dir="C:\Program Files\drivers" -checkupdates`)
 	want := []string{`-drp-dir=C:\Program Files\drivers`, "-checkupdates"}
