@@ -76,6 +76,57 @@ func TestParseLsSwitchesStateMode(t *testing.T) {
 	}
 }
 
+func TestDefaultExtractDir(t *testing.T) {
+	s := New()
+	t.Setenv("TEMP", `C:\Users\test\AppData\Local\Temp`)
+	if err := s.Parse(nil); err != nil {
+		t.Fatalf("Parse() error: %v", err)
+	}
+	want := `C:\Users\test\AppData\Local\Temp\SDIO`
+	if s.ExtractDir != want {
+		t.Errorf("ExtractDir = %q, want %q", s.ExtractDir, want)
+	}
+}
+
+func TestParseExtractDirSwitchesExtractOnly(t *testing.T) {
+	s := New()
+	if s.Flags&FlagExtractOnly != 0 {
+		t.Fatal("expected FlagExtractOnly unset by default")
+	}
+	if err := s.Parse([]string{"-extractdir", `D:\extract`}); err != nil {
+		t.Fatalf("Parse() error: %v", err)
+	}
+	if s.ExtractDirRaw != `D:\extract` {
+		t.Errorf("ExtractDirRaw = %q", s.ExtractDirRaw)
+	}
+	if s.Flags&FlagExtractOnly == 0 {
+		t.Error("expected FlagExtractOnly set by -extractdir")
+	}
+}
+
+func TestParseVirtualOSVersionResolvesName(t *testing.T) {
+	s := New()
+	if err := s.Parse([]string{"-virtual-os-version", "100"}); err != nil {
+		t.Fatalf("Parse() error: %v", err)
+	}
+	if s.VirtualOSVersion != 100 {
+		t.Errorf("VirtualOSVersion = %d, want 100", s.VirtualOSVersion)
+	}
+	if s.VirtualWindowsVersionName != "Windows 10" {
+		t.Errorf("VirtualWindowsVersionName = %q, want %q", s.VirtualWindowsVersionName, "Windows 10")
+	}
+}
+
+func TestParseVirtualOSVersionUnknownCode(t *testing.T) {
+	s := New()
+	if err := s.Parse([]string{"-virtual-os-version", "999"}); err != nil {
+		t.Fatalf("Parse() error: %v", err)
+	}
+	if s.VirtualWindowsVersionName != "Unknown OS" {
+		t.Errorf("VirtualWindowsVersionName = %q, want %q", s.VirtualWindowsVersionName, "Unknown OS")
+	}
+}
+
 func TestParseFiltersp(t *testing.T) {
 	s := New()
 	if s.Flags&FlagUseLZMA == 0 {
@@ -118,8 +169,8 @@ func TestSaveLoadRoundTripsPersistentFlagsOnly(t *testing.T) {
 	s := New()
 	if err := s.Parse([]string{
 		"-drp-dir", "custom-drivers",
-		"-checkupdates",  // persistent
-		"-autoinstall",   // not persistent
+		"-checkupdates", // persistent
+		"-autoinstall",  // not persistent
 		"-filters", "9",
 	}); err != nil {
 		t.Fatalf("Parse() error: %v", err)
@@ -170,6 +221,25 @@ func TestSaveSkipsWhenPreserveCfgSet(t *testing.T) {
 	}
 	if _, err := os.Stat(cfgPath); !os.IsNotExist(err) {
 		t.Fatal("expected no cfg file to be written when FlagPreserveCfg is set")
+	}
+}
+
+func TestLegacyExtractDirSwitch(t *testing.T) {
+	dir := t.TempDir()
+	cfgPath := filepath.Join(dir, "sdio.cfg")
+	if err := os.WriteFile(cfgPath, []byte(`"-extractdir:D:\extract"`+"\n"), 0o644); err != nil {
+		t.Fatalf("writing cfg fixture: %v", err)
+	}
+
+	s := New()
+	if err := s.LoadFile(cfgPath); err != nil {
+		t.Fatalf("LoadFile() error: %v", err)
+	}
+	if s.ExtractDirRaw != `D:\extract` {
+		t.Errorf("ExtractDirRaw = %q", s.ExtractDirRaw)
+	}
+	if s.Flags&FlagExtractOnly == 0 {
+		t.Error("expected FlagExtractOnly set by legacy -extractdir:")
 	}
 }
 

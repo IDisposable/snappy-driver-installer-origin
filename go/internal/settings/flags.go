@@ -32,6 +32,7 @@ const (
 	FlagTorrentAlerts
 	FlagKeepSeeding
 	FlagNoStop
+	FlagExtractOnly
 	FlagScriptMode
 	FlagUpdatesOK
 )
@@ -64,7 +65,7 @@ var boolFlagDefs = []boolFlagDef{
 	{"autoupdate", "update driver packs automatically", FlagAutoUpdate, false},
 	{"nostop", "don't stop if creating a restore point fails", FlagNoStop, false},
 	{"keeptempfiles", "don't delete temporary extraction files", FlagKeepTempFiles, false},
-	{"disableinstall", "scan and match only, never install", FlagDisableInstall, false},
+	{"disableinstall", "scan and match only: never install, and never create a restore point", FlagDisableInstall, false},
 	{"failsafe", "run in fail-safe mode", FlagFailSafe, false},
 	{"delextrainfs", "delete extra .inf files after install", FlagDelExtraInfs, false},
 	{"nologfile", "don't write a log file", FlagNoLogFile, false},

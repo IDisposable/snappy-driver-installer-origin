@@ -21,6 +21,7 @@ var legacyPrefixRenames = []struct{ from, to string }{
 	{"-ls:", "-ls="},
 	{"-getdevicelist:", "-device-list="},
 	{"-v:", "-virtual-os-version="},
+	{"-extractdir:", "-extractdir="},
 }
 
 var legacyExactRenames = map[string]string{

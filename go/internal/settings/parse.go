@@ -5,6 +5,8 @@ import (
 	"os"
 	"regexp"
 	"strconv"
+
+	"sdio/internal/hardware"
 )
 
 // flagBit adapts a single Flags bit to flag.Value, so boolFlagDefs can
@@ -72,6 +74,47 @@ func (f stateFileValue) Set(v string) error {
 	return nil
 }
 
+// extractDirValue sets ExtractDirRaw and, matching the original's
+// "-extractdir:" handling, switches on extract-only mode (scan and
+// extract driver packs, but don't install).
+type extractDirValue struct{ s *Settings }
+
+func (f extractDirValue) String() string {
+	if f.s == nil {
+		return ""
+	}
+	return f.s.ExtractDirRaw
+}
+
+func (f extractDirValue) Set(v string) error {
+	f.s.ExtractDirRaw = v
+	f.s.Flags |= FlagExtractOnly
+	return nil
+}
+
+// virtualOSVersionValue stores the raw -v:<code> value and resolves its
+// display name via the ported WinVersions table (hardware package),
+// matching the original's use of this switch to emulate a non-server
+// Windows version only.
+type virtualOSVersionValue struct{ s *Settings }
+
+func (f virtualOSVersionValue) String() string {
+	if f.s == nil {
+		return "0"
+	}
+	return strconv.Itoa(f.s.VirtualOSVersion)
+}
+
+func (f virtualOSVersionValue) Set(v string) error {
+	n, err := strconv.Atoi(v)
+	if err != nil {
+		return err
+	}
+	f.s.VirtualOSVersion = n
+	f.s.VirtualWindowsVersionName = hardware.FindWindowsVersionName(n, false)
+	return nil
+}
+
 // FlagSet builds a *flag.FlagSet bound to this Settings, for use with
 // flag.FlagSet.Parse against os.Args[1:] or against tokens read from a
 // config file (see LoadFile). One-shot action switches from the
@@ -91,9 +134,10 @@ func (s *Settings) FlagSet(name string) *flag.FlagSet {
 	fs.StringVar(&s.FinishUpdateCmd, "finish-update-cmd", s.FinishUpdateCmd, "command to run when finished with updates available")
 	fs.StringVar(&s.DeviceListFilename, "device-list", s.DeviceListFilename, "write a device list to this file")
 	fs.Var(stateFileValue{s}, "ls", "replay a saved system snapshot (.snp) instead of scanning real hardware")
+	fs.Var(extractDirValue{s}, "extractdir", "directory to extract driver packs into; also switches to extract-only mode (no install)")
 
 	fs.Var(filterShowValue{&s.Filters}, "filters", "bitmask of driver-match categories to display")
-	fs.IntVar(&s.VirtualOSVersion, "virtual-os-version", s.VirtualOSVersion, "virtual OS version to match against")
+	fs.Var(virtualOSVersionValue{s}, "virtual-os-version", "virtual (non-server) Windows version code to match against, e.g. 100 for Windows 10")
 	fs.IntVar(&s.VirtualArchType, "arch", s.VirtualArchType, "virtual architecture to match against: 32 or 64")
 
 	fs.BoolFunc("filtersp", "restrict matches to service-pack validated dates", func(v string) error {
@@ -123,6 +167,7 @@ func (s *Settings) Parse(args []string) error {
 		return err
 	}
 	s.LogDir = expandWindowsEnv(s.LogDirRaw)
+	s.ExtractDir = expandWindowsEnv(s.ExtractDirRaw)
 	return nil
 }
 

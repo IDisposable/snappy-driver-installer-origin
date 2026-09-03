@@ -24,13 +24,15 @@ const (
 // Settings holds the engine's configuration, normally populated by
 // New() defaults, then Load or Parse.
 type Settings struct {
-	DrpDir    string
-	IndexDir  string
-	OutputDir string
-	DrpExtDir string
-	DataDir   string
-	LogDirRaw string // as configured, may contain %VAR% references
-	LogDir    string // LogDirRaw with environment variables expanded
+	DrpDir        string
+	IndexDir      string
+	OutputDir     string
+	DrpExtDir     string
+	DataDir       string
+	LogDirRaw     string // as configured, may contain %VAR% references
+	LogDir        string // LogDirRaw with environment variables expanded
+	ExtractDirRaw string // as configured, may contain %VAR% references
+	ExtractDir    string // ExtractDirRaw with environment variables expanded
 
 	StateFile          string
 	DeviceListFilename string
@@ -42,9 +44,16 @@ type Settings struct {
 	Flags   Flags
 	Filters FilterShow
 
-	StateMode        StateMode
-	VirtualOSVersion int // TODO: resolve via the ported WinVersions table once system.cpp lands
-	VirtualArchType  int
+	StateMode StateMode
+
+	// VirtualOSVersion is the raw code from -v:<version> (e.g. 100 for
+	// Windows 10); 0 means unset. VirtualWindowsVersionName is its
+	// resolved display name via hardware.FindWindowsVersionName (always
+	// a non-server lookup, matching the original's use of this switch),
+	// or empty if VirtualOSVersion is unset.
+	VirtualOSVersion          int
+	VirtualWindowsVersionName string
+	VirtualArchType           int
 
 	IgnoreList []string
 }
@@ -53,15 +62,16 @@ type Settings struct {
 // Settings_t constructor.
 func New() *Settings {
 	return &Settings{
-		DrpDir:    "drivers",
-		IndexDir:  "indexes",
-		OutputDir: filepath.Join("indexes", "txt"),
-		DataDir:   filepath.Join("tools", "SDIO"),
-		LogDirRaw: "logs",
-		StateFile: "untitled.snp",
-		Flags:     FlagUseLZMA,
-		StateMode: StateModeReal,
-		Filters:   DefaultFilters,
+		DrpDir:        "drivers",
+		IndexDir:      "indexes",
+		OutputDir:     filepath.Join("indexes", "txt"),
+		DataDir:       filepath.Join("tools", "SDIO"),
+		LogDirRaw:     "logs",
+		ExtractDirRaw: `%TEMP%\SDIO`,
+		StateFile:     "untitled.snp",
+		Flags:         FlagUseLZMA,
+		StateMode:     StateModeReal,
+		Filters:       DefaultFilters,
 	}
 }
 
@@ -83,6 +93,6 @@ func (s *Settings) MarshalZerologObject(e *zerolog.Event) {
 		e.Int("virtual_arch_type", s.VirtualArchType)
 	}
 	if s.VirtualOSVersion != 0 {
-		e.Int("virtual_os_version", s.VirtualOSVersion)
+		e.Int("virtual_os_version", s.VirtualOSVersion).Str("virtual_windows_version_name", s.VirtualWindowsVersionName)
 	}
 }
