@@ -6,6 +6,56 @@ import (
 	"testing"
 )
 
+// chdir changes to dir for the duration of the test, restoring the
+// original working directory in cleanup.
+func chdir(t *testing.T, dir string) {
+	t.Helper()
+	orig, err := os.Getwd()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Chdir(dir); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { os.Chdir(orig) })
+}
+
+func TestLoadDefaultCfgMissingFileIsNotAnError(t *testing.T) {
+	chdir(t, t.TempDir())
+
+	s := New()
+	if err := s.LoadDefaultCfg(); err != nil {
+		t.Fatalf("LoadDefaultCfg() error = %v, want nil when sdio.cfg doesn't exist", err)
+	}
+}
+
+// TestLoadDefaultCfgRealFile loads a real sdio.cfg (quoted legacy
+// switches, unquoted bare switches, blank lines) from a real
+// installation and confirms it applies, matching main()'s
+// Settings.load(L"sdio.cfg") startup step.
+func TestLoadDefaultCfgRealFile(t *testing.T) {
+	dir := t.TempDir()
+	cfg := "\"-drp_dir:drivers\"\n\"-index_dir:indexes\\SDI\"\n-filters:1062\n-expertmode -showconsole\n"
+	if err := os.WriteFile(filepath.Join(dir, DefaultCfgFilename), []byte(cfg), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	chdir(t, dir)
+
+	s := New()
+	if err := s.LoadDefaultCfg(); err != nil {
+		t.Fatalf("LoadDefaultCfg() error: %v", err)
+	}
+	if s.DrpDir != "drivers" {
+		t.Errorf("DrpDir = %q, want %q", s.DrpDir, "drivers")
+	}
+	if s.IndexDir != `indexes\SDI` {
+		t.Errorf("IndexDir = %q, want %q", s.IndexDir, `indexes\SDI`)
+	}
+	if s.Filters != 1062 {
+		t.Errorf("Filters = %d, want 1062", s.Filters)
+	}
+}
+
 func TestFilterBitsMatchExistingCfgFiles(t *testing.T) {
 	// From a real sdio.cfg in the wild: "-filters:1030" with the GUI
 	// showing "Show Not Installed / Show Newer / Show Only Best" checked.

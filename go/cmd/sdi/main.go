@@ -25,6 +25,10 @@ import (
 
 func main() {
 	s := settings.New()
+	if err := s.LoadDefaultCfg(); err != nil {
+		fmt.Fprintln(os.Stderr, "warning: loading sdio.cfg:", err)
+	}
+
 	fs := s.FlagSet("sdi")
 	doInstall := fs.Bool("install", false, "install matched drivers (modifies the system; without this flag, only scan and report)")
 	if err := fs.Parse(os.Args[1:]); err != nil {

@@ -101,6 +101,9 @@ func (m model) View() string {
 
 func main() {
 	s := settings.New()
+	if err := s.LoadDefaultCfg(); err != nil {
+		fmt.Fprintln(os.Stderr, "warning: loading sdio.cfg:", err)
+	}
 	if err := s.Parse(os.Args[1:]); err != nil {
 		os.Exit(2)
 	}
