@@ -24,6 +24,10 @@ import (
 )
 
 func main() {
+	os.Exit(mainErr())
+}
+
+func mainErr() int {
 	s := settings.New()
 	if err := s.LoadDefaultCfg(); err != nil {
 		fmt.Fprintln(os.Stderr, "warning: loading sdio.cfg:", err)
@@ -32,14 +36,27 @@ func main() {
 	fs := s.FlagSet("sdi")
 	doInstall := fs.Bool("install", false, "install matched drivers (modifies the system; without this flag, only scan and report)")
 	if err := fs.Parse(os.Args[1:]); err != nil {
-		os.Exit(2)
+		return 2
 	}
 	s.ExpandDirs()
 
+	// Ported from main()'s unconditional Settings.save() after a run
+	// completes, so switches given on the command line persist into
+	// sdio.cfg for next time (Settings.Save itself honors
+	// -preservecfg and only ever writes the persistent subset of
+	// fields - never GUI-only state, which this rewrite doesn't have).
+	// Deferred so it still runs even if run() below returns an error.
+	defer func() {
+		if err := s.Save(settings.DefaultCfgFilename); err != nil {
+			fmt.Fprintln(os.Stderr, "warning: saving sdio.cfg:", err)
+		}
+	}()
+
 	if err := run(s, *doInstall); err != nil {
 		fmt.Fprintln(os.Stderr, "error:", err)
-		os.Exit(1)
+		return 1
 	}
+	return 0
 }
 
 func run(s *settings.Settings, doInstall bool) error {
@@ -102,8 +119,26 @@ type pendingInstall struct {
 // caller passed -install explicitly.
 func runInstall(s *settings.Settings, pending []pendingInstall) {
 	if s.Flags&settings.FlagDisableInstall == 0 {
+		// Windows throttles System Restore to about one automatic
+		// checkpoint per day; without bypassing that, CreateRestorePoint
+		// can silently do nothing if one was already made recently.
+		// Ported from Manager::thread_install's
+		// GetRestorePointCreationFrequency -> SetRestorePointCreation
+		// Frequency(0) -> SRSetRestorePointW -> SetRestorePointCreation
+		// Frequency(original) sequence.
+		origFreq, freqErr := install.GetRestorePointCreationFrequency()
+		if freqErr == nil {
+			if err := install.SetRestorePointCreationFrequency(0); err != nil {
+				fmt.Fprintf(os.Stderr, "warning: could not bypass the restore point frequency limit: %v\n", err)
+			}
+		}
 		if err := install.CreateRestorePoint(install.RestorePointDescription); err != nil {
 			fmt.Fprintf(os.Stderr, "warning: could not create a restore point: %v\n", err)
+		}
+		if freqErr == nil {
+			if err := install.SetRestorePointCreationFrequency(origFreq); err != nil {
+				fmt.Fprintf(os.Stderr, "warning: could not restore the original restore point frequency limit: %v\n", err)
+			}
 		}
 	}
 
@@ -132,6 +167,17 @@ func installOne(s *settings.Settings, p pendingInstall) error {
 		return fmt.Errorf("extracting %s: %w", prefix, err)
 	}
 	extractedInf := filepath.Join(destDir, infName)
+
+	// Ported from the unconditional removeextrainfs(inf) call after
+	// driver_install in Manager::thread_install: runs regardless of
+	// whether the install below succeeds, fails, or is skipped.
+	if s.Flags&settings.FlagDelExtraInfs != 0 {
+		defer func() {
+			if err := install.RemoveExtraInfs(extractedInf); err != nil {
+				fmt.Fprintf(os.Stderr, "warning: removing extra .inf files for %s: %v\n", p.description, err)
+			}
+		}()
+	}
 
 	if s.Flags&settings.FlagDisableInstall != 0 {
 		fmt.Printf("INSTALL  %-50s (-disableinstall set, not actually installing)\n", p.description)

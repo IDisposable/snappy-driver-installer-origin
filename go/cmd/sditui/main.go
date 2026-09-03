@@ -100,23 +100,36 @@ func (m model) View() string {
 }
 
 func main() {
+	os.Exit(mainErr())
+}
+
+func mainErr() int {
 	s := settings.New()
 	if err := s.LoadDefaultCfg(); err != nil {
 		fmt.Fprintln(os.Stderr, "warning: loading sdio.cfg:", err)
 	}
 	if err := s.Parse(os.Args[1:]); err != nil {
-		os.Exit(2)
+		return 2
 	}
+
+	// Ported from main()'s unconditional Settings.save() after a run
+	// completes; deferred so it still runs even on an error return.
+	defer func() {
+		if err := s.Save(settings.DefaultCfgFilename); err != nil {
+			fmt.Fprintln(os.Stderr, "warning: saving sdio.cfg:", err)
+		}
+	}()
 
 	result, err := scan.Run(s)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "error:", err)
-		os.Exit(1)
+		return 1
 	}
 
 	p := tea.NewProgram(newModel(result), tea.WithAltScreen())
 	if _, err := p.Run(); err != nil {
 		fmt.Fprintln(os.Stderr, "error:", err)
-		os.Exit(1)
+		return 1
 	}
+	return 0
 }
