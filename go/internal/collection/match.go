@@ -120,27 +120,41 @@ func isMissing(d hardware.Device, installed *hardware.InstalledDriver) bool {
 // deviceHardwareID is the device's own primary hardware ID, needed by
 // CalcAltSectScore's vendor-specific checks. installedScore is nil if
 // the device has no installed driver (see indexing.CalcStatus).
-func FindHWID(packs []*indexing.Driverpack, hwid string, devPos int, isHardwareID bool, ctx indexing.MatchContext, deviceHardwareID string, installedScore *InstalledScore) []Candidate {
+// suppressLowConfidence should be installed!=nil && device.Problem==0
+// (see Match) - ported from a default-view display rule in
+// Manager::filter, applied here instead since candidates are computed
+// once rather than re-filtered on demand.
+func FindHWID(packs []*indexing.Driverpack, hwid string, devPos int, isHardwareID bool, ctx indexing.MatchContext, deviceHardwareID string, installedScore *InstalledScore, suppressLowConfidence bool) []Candidate {
 	key := int32(indexing.APHash([]byte(strings.ToUpper(hwid))))
 
 	var out []Candidate
 	for _, drp := range packs {
 		val, found := drp.Index.Hashes.Find(key)
 		for found {
-			out = append(out, buildCandidate(drp, int(val), devPos, isHardwareID, ctx, deviceHardwareID, installedScore))
+			out = append(out, buildCandidate(drp, int(val), devPos, isHardwareID, ctx, deviceHardwareID, installedScore, suppressLowConfidence))
 			val, found = drp.Index.Hashes.FindNext()
 		}
 	}
 	return out
 }
 
-func buildCandidate(drp *indexing.Driverpack, hwidIndex, devPos int, isHardwareID bool, ctx indexing.MatchContext, deviceHardwareID string, installedScore *InstalledScore) Candidate {
+func buildCandidate(drp *indexing.Driverpack, hwidIndex, devPos int, isHardwareID bool, ctx indexing.MatchContext, deviceHardwareID string, installedScore *InstalledScore, suppressLowConfidence bool) Candidate {
 	identifierScore := matcher.IdentifierScore(devPos, isHardwareID, int(drp.InfPos(hwidIndex)))
 
 	section := drp.Section(hwidIndex)
 	decorScore := matcher.DecorationScore(matcher.SectionDecorationIndex(section), ctx.Major, ctx.Minor, ctx.Build, ctx.ArchForDecoration())
 	markerScore := matcher.MarkerScore(drp.InfPath(hwidIndex), ctx.Major, ctx.Minor, ctx.ArchForMarker())
 	altSectScore := drp.CalcAltSectScore(hwidIndex, decorScore, ctx, deviceHardwareID)
+
+	// Default-view display rule ported from Manager::filter: with
+	// FILTER_SHOW_WORSE_RANK and FILTER_SHOW_INVALID both off (the
+	// default), a candidate for a problem-free device that already has
+	// an installed driver is hidden entirely unless it's at least
+	// catalog-signed-valid (altsectscore==2) - an unsigned/uncertain
+	// match (1) isn't worth surfacing when something already works.
+	if suppressLowConfidence && altSectScore < 2 {
+		altSectScore = 0
+	}
 
 	infPath := drp.InfPath(hwidIndex)
 	isNTSection := strings.Contains(strings.ToLower(drp.InstallPicked(hwidIndex)), ".nt")
@@ -186,13 +200,17 @@ func Match(d hardware.Device, installed *hardware.InstalledDriver, installedScor
 		return DeviceMatch{Device: d, Status: matcher.StatusIgnored}
 	}
 
+	// See FindHWID's doc comment: matches Manager::filter's
+	// devicematch->device->problem==0 && devicematch->driver check.
+	suppressLowConfidence := installed != nil && d.Problem == 0
+
 	deviceHWID := firstHWID(d)
 	var candidates []Candidate
 	for pos, hwid := range d.HardwareIDs {
-		candidates = append(candidates, FindHWID(packs, hwid, pos, true, ctx, deviceHWID, installedScore)...)
+		candidates = append(candidates, FindHWID(packs, hwid, pos, true, ctx, deviceHWID, installedScore, suppressLowConfidence)...)
 	}
 	for pos, hwid := range d.CompatibleIDs {
-		candidates = append(candidates, FindHWID(packs, hwid, pos, false, ctx, deviceHWID, installedScore)...)
+		candidates = append(candidates, FindHWID(packs, hwid, pos, false, ctx, deviceHWID, installedScore, suppressLowConfidence)...)
 	}
 
 	if len(candidates) == 0 {

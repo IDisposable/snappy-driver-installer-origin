@@ -102,13 +102,31 @@ func TestCalcAltSectScoreRealtekBlacklist(t *testing.T) {
 	}
 }
 
-func TestCalcAltSectScoreFilterSPShortCircuits(t *testing.T) {
+func TestCalcAltSectScoreFilterSPValidCatScoresTwo(t *testing.T) {
 	drp, i := realDtPortDriverpack(t)
 	ctx := MatchContext{Major: 10, Minor: 0, Build: 19045, IsAMD64: true, FilterSP: true}
 	decorScore := matcher.DecorationScore(matcher.SectionDecorationIndex(drp.Section(i)), ctx.Major, ctx.Minor, ctx.Build, ctx.ArchForDecoration())
 
 	if got := drp.CalcAltSectScore(i, decorScore, ctx, `USB\VID_37DD&PID_6001`); got != 2 {
-		t.Errorf("CalcAltSectScore(FilterSP=true) = %d, want 2", got)
+		t.Errorf("CalcAltSectScore(FilterSP=true, valid cat) = %d, want 2", got)
+	}
+}
+
+// TestCalcAltSectScoreFilterSPInvalidCatScoresOne confirms the
+// FilterSP branch downgrades to 1 when the catalog doesn't actually
+// cover the running OS, ported from the isvalidcat-based correction
+// Manager::filter applies to an optimistic altsectscore==2 (see
+// CalcAltSectScore's doc comment on why that correction is folded in
+// here instead of applied as a separate later pass). dtport's real
+// catalog covers "2:10.0" only, so a Windows 7 target should fail
+// validation.
+func TestCalcAltSectScoreFilterSPInvalidCatScoresOne(t *testing.T) {
+	drp, i := realDtPortDriverpack(t)
+	ctx := MatchContext{Major: 6, Minor: 1, Build: 7601, IsAMD64: true, FilterSP: true}
+	decorScore := matcher.DecorationScore(matcher.SectionDecorationIndex(drp.Section(i)), ctx.Major, ctx.Minor, ctx.Build, ctx.ArchForDecoration())
+
+	if got := drp.CalcAltSectScore(i, decorScore, ctx, `USB\VID_37DD&PID_6001`); got != 1 {
+		t.Errorf("CalcAltSectScore(FilterSP=true, invalid cat) = %d, want 1 (downgraded)", got)
 	}
 }
 

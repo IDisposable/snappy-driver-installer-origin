@@ -41,13 +41,15 @@ type DeviceResult struct {
 // device whose best candidate is merely equal to (matcher.StatusSame)
 // or worse than (matcher.StatusWorse) what's already installed is not
 // "found" in the actionable sense, even though it has a nonzero
-// AltSectScore.
+// AltSectScore. IsDriverValid additionally requires DecorScore>0
+// (Hwidmatch::isdrivervalid checks both), matching
+// FILTER_SHOW_INVALID's default-off behavior.
 func (r DeviceResult) Best() *collection.Candidate {
 	if len(r.Candidates) == 0 {
 		return nil
 	}
 	best := r.Candidates[0]
-	if best.Result.AltSectScore == 0 || best.Result.Status&matcher.StatusBetter == 0 {
+	if !best.Result.IsDriverValid() || best.Result.Status&matcher.StatusBetter == 0 {
 		return nil
 	}
 	return &r.Candidates[0]

@@ -130,6 +130,41 @@ func TestMatchNilInstalledScoreAlwaysBetter(t *testing.T) {
 	}
 }
 
+// TestMatchSuppressesLowConfidenceCandidateWhenDriverAlreadyWorks
+// confirms the default-view display rule ported from Manager::filter
+// (devicematch->device->problem==0 && devicematch->driver &&
+// altsectscore<2 -> hidden): an altsectscore==1 (unsigned/uncertain)
+// candidate is forced to 0 when the device has no problem code and
+// already has an installed driver, but left alone otherwise. Windows
+// 7 (major=6,minor=1) makes dtport's real catalog ("2:10.0" only)
+// invalid, so its natural (unsuppressed) altsectscore is 1 - see
+// TestCalcAltSectScoreFilterSPInvalidCatScoresOne, which established
+// this same fact for the FilterSP path.
+func TestMatchSuppressesLowConfidenceCandidateWhenDriverAlreadyWorks(t *testing.T) {
+	const path = "/mnt/d/OneDrive/Desktop/Reinstall/DriverInstaller/indexes/SDI/DP_Ports_SDIO01_26083.bin"
+	drp := loadRealPack(t, path, "DP_Ports_SDIO01_26083.7z")
+	ctx := indexing.MatchContext{Major: 6, Minor: 1, Build: 7601, IsAMD64: true}
+	packs := []*indexing.Driverpack{drp}
+
+	suppressed := Match(hardware.Device{HardwareIDs: []string{`DTBUS\COMPORT&VID_37DD&PID_6001`}, Problem: 0},
+		&hardware.InstalledDriver{}, nil, packs, ctx, nil)
+	if got := suppressed.Candidates[0].Result.AltSectScore; got != 0 {
+		t.Errorf("AltSectScore = %d, want 0 (suppressed: no problem, has installed driver, natural score 1)", got)
+	}
+
+	withProblem := Match(hardware.Device{HardwareIDs: []string{`DTBUS\COMPORT&VID_37DD&PID_6001`}, Problem: 1},
+		&hardware.InstalledDriver{}, nil, packs, ctx, nil)
+	if got := withProblem.Candidates[0].Result.AltSectScore; got != 1 {
+		t.Errorf("AltSectScore = %d, want 1 (not suppressed: device has a problem code)", got)
+	}
+
+	noInstalledDriver := Match(hardware.Device{HardwareIDs: []string{`DTBUS\COMPORT&VID_37DD&PID_6001`}, Problem: 0},
+		nil, nil, packs, ctx, nil)
+	if got := noInstalledDriver.Candidates[0].Result.AltSectScore; got != 1 {
+		t.Errorf("AltSectScore = %d, want 1 (not suppressed: no installed driver)", got)
+	}
+}
+
 func TestMatchNoCandidatesFallsBackToNFStandard(t *testing.T) {
 	device := hardware.Device{HardwareIDs: []string{`ACPI\NONEXISTENT_DEVICE_ID_1234`}}
 	ctx := indexing.MatchContext{Major: 10, Minor: 0, Build: 19045, IsAMD64: true}

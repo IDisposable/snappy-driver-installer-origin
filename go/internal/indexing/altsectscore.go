@@ -140,8 +140,19 @@ func (d *Driverpack) CalcAltSectScore(hwidIndex, curScore int, ctx MatchContext,
 		}
 	}
 
+	// The original returns 2 unconditionally here (Hwidmatch::
+	// calc_altsectscore's `if(Settings.flags&FLAG_FILTERSP)return 2;`),
+	// then separately, in Manager::filter (a display-layer pass that
+	// can re-run without recomputing scores), downgrades any resulting
+	// altsectscore==2 to 1 if isvalidcat actually fails. This rewrite
+	// has no equivalent separate re-filter pass, so the two steps are
+	// folded into one here - same net result (2 only when the catalog
+	// genuinely validates, 1 otherwise), computed once.
 	if ctx.FilterSP {
-		return 2
+		if d.IsValidCatForDriver(hwidIndex, ctx.Major, ctx.Minor, ctx.IsAMD64) {
+			return 2
+		}
+		return 1
 	}
 
 	if strings.Contains(lowerPath, "tweak") || strings.Contains(strings.ToLower(d.InfName(hwidIndex)), "tweak") {
