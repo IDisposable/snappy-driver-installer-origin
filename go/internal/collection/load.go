@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"sdio/internal/indexing"
 	"sdio/internal/sdwfile"
@@ -45,7 +46,10 @@ func indexFilename(packFilename string) string {
 // indexing.ScanDriverpackFolder) and loads each one's compiled index
 // from indexDir, ported from the file-discovery and index-loading
 // (not reindexing) parts of Collection::scanfolder/
-// Driverpack::loadindex.
+// Driverpack::loadindex. It also loads any pending (not-yet-
+// downloaded) packs found via LoadOnlineIndexes, appended to
+// LoadResult.Packs with Pending set, matching Collection::populate
+// calling both scanfolder and loadOnlineIndexes.
 func LoadCollection(driverpackDir, indexDir string) (LoadResult, error) {
 	files, err := indexing.ScanDriverpackFolder(driverpackDir)
 	if err != nil {
@@ -61,7 +65,67 @@ func LoadCollection(driverpackDir, indexDir string) (LoadResult, error) {
 		}
 		result.Packs = append(result.Packs, &indexing.Driverpack{Path: f.Dir, Filename: f.Filename, Index: idx})
 	}
+
+	pending, err := LoadOnlineIndexes(indexDir, result.Packs)
+	if err != nil {
+		return result, err
+	}
+	for _, p := range pending {
+		p.Path = driverpackDir
+	}
+	result.Packs = append(result.Packs, pending...)
+
 	return result, nil
+}
+
+// expectedPackFilename reconstructs the driver-pack .7z filename an
+// underscore-prefixed pending index file (e.g.
+// "_P_Ports_SDIO01_26083.bin") stands in for, ported from the
+// filename manipulation in Collection::loadOnlineIndexes: the leading
+// "_" replaces what would otherwise be the "D" of the "DP_..." naming
+// convention, and the extension is swapped from .bin to .7z.
+func expectedPackFilename(pendingIndexFilename string) string {
+	base := "D" + pendingIndexFilename[1:]
+	return strings.TrimSuffix(base, filepath.Ext(base)) + ".7z"
+}
+
+// LoadOnlineIndexes finds driver packs whose index has been
+// downloaded but whose .7z data hasn't, so they can still be matched
+// against - installing one needs a torrent download first (see
+// go/README.md's update.cpp entry). Ported from
+// Collection::loadOnlineIndexes: such packs are marked by an
+// underscore-prefixed index filename under indexDir (see
+// expectedPackFilename). alreadyLoaded lists the driver packs
+// LoadCollection already found locally; a pending entry is skipped if
+// its reconstructed .7z filename is already among them (matching the
+// original's System.FileExists check) - that means it's already been
+// downloaded and its underscore-prefixed placeholder is just stale,
+// as most real installations accumulate over time.
+func LoadOnlineIndexes(indexDir string, alreadyLoaded []*indexing.Driverpack) ([]*indexing.Driverpack, error) {
+	have := make(map[string]bool, len(alreadyLoaded))
+	for _, drp := range alreadyLoaded {
+		have[strings.ToLower(drp.Filename)] = true
+	}
+
+	matches, err := filepath.Glob(filepath.Join(indexDir, "_*.bin"))
+	if err != nil {
+		return nil, fmt.Errorf("scanning %s: %w", indexDir, err)
+	}
+
+	var pending []*indexing.Driverpack
+	for _, path := range matches {
+		packFilename := expectedPackFilename(filepath.Base(path))
+		if have[strings.ToLower(packFilename)] {
+			continue
+		}
+
+		idx, err := loadIndex(path)
+		if err != nil {
+			continue // matches the original's lack of error handling here
+		}
+		pending = append(pending, &indexing.Driverpack{Filename: packFilename, Index: idx, Pending: true})
+	}
+	return pending, nil
 }
 
 func loadIndex(path string) (*indexing.Index, error) {

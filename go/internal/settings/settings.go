@@ -56,6 +56,16 @@ type Settings struct {
 	VirtualArchType           int
 
 	IgnoreList []string
+
+	// TorrentFile is a local .torrent file path or magnet URI to fetch
+	// pending (not-yet-downloaded) driver packs from - see
+	// collection.LoadOnlineIndexes and go/README.md's update.cpp
+	// entry. Empty means torrent downloads are disabled; unlike the
+	// original, no tracker/webseed/metadata-fetch URL is hardcoded
+	// here (update.h declares Updater_t::torrent_url/torrent2_url but
+	// never defines them anywhere in this codebase), so this must be
+	// supplied explicitly.
+	TorrentFile string
 }
 
 // New returns Settings populated with the same defaults as the original

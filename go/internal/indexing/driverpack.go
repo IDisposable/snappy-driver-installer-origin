@@ -18,6 +18,15 @@ type Driverpack struct {
 	Path     string
 	Filename string
 	Index    *Index
+
+	// Pending is true when this pack's index was loaded but its .7z
+	// file isn't present locally yet (DRIVERPACK_TYPE_UPDATE in the
+	// original - see Collection::loadOnlineIndexes and
+	// Hwidmatch::getdrp_packontorrent). A device can still be matched
+	// against a pending pack (its index is fully loaded), but
+	// installing it needs to download Filename first - see
+	// go/README.md's update.cpp entry.
+	Pending bool
 }
 
 // entry bundles the three record indices a HWID entry resolves to,

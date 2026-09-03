@@ -135,6 +135,7 @@ func (s *Settings) FlagSet(name string) *flag.FlagSet {
 	fs.StringVar(&s.DeviceListFilename, "device-list", s.DeviceListFilename, "write a device list to this file")
 	fs.Var(stateFileValue{s}, "ls", "replay a saved system snapshot (.snp) instead of scanning real hardware")
 	fs.Var(extractDirValue{s}, "extractdir", "directory to extract driver packs into; also switches to extract-only mode (no install)")
+	fs.StringVar(&s.TorrentFile, "torrent-file", s.TorrentFile, "local .torrent file path or magnet URI to fetch pending driver packs from")
 
 	fs.Var(filterShowValue{&s.Filters}, "filters", "bitmask of driver-match categories to display")
 	fs.Var(virtualOSVersionValue{s}, "virtual-os-version", "virtual (non-server) Windows version code to match against, e.g. 100 for Windows 10")

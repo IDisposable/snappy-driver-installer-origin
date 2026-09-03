@@ -11,16 +11,20 @@
 package main
 
 import (
+	"context"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"sdio/internal/archive"
 	"sdio/internal/collection"
 	"sdio/internal/install"
 	"sdio/internal/scan"
 	"sdio/internal/settings"
+	"sdio/internal/update"
 )
 
 func main() {
@@ -91,8 +95,12 @@ func run(s *settings.Settings, doInstall bool) error {
 			continue
 		}
 		matched++
-		fmt.Printf("FOUND    %-50s -> %s (%s, %s)\n",
-			dr.Device.Description, best.Driverpack.Filename, best.Result.Section, best.Result.DriverVersion)
+		onTorrent := ""
+		if best.Driverpack.Pending {
+			onTorrent = " [needs download]"
+		}
+		fmt.Printf("FOUND    %-50s -> %s (%s, %s)%s\n",
+			dr.Device.Description, best.Driverpack.Filename, best.Result.Section, best.Result.DriverVersion, onTorrent)
 		pending = append(pending, pendingInstall{description: dr.Device.Description, candidate: *best})
 	}
 
@@ -118,6 +126,10 @@ type pendingInstall struct {
 // device. This modifies the system - it is only reached when the
 // caller passed -install explicitly.
 func runInstall(s *settings.Settings, pending []pendingInstall) {
+	if err := downloadPendingPacks(s, pending); err != nil {
+		fmt.Fprintf(os.Stderr, "warning: downloading pending driver packs: %v\n", err)
+	}
+
 	if s.Flags&settings.FlagDisableInstall == 0 {
 		// Windows throttles System Restore to about one automatic
 		// checkpoint per day; without bypassing that, CreateRestorePoint
@@ -147,6 +159,142 @@ func runInstall(s *settings.Settings, pending []pendingInstall) {
 			fmt.Fprintf(os.Stderr, "install %s: %v\n", p.description, err)
 		}
 	}
+}
+
+// downloadPendingPacks fetches the .7z for every pending (not-yet-
+// downloaded) candidate driver pack via BitTorrent, ported from the
+// role Collection::loadOnlineIndexes' DRIVERPACK_TYPE_UPDATE entries
+// play together with Updater_t::StartInstallDownload's selective
+// per-file download: a device can be matched against a pack whose
+// index was downloaded ahead of its data, and installing it needs the
+// data fetched first. Does nothing if no candidate is pending, so it
+// is always safe to call.
+func downloadPendingPacks(s *settings.Settings, pending []pendingInstall) error {
+	var need []pendingInstall
+	for _, p := range pending {
+		if p.candidate.Driverpack.Pending {
+			need = append(need, p)
+		}
+	}
+	if len(need) == 0 {
+		return nil
+	}
+	if s.TorrentFile == "" {
+		return fmt.Errorf("%d driver pack(s) need downloading but no torrent source is configured (-torrent-file)", len(need))
+	}
+
+	dataDir, err := os.MkdirTemp("", "sdio-torrent-")
+	if err != nil {
+		return err
+	}
+	defer os.RemoveAll(dataDir)
+
+	c, err := update.NewClient(update.Config{DataDir: dataDir})
+	if err != nil {
+		return fmt.Errorf("starting torrent client: %w", err)
+	}
+	defer c.Close()
+
+	var t *update.Torrent
+	if strings.HasPrefix(s.TorrentFile, "magnet:") {
+		t, err = c.AddFromMagnet(s.TorrentFile)
+	} else {
+		t, err = c.AddFromFile(s.TorrentFile)
+	}
+	if err != nil {
+		return fmt.Errorf("adding torrent %s: %w", s.TorrentFile, err)
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+	if err := t.WaitInfo(ctx); err != nil {
+		return fmt.Errorf("reading torrent metadata: %w", err)
+	}
+	files := t.Files()
+
+	for _, p := range need {
+		drp := p.candidate.Driverpack
+		tf := findTorrentFile(files, drp.Filename)
+		if tf == nil {
+			fmt.Fprintf(os.Stderr, "warning: %s not found in the torrent, skipping\n", drp.Filename)
+			continue
+		}
+
+		fmt.Printf("DOWNLOAD %-50s (%s, %d bytes)\n", p.description, drp.Filename, tf.Length)
+		selected := t.SelectFiles([]string{tf.Path})
+		if err := waitForDownload(t, selected); err != nil {
+			fmt.Fprintf(os.Stderr, "warning: downloading %s: %v\n", drp.Filename, err)
+			continue
+		}
+
+		dest := filepath.Join(drp.Path, drp.Filename)
+		if err := moveFile(filepath.Join(dataDir, filepath.FromSlash(tf.Path)), dest); err != nil {
+			fmt.Fprintf(os.Stderr, "warning: saving %s: %v\n", drp.Filename, err)
+			continue
+		}
+		drp.Pending = false
+		fmt.Printf("DOWNLOADED %-50s -> %s\n", p.description, dest)
+	}
+	return nil
+}
+
+// findTorrentFile finds the entry in files whose path ends with
+// packFilename as a path component (the torrent's own root-folder
+// name varies and isn't assumed).
+func findTorrentFile(files []update.FileInfo, packFilename string) *update.FileInfo {
+	lower := strings.ToLower(packFilename)
+	for i, f := range files {
+		p := strings.ToLower(f.Path)
+		if strings.HasSuffix(p, "/"+lower) || strings.HasSuffix(p, `\`+lower) {
+			return &files[i]
+		}
+	}
+	return nil
+}
+
+// waitForDownload polls Progress until every file in files has fully
+// downloaded, or the deadline passes. Real driver packs range from a
+// few hundred KB to several GB, hence the generous timeout.
+func waitForDownload(t *update.Torrent, files []update.FileInfo) error {
+	deadline := time.Now().Add(30 * time.Minute)
+	for time.Now().Before(deadline) {
+		if t.Progress(files).Percent() >= 100 {
+			return nil
+		}
+		time.Sleep(2 * time.Second)
+	}
+	return fmt.Errorf("timed out waiting for the download to complete")
+}
+
+// moveFile relocates src to dest, falling back to copy-then-remove if
+// a direct rename fails (e.g. src and dest are on different volumes -
+// the torrent client's temporary data directory and the driver-pack
+// directory need not be on the same drive).
+func moveFile(src, dest string) error {
+	if err := os.MkdirAll(filepath.Dir(dest), 0o755); err != nil {
+		return err
+	}
+	if err := os.Rename(src, dest); err == nil {
+		return nil
+	}
+
+	in, err := os.Open(src)
+	if err != nil {
+		return err
+	}
+	defer in.Close()
+	out, err := os.Create(dest)
+	if err != nil {
+		return err
+	}
+	if _, err := io.Copy(out, in); err != nil {
+		out.Close()
+		return err
+	}
+	if err := out.Close(); err != nil {
+		return err
+	}
+	return os.Remove(src)
 }
 
 func installOne(s *settings.Settings, p pendingInstall) error {
