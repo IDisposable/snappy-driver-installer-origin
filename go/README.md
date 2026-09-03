@@ -72,8 +72,10 @@ a mechanical line-by-line translation, with its own tests.
 | `common.cpp` | `internal/common` | Done | `Version`, `BytesToStr`. Dropped C-string buffer classes (unneeded in Go) and a stale `year>2015` date-validity cutoff. |
 | `logging.cpp` | `internal/logging` | Done | `zerolog`-based `Logger`; verbosity bitmask collapsed to one level threshold. `Timers` uses `time.Time`/`time.Duration`. Crash/exception handlers not ported (no Go equivalent need). |
 | `settings.cpp` | `internal/settings` | Done | `flag.FlagSet`-based parsing; legacy cfg syntax supported on read (see above). GUI presentation fields (theme, scale, window geometry, hint delay, license, expert mode) dropped. |
-| `baseboard.cpp` | `internal/hardware` (planned) | In progress | Raw COM/WMI calls replaced with `github.com/yusufpapurcu/wmi`. |
-| `system.cpp`, `enum.cpp` | `internal/hardware` (planned) | Not started | Hardware/device enumeration. |
+| `baseboard.cpp` | `internal/hardware` | Done | Raw COM/WMI calls replaced with `github.com/yusufpapurcu/wmi`. Verified against a real machine via `scripts/test-windows.sh`. |
+| `enum.cpp`: `WinVersions`, `State::getsysinfo_fast`, `State::isnotebook_a` | `internal/hardware` | Done | `GetSysInfoFast()` (battery/monitors/OS version/env) and `IsLaptop()`. Windows version read from the registry instead of the manifest-gated `GetVersionEx`. Verified against a real machine. |
+| `enum.cpp`: `Device`, `Driver`, rest of `State` (SetupAPI device enumeration, registry-based installed-driver lookup, `.inf` scanning) | `internal/hardware` or `internal/enum` (planned) | Not started | The largest remaining piece of hardware detection. |
+| `system.cpp` (`SystemImp`, `FilemonImp`) | - | Not started (as-needed) | Mostly thin OS-utility wrappers (file/dir ops, restore points, process launch) that map directly to Go stdlib; being pulled in incrementally as later modules need each piece rather than ported as one grab-bag class. |
 | `indexing.cpp`, `matcher.cpp` | - | Not started | Driver-pack indexing and hardware-to-driver matching; the SDW/LZMA binary format compatibility work lands here (indexes/**/*.bin only - not logs/*.snp). |
 | `manager.cpp` | - | Not started | Orchestration. |
 | `install.cpp` | - | Not started | Driver installation. |
