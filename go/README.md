@@ -40,27 +40,32 @@ lose existing config/state files. Concretely:
 
 ### The SDW container format
 
-Reverse-engineered by hex-dumping real `.snp` and `.bin` files from a
-running installation:
+Implemented in `internal/sdwfile`. Confirmed byte-for-byte against every
+index file (130+, both filter modes) and every state snapshot (9 files,
+two different machines) in a real installation - see that package's
+tests.
 
 ```
-offset 0:  "SDW"        3 bytes, magic
-offset 3:  type byte     1 byte  (0x02 seen in .snp, 0x05 seen in .bin)
-offset 4:  int32 LE      4 bytes (1 in .snp, 2 in .bin; meaning unconfirmed)
-offset 8:  LZMA props    5 bytes (lc/lp/pb byte + 4-byte dictionary size LE)
-offset 13: uncompressed  8 bytes LE
+offset 0:  "SDW"           3 bytes, magic
+offset 3:  format version  4 bytes, int32 LE (e.g. 0x205 for .bin files)
+offset 7:  Lzma86 mode     1 byte (0 = none, 1 = x86 BCJ filter applied)
+offset 8:  LZMA props      5 bytes (lc/lp/pb byte + 4-byte dictionary size LE)
+offset 13: uncompressed    8 bytes LE
            size
-offset 21: LZMA payload  raw LZMA1 stream, length known from the header
+offset 21: LZMA payload    raw LZMA1 stream, length known from the header
 ```
 
-The 13-byte block at offset 8 is the classic LZMA-alone header; the
-`"SDW"` + type + int32 prefix is this project's own container around it,
-written by `encode()`/`decode()` in `common.cpp` via the 7-Zip SDK's
-`Lzma86_Encode`/`Lzma86_Decode`. Not yet confirmed: the exact meaning of
-the type byte and the int32 that follows it, or whether this layout holds
-across all `.bin`/`.snp` variants. Verify against more samples before
-finalizing a reader/writer. Candidate library: `github.com/ulikunitz/xz/lzma`
-(supports raw LZMA1 with explicit properties/dict-size/uncompressed-size).
+The block at offset 7 (mode byte + 13-byte LZMA-alone header) is exactly
+the 7-Zip SDK's `Lzma86_Encode` output format; the `"SDW"` + version
+prefix is this project's own container around it, written by
+`encode()`/`decode()` in `common.cpp`. Two things only showed up against
+real files, not from reading the source: the mode byte is easy to miss
+(skipping it makes an LZMA-alone reader misparse it as the first
+properties byte, producing a nonsensical dictionary size), and about 45%
+of real index files use mode 1 (x86 BCJ filter) - `internal/sdwfile/
+bcjx86.go` ports the inverse filter directly from
+`external/SevenZ/build/C/Bra86.c` (bundled in this repo, public domain).
+Library used for the LZMA-alone layer: `github.com/ulikunitz/xz/lzma`.
 
 ## Module port status
 
@@ -77,7 +82,9 @@ a mechanical line-by-line translation, with its own tests.
 | `enum.cpp`: `Device` (SetupAPI device enumeration) | `internal/hardware` | Done | `ScanDevices()` via `x/sys/windows`' typed SetupAPI/CfgMgr32 wrappers, which decode `REG_MULTI_SZ` properties straight to `[]string`. Verified against a real machine: found 375 present devices, spot-checked one against the reference log. |
 | `enum.cpp`: `Driver` (registry-based installed-driver lookup, `.inf` scanning) | `internal/hardware` or `internal/enum` (planned) | Not started | Depends on `Driverpack`/`Collection` from `indexing.cpp`, which don't exist yet - deferred rather than stubbed incompletely. |
 | `system.cpp` (`SystemImp`, `FilemonImp`) | - | Not started (as-needed) | Mostly thin OS-utility wrappers (file/dir ops, restore points, process launch) that map directly to Go stdlib; being pulled in incrementally as later modules need each piece rather than ported as one grab-bag class. |
-| `indexing.cpp`, `matcher.cpp` | - | Not started | Driver-pack indexing and hardware-to-driver matching; the SDW/LZMA binary format compatibility work lands here (indexes/**/*.bin only - not logs/*.snp). |
+| `indexing.cpp`: on-disk container format (`checkindex`/`loadindex`/`saveindex`) | `internal/sdwfile` | Done | `Decode`/`Encode` for the `"SDW"` + Lzma86 container (see above), including the x86 BCJ filter. This is the byte-compatibility-critical piece; verified against every real index file and snapshot available. |
+| `indexing.cpp`: record layout (`data_inffile_t`, `data_manufacturer_t`, `data_desc_t`, `data_HWID_t`, `Txt`, `Hashtable`) and the `.inf`-parsing `Collection`/`Driverpack`/`Parser` machinery | - | Not started | Next up: parsing the decompressed payload `sdwfile.Decode` now produces into structured driver-pack data. |
+| `matcher.cpp` | - | Not started | Hardware-to-driver matching/ranking (Missing/Newer/Current/Older/Better/Worse). Depends on the indexing work above. |
 | `manager.cpp` | - | Not started | Orchestration. |
 | `install.cpp` | - | Not started | Driver installation. |
 | `script.cpp` | - | Not started | Driver-pack script format. |
