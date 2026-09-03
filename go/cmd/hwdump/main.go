@@ -25,7 +25,19 @@ type result struct {
 	SampleDeviceDesc []string `json:"sample_device_desc,omitempty"`
 	DevicesError     string   `json:"devices_error,omitempty"`
 
+	SampleInstalledDrivers []sampleDriver `json:"sample_installed_drivers,omitempty"`
+
 	IsLaptop *bool `json:"is_laptop,omitempty"`
+}
+
+type sampleDriver struct {
+	Device       string `json:"device"`
+	Desc         string `json:"desc"`
+	Provider     string `json:"provider"`
+	Version      string `json:"version"`
+	DevPos       int    `json:"dev_pos"`
+	IsHardwareID bool   `json:"is_hardware_id"`
+	Error        string `json:"error,omitempty"`
 }
 
 func main() {
@@ -51,14 +63,31 @@ func main() {
 		r.DevicesError = err.Error()
 	} else {
 		r.DeviceCount = len(devices)
-		for i, d := range devices {
-			if i < 10 {
+		driversSampled := 0
+		for _, d := range devices {
+			if len(r.SampleDeviceDesc) < 10 {
 				r.SampleDeviceDesc = append(r.SampleDeviceDesc, d.Description)
 			}
 			for _, id := range d.HardwareIDs {
 				if strings.Contains(id, "*ACPI0003") {
 					hasACPIBattery = true
 				}
+			}
+
+			if d.DriverKeyName != "" && driversSampled < 5 {
+				driversSampled++
+				sample := sampleDriver{Device: d.Description}
+				drv, err := hardware.OpenInstalledDriver(d.DriverKeyName, d)
+				if err != nil {
+					sample.Error = err.Error()
+				} else {
+					sample.Desc = drv.Desc
+					sample.Provider = drv.ProviderName
+					sample.Version = drv.Version.String()
+					sample.DevPos = drv.DevPos
+					sample.IsHardwareID = drv.IsHardwareID
+				}
+				r.SampleInstalledDrivers = append(r.SampleInstalledDrivers, sample)
 			}
 		}
 	}
