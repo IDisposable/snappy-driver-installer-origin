@@ -6,6 +6,7 @@ import (
 	"strings"
 	"testing"
 
+	"sdio/internal/common"
 	"sdio/internal/hardware"
 	"sdio/internal/indexing"
 	"sdio/internal/matcher"
@@ -47,7 +48,7 @@ func TestMatchRealDtPortDevice(t *testing.T) {
 	}
 	ctx := indexing.MatchContext{Major: 10, Minor: 0, Build: 19045, IsAMD64: true}
 
-	dm := Match(device, nil, []*indexing.Driverpack{drp}, ctx, nil)
+	dm := Match(device, nil, nil, []*indexing.Driverpack{drp}, ctx, nil)
 
 	if dm.Status != 0 {
 		t.Fatalf("DeviceMatch.Status = %#x, want 0 (candidates found)", dm.Status)
@@ -70,11 +71,70 @@ func TestMatchRealDtPortDevice(t *testing.T) {
 	}
 }
 
+// TestMatchWithInstalledScoreSetsStatus confirms Match wires
+// InstalledScore through to each candidate's Result.Status via
+// indexing.CalcStatus, using the real dtport pack/device from
+// TestMatchRealDtPortDevice as a realistic candidate.
+func TestMatchWithInstalledScoreSetsStatus(t *testing.T) {
+	const path = "/mnt/d/OneDrive/Desktop/Reinstall/DriverInstaller/indexes/SDI/DP_Ports_SDIO01_26083.bin"
+	drp := loadRealPack(t, path, "DP_Ports_SDIO01_26083.7z")
+
+	device := hardware.Device{HardwareIDs: []string{`DTBUS\COMPORT&VID_37DD&PID_6001`}}
+	ctx := indexing.MatchContext{Major: 10, Minor: 0, Build: 19045, IsAMD64: true}
+
+	// Lower matcher.Score values rank better (identifier/feature bits
+	// pack into the low bits, where 0 is an exact match) - so an
+	// installed driver "losing" to a real candidate needs a HIGH score
+	// (a poor rank), not 0 (the best possible rank). Combined with an
+	// ancient date, this should compare as STATUS_NEW | STATUS_BETTER.
+	older := &InstalledScore{Score: 0xFFFFFFFF, Version: common.Version{Year: 2000, Month: 1, Day: 1}}
+	dm := Match(device, &hardware.InstalledDriver{}, older, []*indexing.Driverpack{drp}, ctx, nil)
+	if len(dm.Candidates) == 0 {
+		t.Fatal("expected candidates")
+	}
+	best := dm.Candidates[0]
+	if best.Result.Status&matcher.StatusNew == 0 {
+		t.Errorf("Status = %#x, want StatusNew set (candidate is dated 2025-12-22, installed is 2000-01-01)", best.Result.Status)
+	}
+	if best.Result.Status&matcher.StatusBetter == 0 {
+		t.Errorf("Status = %#x, want StatusBetter set (installed score is 0)", best.Result.Status)
+	}
+
+	// The same candidate's own score/version, fed back in as
+	// "installed", must compare as current/same - the score and
+	// version now match exactly.
+	same := &InstalledScore{Score: best.Result.Score, Version: best.Result.DriverVersion}
+	dm2 := Match(device, &hardware.InstalledDriver{}, same, []*indexing.Driverpack{drp}, ctx, nil)
+	best2 := dm2.Candidates[0]
+	if best2.Result.Status&matcher.StatusCurrent == 0 {
+		t.Errorf("Status = %#x, want StatusCurrent set (identical date)", best2.Result.Status)
+	}
+	if best2.Result.Status&matcher.StatusSame == 0 {
+		t.Errorf("Status = %#x, want StatusSame set (identical score)", best2.Result.Status)
+	}
+}
+
+func TestMatchNilInstalledScoreAlwaysBetter(t *testing.T) {
+	const path = "/mnt/d/OneDrive/Desktop/Reinstall/DriverInstaller/indexes/SDI/DP_Ports_SDIO01_26083.bin"
+	drp := loadRealPack(t, path, "DP_Ports_SDIO01_26083.7z")
+
+	device := hardware.Device{HardwareIDs: []string{`DTBUS\COMPORT&VID_37DD&PID_6001`}}
+	ctx := indexing.MatchContext{Major: 10, Minor: 0, Build: 19045, IsAMD64: true}
+
+	dm := Match(device, nil, nil, []*indexing.Driverpack{drp}, ctx, nil)
+	if len(dm.Candidates) == 0 {
+		t.Fatal("expected candidates")
+	}
+	if dm.Candidates[0].Result.Status&matcher.StatusBetter == 0 {
+		t.Errorf("Status = %#x, want StatusBetter set when there is no installed driver to compare against", dm.Candidates[0].Result.Status)
+	}
+}
+
 func TestMatchNoCandidatesFallsBackToNFStandard(t *testing.T) {
 	device := hardware.Device{HardwareIDs: []string{`ACPI\NONEXISTENT_DEVICE_ID_1234`}}
 	ctx := indexing.MatchContext{Major: 10, Minor: 0, Build: 19045, IsAMD64: true}
 
-	dm := Match(device, nil, nil, ctx, nil)
+	dm := Match(device, nil, nil, nil, ctx, nil)
 	if dm.Status != matcher.StatusNFStandard {
 		t.Errorf("Status = %#x, want StatusNFStandard", dm.Status)
 	}
@@ -87,7 +147,7 @@ func TestMatchIgnoredDevice(t *testing.T) {
 	device := hardware.Device{HardwareIDs: []string{`ACPI\IGNOREME`}}
 	ctx := indexing.MatchContext{Major: 10, Minor: 0, Build: 19045, IsAMD64: true}
 
-	dm := Match(device, nil, nil, ctx, []string{`ACPI\IGNOREME`})
+	dm := Match(device, nil, nil, nil, ctx, []string{`ACPI\IGNOREME`})
 	if dm.Status != matcher.StatusIgnored {
 		t.Errorf("Status = %#x, want StatusIgnored", dm.Status)
 	}
@@ -96,7 +156,7 @@ func TestMatchIgnoredDevice(t *testing.T) {
 func TestMatchNoHardwareIDNoCrash(t *testing.T) {
 	device := hardware.Device{}
 	ctx := indexing.MatchContext{Major: 10, Minor: 0, Build: 19045, IsAMD64: true}
-	dm := Match(device, nil, nil, ctx, nil)
+	dm := Match(device, nil, nil, nil, ctx, nil)
 	if dm.Status != matcher.StatusNFStandard {
 		t.Errorf("Status = %#x, want StatusNFStandard", dm.Status)
 	}

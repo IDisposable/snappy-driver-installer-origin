@@ -41,8 +41,11 @@ func newModel(result scan.Result) model {
 		if best == nil {
 			missing++
 			reason := "no valid candidate found"
-			if len(dr.Candidates) == 0 {
+			switch {
+			case len(dr.Candidates) == 0:
 				reason = scan.StatusLabel(dr.Status)
+			case dr.Candidates[0].Result.AltSectScore != 0:
+				reason = "already has an equal or better driver installed"
 			}
 			rows = append(rows, table.Row{"MISSING", dr.Device.Description, reason, ""})
 			continue

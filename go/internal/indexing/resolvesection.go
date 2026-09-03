@@ -10,6 +10,7 @@ import "strings"
 // ParseManufacturers itself stops short of (see its doc comment).
 type ResolvedDevice struct {
 	Description   string
+	Install       string // the raw, unresolved install-section field as written on the device line (e.g. "DtPort.NT")
 	InstallPicked string // the resolved section name, "$name1,name2,..." if resolved via the decoration-suffix fallback, or "{missing}"
 	Feature       int    // 0xFF if no "featurescore" key was found in the resolved section
 	HWIDs         []string
@@ -167,6 +168,7 @@ func ResolveManufacturerSection(data []byte, sections InfSections, sectionName, 
 
 			devices = append(devices, ResolvedDevice{
 				Description:   desc,
+				Install:       rawInstall,
 				InstallPicked: resolution.DisplayName,
 				Feature:       feature,
 				HWIDs:         hwids,

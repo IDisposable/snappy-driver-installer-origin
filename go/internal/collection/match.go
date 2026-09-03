@@ -9,25 +9,32 @@
 // imports matcher for OS-decoration data), so this orchestration lives
 // one level up from all three.
 //
-// Not ported: comparing a candidate against the currently installed
-// driver's own score (Hwidmatch::calc_status's STATUS_BETTER/WORSE/
-// SAME/NEW/OLD/CURRENT bits). That needs Driver::scaninf - matching an
-// installed driver back to the .inf file that produced it, to recover
-// its feature score and catalog-file bits - which needs the
-// not-yet-built Driverpack/inf-cache orchestration from indexing.cpp's
-// genindex (see go/README.md). Candidate.Result.Status here only ever
-// carries matcher.StatusInvalid (from AltSectScore==0) and
-// matcher.StatusMissing/StatusIgnored/StatusNFMissing/StatusNFUnknown/
-// StatusNFStandard, which don't need it.
+// Comparing a candidate against the currently installed driver's own
+// score (Hwidmatch::calc_status's STATUS_BETTER/WORSE/SAME/NEW/OLD/
+// CURRENT bits) needs that driver's own score, computed via
+// Driver::scaninf against its own .inf file (see
+// indexing.ScanInstalledInf) - which needs file I/O this package
+// doesn't otherwise do. Callers compute it (see internal/scan) and
+// pass it into Match as an InstalledScore.
 package collection
 
 import (
 	"strings"
 
+	"sdio/internal/common"
 	"sdio/internal/hardware"
 	"sdio/internal/indexing"
 	"sdio/internal/matcher"
 )
+
+// InstalledScore is the currently-installed driver's own score and
+// version, computed the same way a candidate driver-pack entry is
+// scored (matcher.Score) so indexing.CalcStatus can compare them
+// fairly. See indexing.ScanInstalledInf for how to compute Score.
+type InstalledScore struct {
+	Score   uint32
+	Version common.Version
+}
 
 // cmProbDisabled is CM_PROB_DISABLED, duplicated from the unexported
 // hardware.deviceCMProbDisabled (see that constant's doc comment).
@@ -35,8 +42,7 @@ const cmProbDisabled = 0x16
 
 // Candidate is one driver-pack HWID entry found for a device, ranked
 // against the running system - the scoring half of Hwidmatch
-// (matcher.cpp), decoupled from the not-yet-ported comparison against
-// an installed driver (see the package doc comment).
+// (matcher.cpp).
 type Candidate struct {
 	Driverpack   *indexing.Driverpack
 	HWIDIndex    int
@@ -112,22 +118,23 @@ func isMissing(d hardware.Device, installed *hardware.InstalledDriver) bool {
 // MatcherImp::findHWIDs. devPos/isHardwareID identify hwid's position
 // in the device's own ID list (see matcher.IdentifierScore).
 // deviceHardwareID is the device's own primary hardware ID, needed by
-// CalcAltSectScore's vendor-specific checks.
-func FindHWID(packs []*indexing.Driverpack, hwid string, devPos int, isHardwareID bool, ctx indexing.MatchContext, deviceHardwareID string) []Candidate {
+// CalcAltSectScore's vendor-specific checks. installedScore is nil if
+// the device has no installed driver (see indexing.CalcStatus).
+func FindHWID(packs []*indexing.Driverpack, hwid string, devPos int, isHardwareID bool, ctx indexing.MatchContext, deviceHardwareID string, installedScore *InstalledScore) []Candidate {
 	key := int32(indexing.APHash([]byte(strings.ToUpper(hwid))))
 
 	var out []Candidate
 	for _, drp := range packs {
 		val, found := drp.Index.Hashes.Find(key)
 		for found {
-			out = append(out, buildCandidate(drp, int(val), devPos, isHardwareID, ctx, deviceHardwareID))
+			out = append(out, buildCandidate(drp, int(val), devPos, isHardwareID, ctx, deviceHardwareID, installedScore))
 			val, found = drp.Index.Hashes.FindNext()
 		}
 	}
 	return out
 }
 
-func buildCandidate(drp *indexing.Driverpack, hwidIndex, devPos int, isHardwareID bool, ctx indexing.MatchContext, deviceHardwareID string) Candidate {
+func buildCandidate(drp *indexing.Driverpack, hwidIndex, devPos int, isHardwareID bool, ctx indexing.MatchContext, deviceHardwareID string, installedScore *InstalledScore) Candidate {
 	identifierScore := matcher.IdentifierScore(devPos, isHardwareID, int(drp.InfPos(hwidIndex)))
 
 	section := drp.Section(hwidIndex)
@@ -135,13 +142,19 @@ func buildCandidate(drp *indexing.Driverpack, hwidIndex, devPos int, isHardwareI
 	markerScore := matcher.MarkerScore(drp.InfPath(hwidIndex), ctx.Major, ctx.Minor, ctx.ArchForMarker())
 	altSectScore := drp.CalcAltSectScore(hwidIndex, decorScore, ctx, deviceHardwareID)
 
+	infPath := drp.InfPath(hwidIndex)
 	isNTSection := strings.Contains(strings.ToLower(drp.InstallPicked(hwidIndex)), ".nt")
 	score := matcher.Score(drp.CatalogFileBits(hwidIndex), drp.Feature(hwidIndex), identifierScore, ctx.Major, ctx.IsAMD64, isNTSection)
+	candidateVersion := drp.Version(hwidIndex)
 
-	status := 0
-	if altSectScore == 0 {
-		status = matcher.StatusInvalid
+	var installedVersion common.Version
+	var rawInstalledScore uint32
+	if installedScore != nil {
+		installedVersion = installedScore.Version
+		rawInstalledScore = installedScore.Score
 	}
+	infPathHasFeaturePrefix := strings.Contains(strings.ToLower(infPath), "feature_")
+	status := indexing.CalcStatus(installedScore != nil, installedVersion, candidateVersion, rawInstalledScore, score, infPathHasFeaturePrefix, altSectScore)
 
 	return Candidate{
 		Driverpack:   drp,
@@ -151,7 +164,7 @@ func buildCandidate(drp *indexing.Driverpack, hwidIndex, devPos int, isHardwareI
 		Result: matcher.Result{
 			AltSectScore:  altSectScore,
 			Score:         score,
-			DriverVersion: drp.Version(hwidIndex),
+			DriverVersion: candidateVersion,
 			DecorScore:    decorScore,
 			MarkerScore:   markerScore,
 			Status:        status,
@@ -166,8 +179,9 @@ func buildCandidate(drp *indexing.Driverpack, hwidIndex, devPos int, isHardwareI
 // its hardware and compatible IDs, ranking and dup-marking the results,
 // ported from the Devicematch constructor plus MatcherImp::sort's
 // per-device portion. installed is nil if the device has no installed
-// driver.
-func Match(d hardware.Device, installed *hardware.InstalledDriver, packs []*indexing.Driverpack, ctx indexing.MatchContext, ignoreList []string) DeviceMatch {
+// driver; installedScore should be nil exactly when installed is (see
+// InstalledScore).
+func Match(d hardware.Device, installed *hardware.InstalledDriver, installedScore *InstalledScore, packs []*indexing.Driverpack, ctx indexing.MatchContext, ignoreList []string) DeviceMatch {
 	if isIgnored(d, ignoreList) {
 		return DeviceMatch{Device: d, Status: matcher.StatusIgnored}
 	}
@@ -175,10 +189,10 @@ func Match(d hardware.Device, installed *hardware.InstalledDriver, packs []*inde
 	deviceHWID := firstHWID(d)
 	var candidates []Candidate
 	for pos, hwid := range d.HardwareIDs {
-		candidates = append(candidates, FindHWID(packs, hwid, pos, true, ctx, deviceHWID)...)
+		candidates = append(candidates, FindHWID(packs, hwid, pos, true, ctx, deviceHWID, installedScore)...)
 	}
 	for pos, hwid := range d.CompatibleIDs {
-		candidates = append(candidates, FindHWID(packs, hwid, pos, false, ctx, deviceHWID)...)
+		candidates = append(candidates, FindHWID(packs, hwid, pos, false, ctx, deviceHWID, installedScore)...)
 	}
 
 	if len(candidates) == 0 {

@@ -59,10 +59,13 @@ func run(s *settings.Settings, doInstall bool) error {
 		best := dr.Best()
 		if best == nil {
 			missing++
-			if len(dr.Candidates) == 0 {
+			switch {
+			case len(dr.Candidates) == 0:
 				fmt.Printf("MISSING  %-50s (%s)\n", dr.Device.Description, scan.StatusLabel(dr.Status))
-			} else {
+			case dr.Candidates[0].Result.AltSectScore == 0:
 				fmt.Printf("MISSING  %-50s (no valid candidate found)\n", dr.Device.Description)
+			default:
+				fmt.Printf("MISSING  %-50s (already has an equal or better driver installed)\n", dr.Device.Description)
 			}
 			continue
 		}

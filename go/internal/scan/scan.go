@@ -7,6 +7,7 @@ package scan
 
 import (
 	"fmt"
+	"os"
 	"strings"
 
 	"sdio/internal/collection"
@@ -32,10 +33,21 @@ type DeviceResult struct {
 	Candidates []collection.Candidate
 }
 
-// Best returns the top-ranked valid candidate, or nil if there isn't
-// one (no candidates at all, or the best one has AltSectScore 0).
+// Best returns the top-ranked candidate that represents a genuine
+// improvement over any currently installed driver, or nil if there
+// isn't one. This mirrors the original's default filter view
+// (settings.DefaultFilters: missing/better/nf-missing, one candidate
+// per device) rather than "any structurally valid candidate" - a
+// device whose best candidate is merely equal to (matcher.StatusSame)
+// or worse than (matcher.StatusWorse) what's already installed is not
+// "found" in the actionable sense, even though it has a nonzero
+// AltSectScore.
 func (r DeviceResult) Best() *collection.Candidate {
-	if len(r.Candidates) == 0 || r.Candidates[0].Result.AltSectScore == 0 {
+	if len(r.Candidates) == 0 {
+		return nil
+	}
+	best := r.Candidates[0]
+	if best.Result.AltSectScore == 0 || best.Result.Status&matcher.StatusBetter == 0 {
 		return nil
 	}
 	return &r.Candidates[0]
@@ -104,8 +116,9 @@ func Run(s *settings.Settings) (Result, error) {
 				installed = &drv
 			}
 		}
+		installedScore := scoreInstalledDriver(si, installed)
 
-		dm := collection.Match(d, installed, res.Collection.Packs, ctx, s.IgnoreList)
+		dm := collection.Match(d, installed, installedScore, res.Collection.Packs, ctx, s.IgnoreList)
 		if dm.Status == matcher.StatusIgnored {
 			continue
 		}
@@ -113,6 +126,32 @@ func Run(s *settings.Settings) (Result, error) {
 	}
 
 	return res, nil
+}
+
+// scoreInstalledDriver computes the currently-installed driver's own
+// score by parsing its own .inf file, ported from Driver::scaninf
+// (which recovers the feature/catalog-file/HWID-position data)
+// combined with calc_score_h (which turns that into the same kind of
+// score matcher.Score gives a candidate). Returns nil if installed is
+// nil or its .inf file can't be read (e.g. already removed, or a
+// permission issue) - Match treats a nil InstalledScore as "no
+// installed driver to compare against", matching the original's
+// "STATUS_BETTER unconditionally" fallback for that case.
+func scoreInstalledDriver(si hardware.SysInfo, installed *hardware.InstalledDriver) *collection.InstalledScore {
+	if installed == nil {
+		return nil
+	}
+	data, err := os.ReadFile(si.WinDir + installed.InfPath)
+	if err != nil {
+		return nil
+	}
+
+	sect := installed.InfSection + installed.InfSectionExt
+	info := indexing.ScanInstalledInf(data, sect, installed.MatchingDeviceID, matcher.OSDecorations[:])
+
+	identifierScore := matcher.IdentifierScore(installed.DevPos, installed.IsHardwareID, info.InfPos)
+	score := matcher.Score(info.CatalogFileBits, info.Feature, identifierScore, si.Windows.Major, si.Is64Bit, info.IsNTSection)
+	return &collection.InstalledScore{Score: score, Version: installed.Version}
 }
 
 // StatusLabel renders a device's status as a short human-readable
