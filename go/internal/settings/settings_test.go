@@ -6,6 +6,19 @@ import (
 	"testing"
 )
 
+func TestFilterBitsMatchExistingCfgFiles(t *testing.T) {
+	// From a real sdio.cfg in the wild: "-filters:1030" with the GUI
+	// showing "Show Not Installed / Show Newer / Show Only Best" checked.
+	const observed FilterShow = 1030
+	want := FilterMissing | FilterNewer | FilterOne
+	if observed != want {
+		t.Fatalf("FilterMissing|FilterNewer|FilterOne = %d, want observed value %d", want, observed)
+	}
+	if observed&FilterBetter != 0 || observed&FilterNFMissing != 0 {
+		t.Fatal("observed value should not have Better or NFMissing set")
+	}
+}
+
 func TestDefaults(t *testing.T) {
 	s := New()
 	if s.DrpDir != "drivers" {
