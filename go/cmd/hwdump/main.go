@@ -16,6 +16,11 @@ import (
 type result struct {
 	BaseBoard      *hardware.BaseBoard `json:"base_board,omitempty"`
 	BaseBoardError string              `json:"base_board_error,omitempty"`
+
+	SysInfo      *hardware.SysInfo `json:"sys_info,omitempty"`
+	SysInfoError string            `json:"sys_info_error,omitempty"`
+
+	IsLaptop *bool `json:"is_laptop,omitempty"`
 }
 
 func main() {
@@ -26,6 +31,21 @@ func main() {
 		r.BaseBoardError = err.Error()
 	} else {
 		r.BaseBoard = &bb
+	}
+
+	si, err := hardware.GetSysInfoFast()
+	if err != nil {
+		r.SysInfoError = err.Error()
+	} else {
+		r.SysInfo = &si
+	}
+
+	if r.BaseBoard != nil && r.SysInfo != nil {
+		// hasACPIBatteryDevice is always false here: device enumeration
+		// isn't ported yet, so this can't yet fully replicate
+		// State::isnotebook_a for chassis types outside {3, 10}.
+		laptop := hardware.IsLaptop(r.BaseBoard.ChassisType, r.SysInfo.Monitors, r.SysInfo.Battery, false)
+		r.IsLaptop = &laptop
 	}
 
 	enc := json.NewEncoder(os.Stdout)
