@@ -3,11 +3,13 @@ package main
 import (
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"sdio/internal/archive"
 	"sdio/internal/collection"
 	"sdio/internal/indexing"
+	"sdio/internal/sdwfile"
 	"sdio/internal/settings"
 )
 
@@ -21,6 +23,93 @@ import (
 // real main() already calls os.Exit(mainErr()) unconditionally.
 func TestMain(m *testing.M) {
 	os.Exit(m.Run())
+}
+
+// realDtPortInstall builds a real, fully-usable pendingInstall from
+// the reference installation's real dtport index/archive, for
+// exercising installOne's flag-gating branches without needing a
+// synthetic index.
+func realDtPortInstall(t *testing.T) pendingInstall {
+	t.Helper()
+	const indexPath = "/mnt/d/OneDrive/Desktop/Reinstall/DriverInstaller/indexes/SDI/DP_Ports_SDIO01_26083.bin"
+	const packDir = "/mnt/d/OneDrive/Desktop/Reinstall/DriverInstaller/drivers"
+	const packFilename = "DP_Ports_SDIO01_26083.7z"
+
+	f, err := os.Open(indexPath)
+	if err != nil {
+		t.Skipf("real index file not available at %s: %v", indexPath, err)
+	}
+	defer f.Close()
+	_, payload, err := sdwfile.Decode(f, true)
+	if err != nil {
+		t.Fatalf("Decode() error: %v", err)
+	}
+	idx, err := indexing.DecodeIndex(payload)
+	if err != nil {
+		t.Fatalf("DecodeIndex() error: %v", err)
+	}
+	drp := &indexing.Driverpack{Path: packDir, Filename: packFilename, Index: idx}
+
+	wantHWID := `DTBUS\COMPORT&VID_37DD&PID_6001`
+	for i := range idx.HWIDs {
+		if strings.EqualFold(drp.HWID(i), wantHWID) {
+			return pendingInstall{
+				description: "test: dtport",
+				candidate:   collection.Candidate{Driverpack: drp, HWIDIndex: i},
+			}
+		}
+	}
+	t.Fatalf("HWID %q not found in %s", wantHWID, indexPath)
+	return pendingInstall{}
+}
+
+// TestInstallOneExtractOnlyModeSkipsInstall confirms -extractdir's
+// documented "also switches to extract-only mode (no install)"
+// behavior (FlagExtractOnly) is actually honored: installOne extracts
+// but must return nil without ever reaching install.Driver. On this
+// (non-Windows) test machine, install.Driver always returns an
+// "unsupported platform" error (see install_other.go), so reaching it
+// would make this test fail - a real, cross-platform way to prove the
+// call was skipped without mocking.
+func TestInstallOneExtractOnlyModeSkipsInstall(t *testing.T) {
+	p := realDtPortInstall(t)
+	s := settings.New()
+	s.ExtractDir = t.TempDir()
+	s.Flags |= settings.FlagExtractOnly
+
+	if err := installOne(s, p); err != nil {
+		t.Fatalf("installOne() with FlagExtractOnly error: %v, want nil (install.Driver must not be reached)", err)
+	}
+}
+
+// TestInstallOneDisableInstallSkipsInstall is the same proof for
+// FlagDisableInstall (already wired before this test existed;
+// included for symmetry with the extract-only case above).
+func TestInstallOneDisableInstallSkipsInstall(t *testing.T) {
+	p := realDtPortInstall(t)
+	s := settings.New()
+	s.ExtractDir = t.TempDir()
+	s.Flags |= settings.FlagDisableInstall
+
+	if err := installOne(s, p); err != nil {
+		t.Fatalf("installOne() with FlagDisableInstall error: %v, want nil", err)
+	}
+}
+
+// TestInstallOneNormalModeReachesInstallDriver confirms that, absent
+// both skip flags, installOne actually attempts the install (and thus
+// fails with the platform-unsupported error here, proving it got that
+// far) - a regression guard against accidentally adding another early
+// return that silently skips installing.
+func TestInstallOneNormalModeReachesInstallDriver(t *testing.T) {
+	p := realDtPortInstall(t)
+	s := settings.New()
+	s.ExtractDir = t.TempDir()
+
+	err := installOne(s, p)
+	if err == nil {
+		t.Fatal("installOne() with no skip flags returned nil, want the platform-unsupported error from install.Driver")
+	}
 }
 
 // realTorrentPath is a real cached SDIO update torrent from a

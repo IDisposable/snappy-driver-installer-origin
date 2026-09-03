@@ -121,16 +121,16 @@ type pendingInstall struct {
 
 // runInstall extracts and installs every pending candidate, ported
 // from the per-device loop in Manager::thread_install: create one
-// restore point up front (skipped if FlagDisableInstall is set,
-// matching the original), then call internal/install.Driver for each
-// device. This modifies the system - it is only reached when the
-// caller passed -install explicitly.
+// restore point up front (skipped if FlagDisableInstall or
+// FlagNoRestorePoint is set, matching the original), then call
+// internal/install.Driver for each device. This modifies the system -
+// it is only reached when the caller passed -install explicitly.
 func runInstall(s *settings.Settings, pending []pendingInstall) {
 	if err := downloadPendingPacks(s, pending); err != nil {
 		fmt.Fprintf(os.Stderr, "warning: downloading pending driver packs: %v\n", err)
 	}
 
-	if s.Flags&settings.FlagDisableInstall == 0 {
+	if s.Flags&(settings.FlagDisableInstall|settings.FlagNoRestorePoint) == 0 {
 		// Windows throttles System Restore to about one automatic
 		// checkpoint per day; without bypassing that, CreateRestorePoint
 		// can silently do nothing if one was already made recently.
@@ -329,6 +329,13 @@ func installOne(s *settings.Settings, p pendingInstall) error {
 
 	if s.Flags&settings.FlagDisableInstall != 0 {
 		fmt.Printf("INSTALL  %-50s (-disableinstall set, not actually installing)\n", p.description)
+		return nil
+	}
+	// -extractdir's own help text documents it as "also switches to
+	// extract-only mode (no install)" (see extractDirValue.Set, which
+	// sets this flag as a side effect); honor that here.
+	if s.Flags&settings.FlagExtractOnly != 0 {
+		fmt.Printf("EXTRACTED %-50s -> %s (extract-only mode, not installing)\n", p.description, destDir)
 		return nil
 	}
 
