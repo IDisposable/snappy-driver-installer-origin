@@ -1,6 +1,8 @@
 package archive
 
 import (
+	"os"
+	"path/filepath"
 	"testing"
 )
 
@@ -57,6 +59,63 @@ func TestHasSuffixFold(t *testing.T) {
 		if got := HasSuffixFold(c.name, c.suffix); got != c.want {
 			t.Errorf("HasSuffixFold(%q, %q) = %v, want %v", c.name, c.suffix, got, c.want)
 		}
+	}
+}
+
+// TestExtractPrefixRealDriverPack extracts dtport's whole driver
+// folder from a real archive and confirms every expected file (the
+// .inf plus its .cat and any others) lands on disk with matching
+// content, ported use case: this is the step driver_install needs
+// before calling UpdateDriverForPlugAndPlayDevices, since Windows
+// needs the .inf's supporting files present alongside it, not just
+// extracted individually.
+func TestExtractPrefixRealDriverPack(t *testing.T) {
+	r, err := Open(realDriverPack)
+	if err != nil {
+		t.Skipf("real driver pack not available at %s: %v", realDriverPack, err)
+	}
+	defer r.Close()
+
+	const prefix = "dt/allx64/DtPort_1.0.0.6/"
+	destDir := t.TempDir()
+
+	n, err := r.ExtractPrefix(prefix, destDir)
+	if err != nil {
+		t.Fatalf("ExtractPrefix(%s) error: %v", prefix, err)
+	}
+	if n == 0 {
+		t.Fatal("ExtractPrefix() extracted 0 files")
+	}
+
+	infPath := filepath.Join(destDir, "dtport.inf")
+	extracted, err := os.ReadFile(infPath)
+	if err != nil {
+		t.Fatalf("reading extracted %s: %v", infPath, err)
+	}
+
+	want, err := r.Extract(prefix + "dtport.inf")
+	if err != nil {
+		t.Fatalf("Extract(%sdtport.inf) error: %v", prefix, err)
+	}
+	if string(extracted) != string(want) {
+		t.Error("extracted file content doesn't match Extract()'s content")
+	}
+
+	if _, err := os.Stat(filepath.Join(destDir, "dtport.cat")); err != nil {
+		t.Errorf("expected dtport.cat to also be extracted: %v", err)
+	}
+	t.Logf("extracted %d files to %s", n, destDir)
+}
+
+func TestExtractPrefixUnknownPrefixErrors(t *testing.T) {
+	r, err := Open(realDriverPack)
+	if err != nil {
+		t.Skipf("real driver pack not available at %s: %v", realDriverPack, err)
+	}
+	defer r.Close()
+
+	if _, err := r.ExtractPrefix("no/such/prefix/", t.TempDir()); err == nil {
+		t.Fatal("expected an error for a prefix matching no files")
 	}
 }
 

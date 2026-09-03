@@ -166,9 +166,18 @@ func (s *Settings) Parse(args []string) error {
 	if err := s.FlagSet("sdio").Parse(args); err != nil {
 		return err
 	}
+	s.ExpandDirs()
+	return nil
+}
+
+// ExpandDirs expands %VAR% references in LogDirRaw/ExtractDirRaw into
+// LogDir/ExtractDir. Parse calls this automatically; callers that
+// build their own *flag.FlagSet via FlagSet (to add CLI-dispatch-layer
+// flags like "-install" alongside it) must call this themselves after
+// parsing.
+func (s *Settings) ExpandDirs() {
 	s.LogDir = expandWindowsEnv(s.LogDirRaw)
 	s.ExtractDir = expandWindowsEnv(s.ExtractDirRaw)
-	return nil
 }
 
 var envVarPattern = regexp.MustCompile(`%([^%]+)%`)

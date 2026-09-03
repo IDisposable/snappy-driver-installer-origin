@@ -9,6 +9,8 @@ package archive
 import (
 	"fmt"
 	"io"
+	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/bodgit/sevenzip"
@@ -81,4 +83,51 @@ func (r *Reader) Extract(name string) ([]byte, error) {
 		return data, nil
 	}
 	return nil, fmt.Errorf("%s not found in archive", name)
+}
+
+// ExtractPrefix extracts every file whose name starts with prefix
+// (archive paths use "/", e.g. "dt/allx64/DtPort_1.0.0.6/") into
+// destDir, preserving the path structure below prefix. This is the
+// step driver_install (install.cpp) needs before it can call
+// UpdateDriverForPlugAndPlayDevices: Windows requires an .inf's
+// supporting files (.sys/.dll/.cat) to already be on disk alongside
+// it, not just the .inf itself. Returns the number of files
+// extracted.
+func (r *Reader) ExtractPrefix(prefix, destDir string) (int, error) {
+	n := 0
+	for _, f := range r.rc.File {
+		if f.FileInfo().IsDir() || !strings.HasPrefix(f.Name, prefix) {
+			continue
+		}
+		rel := strings.TrimPrefix(f.Name, prefix)
+		dest := filepath.Join(destDir, filepath.FromSlash(rel))
+
+		if err := os.MkdirAll(filepath.Dir(dest), 0o755); err != nil {
+			return n, fmt.Errorf("creating %s: %w", filepath.Dir(dest), err)
+		}
+
+		rc, err := f.Open()
+		if err != nil {
+			return n, fmt.Errorf("opening %s in archive: %w", f.Name, err)
+		}
+		out, err := os.Create(dest)
+		if err != nil {
+			rc.Close()
+			return n, fmt.Errorf("creating %s: %w", dest, err)
+		}
+		_, copyErr := io.Copy(out, rc)
+		rc.Close()
+		closeErr := out.Close()
+		if copyErr != nil {
+			return n, fmt.Errorf("writing %s: %w", dest, copyErr)
+		}
+		if closeErr != nil {
+			return n, fmt.Errorf("closing %s: %w", dest, closeErr)
+		}
+		n++
+	}
+	if n == 0 {
+		return 0, fmt.Errorf("no files found with prefix %q", prefix)
+	}
+	return n, nil
 }
