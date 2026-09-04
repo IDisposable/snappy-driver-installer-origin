@@ -39,8 +39,10 @@ func NetworkDriverPacks(filename string) bool {
 // torrentFile matching filter and not already present in drpDir,
 // ported from the driver-pack half of UpdaterImp::WelcomeDownloadAll/
 // WelcomeDownloadNetwork. Progress and warnings are written to out.
-// Returns how many files were newly downloaded.
-func DownloadDriverPacks(torrentFile, drpDir string, filter DriverPackFilter, out io.Writer, timeout time.Duration) (int, error) {
+// onProgress, if non-nil, is called with live byte-level progress
+// across every selected file - see ProgressFunc. Returns how many
+// files were newly downloaded.
+func DownloadDriverPacks(torrentFile, drpDir string, filter DriverPackFilter, out io.Writer, timeout time.Duration, onProgress ProgressFunc) (int, error) {
 	if err := os.MkdirAll(drpDir, 0o755); err != nil {
 		return 0, err
 	}
@@ -93,7 +95,8 @@ func DownloadDriverPacks(torrentFile, drpDir string, filter DriverPackFilter, ou
 
 	dlCtx, dlCancel := context.WithTimeout(context.Background(), timeout)
 	defer dlCancel()
-	if err := t.WaitDownload(dlCtx, selected, timeout); err != nil {
+	label := fmt.Sprintf("%d driver pack(s)", len(selected))
+	if err := t.WaitDownload(dlCtx, selected, timeout, label, onProgress); err != nil {
 		fmt.Fprintf(out, "warning: download did not finish: %v\n", err)
 	}
 

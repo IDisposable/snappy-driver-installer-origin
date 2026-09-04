@@ -37,8 +37,9 @@ func placeholderIndexFilename(properBinName string) string {
 // Returns the number of index files downloaded. torrentFile is a
 // local .torrent path or magnet URI (Settings.TorrentFile); an empty
 // value is an error, matching the original's "Updates not
-// initialised" guard on the equivalent scripted commands.
-func BootstrapIndexes(torrentFile, indexDir string) (int, error) {
+// initialised" guard on the equivalent scripted commands. onProgress,
+// if non-nil, is called with live byte-level progress.
+func BootstrapIndexes(torrentFile, indexDir string, onProgress update.ProgressFunc) (int, error) {
 	if torrentFile == "" {
 		return 0, fmt.Errorf("no torrent source configured")
 	}
@@ -102,7 +103,8 @@ func BootstrapIndexes(torrentFile, indexDir string) (int, error) {
 	selected := t.SelectFiles(need)
 	dlCtx, dlCancel := context.WithTimeout(context.Background(), 10*time.Minute)
 	defer dlCancel()
-	if err := t.WaitDownload(dlCtx, selected, 10*time.Minute); err != nil {
+	label := fmt.Sprintf("%d index file(s)", len(selected))
+	if err := t.WaitDownload(dlCtx, selected, 10*time.Minute, label, onProgress); err != nil {
 		return 0, fmt.Errorf("downloading indexes: %w", err)
 	}
 

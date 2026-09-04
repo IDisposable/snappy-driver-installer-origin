@@ -15,6 +15,7 @@ import (
 	"fmt"
 	"os"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/charmbracelet/bubbles/table"
@@ -271,6 +272,11 @@ type model struct {
 	// screenInstallLog renders it regardless of which one produced it.
 	opLog []string
 
+	// dlProgress is set whenever screenInstalling/screenWelcomeDownloading
+	// starts a background download, so their View can poll it for a
+	// live percent/bytes/speed readout instead of a static message.
+	dlProgress *progressTracker
+
 	welcomeIndex int
 
 	usbDrives     []usbdrive.Drive
@@ -391,6 +397,15 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case welcomeDownloadDoneMsg:
 		m.opLog = msg.log
 		m.screen = screenInstallLog
+		return m, nil
+
+	case progressTickMsg:
+		// Only reschedule while a download screen is still active - a
+		// tick delivered after the download finished and the screen
+		// already moved on would otherwise keep ticking forever.
+		if m.screen == screenInstalling || m.screen == screenWelcomeDownloading {
+			return m, tickProgressCmd()
+		}
 		return m, nil
 
 	case tea.KeyMsg:
@@ -608,7 +623,8 @@ func (m model) updateConfirmInstall(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		}
 		pending := m.pendingSelected()
 		m.screen = screenInstalling
-		return m, runInstallCmd(m.s, pending)
+		m.dlProgress = &progressTracker{}
+		return m, tea.Batch(runInstallCmd(m.s, pending, m.dlProgress), tickProgressCmd())
 	case "ctrl+c":
 		return m, tea.Quit
 	case "n", "q", "esc":
@@ -654,10 +670,12 @@ func (m model) updateWelcome(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		switch m.welcomeIndex {
 		case 0:
 			m.screen = screenWelcomeDownloading
-			return m, runIndexRefreshCmd(m.s)
+			m.dlProgress = &progressTracker{}
+			return m, tea.Batch(runIndexRefreshCmd(m.s, m.dlProgress), tickProgressCmd())
 		case 1:
 			m.screen = screenWelcomeDownloading
-			return m, runWelcomeDownloadCmd(m.s, update.NetworkDriverPacks)
+			m.dlProgress = &progressTracker{}
+			return m, tea.Batch(runWelcomeDownloadCmd(m.s, update.NetworkDriverPacks, m.dlProgress), tickProgressCmd())
 		case 2:
 			m.screen = screenWelcomeConfirmAll
 			return m, nil
@@ -674,7 +692,8 @@ func (m model) updateWelcomeConfirmAll(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	switch msg.String() {
 	case "y", "enter":
 		m.screen = screenWelcomeDownloading
-		return m, runWelcomeDownloadCmd(m.s, update.AllDriverPacks)
+		m.dlProgress = &progressTracker{}
+		return m, tea.Batch(runWelcomeDownloadCmd(m.s, update.AllDriverPacks, m.dlProgress), tickProgressCmd())
 	case "ctrl+c":
 		return m, tea.Quit
 	case "n", "q", "esc":
@@ -793,6 +812,58 @@ func selectedInstanceIDs(selected map[string]bool) []string {
 	return ids
 }
 
+// progressTracker is mutex-guarded download progress published by a
+// background download goroutine (runInstallCmd/runWelcomeDownloadCmd/
+// runIndexRefreshCmd, via update.ProgressFunc) and read by the TUI's
+// tick loop, so the Installing/Downloading screens can show the same
+// kind of live percent/bytes/speed readout update.cpp's ShowProgress
+// builds from libtorrent's torrent_status instead of a static
+// "please wait".
+type progressTracker struct {
+	mu        sync.Mutex
+	label     string
+	completed int64
+	total     int64
+	rateBps   float64
+	sampleAt  time.Time
+	sampleBy  int64
+}
+
+// report is passed as an update.ProgressFunc to whichever download is
+// running.
+func (p *progressTracker) report(pr update.Progress) {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	now := time.Now()
+	if p.sampleAt.IsZero() {
+		p.sampleAt, p.sampleBy = now, pr.Completed
+	} else if dt := now.Sub(p.sampleAt).Seconds(); dt >= 0.2 {
+		p.rateBps = float64(pr.Completed-p.sampleBy) / dt
+		p.sampleAt, p.sampleBy = now, pr.Completed
+	}
+	p.label, p.completed, p.total = pr.Label, pr.Completed, pr.Total
+}
+
+// snapshot returns the most recently reported progress.
+func (p *progressTracker) snapshot() (label string, completed, total int64, rateBps float64) {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	return p.label, p.completed, p.total, p.rateBps
+}
+
+// progressTickMsg drives periodic re-renders of the Installing/
+// Downloading screens while a background download command is
+// running - the download itself doesn't send messages as it
+// progresses, so View has to instead poll a progressTracker on a
+// timer.
+type progressTickMsg time.Time
+
+func tickProgressCmd() tea.Cmd {
+	return tea.Tick(300*time.Millisecond, func(t time.Time) tea.Msg {
+		return progressTickMsg(t)
+	})
+}
+
 // installDoneMsg carries installflow.Run's captured output back to
 // Update once the install command finishes.
 type installDoneMsg struct{ log []string }
@@ -805,11 +876,12 @@ type installDoneMsg struct{ log []string }
 // would otherwise print straight to a terminal is captured into a
 // buffer instead, since cmd/sdigo owns the whole screen via bubbletea
 // alternate-screen mode - writing to os.Stdout underneath that would
-// corrupt the display.
-func runInstallCmd(s *settings.Settings, pending []installflow.Pending) tea.Cmd {
+// corrupt the display. progress receives live byte-level status for
+// the Installing screen.
+func runInstallCmd(s *settings.Settings, pending []installflow.Pending, progress *progressTracker) tea.Cmd {
 	return func() tea.Msg {
 		var buf bytes.Buffer
-		installflow.Run(s, pending, &buf)
+		installflow.Run(s, pending, &buf, progress.report)
 		return installDoneMsg{log: logLines(&buf)}
 	}
 }
@@ -829,10 +901,11 @@ type welcomeDownloadDoneMsg struct{ log []string }
 // (the Welcome screen's "Download Indexes" - scan.Run already does
 // this automatically for a genuinely empty index directory, so this
 // path matters for an on-demand refresh of an existing catalog).
-func runIndexRefreshCmd(s *settings.Settings) tea.Cmd {
+// progress receives live byte-level status for the Downloading screen.
+func runIndexRefreshCmd(s *settings.Settings, progress *progressTracker) tea.Cmd {
 	return func() tea.Msg {
 		var buf bytes.Buffer
-		n, err := collection.BootstrapIndexes(s.TorrentFile, s.IndexDir)
+		n, err := collection.BootstrapIndexes(s.TorrentFile, s.IndexDir, progress.report)
 		if err != nil {
 			fmt.Fprintf(&buf, "error refreshing indexes: %v\n", err)
 		} else {
@@ -846,11 +919,12 @@ func runIndexRefreshCmd(s *settings.Settings) tea.Cmd {
 // and isn't already present, for the Welcome screen's "Download
 // Network Drivers"/"Download All Driver Packs" - a real, potentially
 // large network operation, run as a background tea.Cmd like install
-// so the UI stays responsive.
-func runWelcomeDownloadCmd(s *settings.Settings, filter update.DriverPackFilter) tea.Cmd {
+// so the UI stays responsive. progress receives live byte-level
+// status for the Downloading screen.
+func runWelcomeDownloadCmd(s *settings.Settings, filter update.DriverPackFilter, progress *progressTracker) tea.Cmd {
 	return func() tea.Msg {
 		var buf bytes.Buffer
-		n, err := update.DownloadDriverPacks(s.TorrentFile, s.DrpDir, filter, &buf, 2*time.Hour)
+		n, err := update.DownloadDriverPacks(s.TorrentFile, s.DrpDir, filter, &buf, 2*time.Hour, progress.report)
 		if err != nil {
 			fmt.Fprintf(&buf, "error: %v\n", err)
 		} else if n == 0 {
@@ -871,7 +945,7 @@ func (m model) View() string {
 	case screenConfirmInstall:
 		return m.confirmInstallView()
 	case screenInstalling:
-		return "Installing... please wait.\n"
+		return m.downloadStatusView("Installing")
 	case screenInstallLog:
 		return m.opLogView()
 	case screenAbout:
@@ -881,7 +955,7 @@ func (m model) View() string {
 	case screenWelcomeConfirmAll:
 		return m.welcomeConfirmAllView()
 	case screenWelcomeDownloading:
-		return "Downloading... please wait.\n"
+		return m.downloadStatusView("Downloading")
 	case screenUSBDrive:
 		return m.usbDriveView()
 	case screenUSBDriveConfirm:
@@ -890,6 +964,33 @@ func (m model) View() string {
 		return "Copying... please wait.\n"
 	}
 	return m.tableView()
+}
+
+// downloadStatusView renders live torrent download progress for the
+// Installing/Downloading screens - the same percent/bytes/speed
+// status update.cpp's ShowProgress (STR_UPD_PROGRES) builds from
+// libtorrent's torrent_status, instead of a static "please wait".
+// Falls back to that static message until the first progress report
+// arrives (metadata/peer discovery can take a few seconds).
+func (m model) downloadStatusView(verb string) string {
+	header := verb + " - please wait, this may take a while.\n\n"
+	if m.dlProgress == nil {
+		return header
+	}
+	label, completed, total, rateBps := m.dlProgress.snapshot()
+	if total == 0 {
+		return header + "Connecting to the torrent swarm...\n"
+	}
+	percent := int(completed * 100 / total)
+	line := fmt.Sprintf("Downloaded %s out of %s (%d%%)",
+		common.BytesToStr(uint64(completed)), common.BytesToStr(uint64(total)), percent)
+	if rateBps > 0 {
+		line += fmt.Sprintf(" at %s/s", common.BytesToStr(uint64(rateBps)))
+	}
+	if label != "" {
+		line = label + "\n" + line
+	}
+	return header + line + "\n"
 }
 
 func (m model) usbDriveView() string {
@@ -1436,7 +1537,7 @@ func sdiGo(args []string) int {
 			if !install.IsElevated() {
 				return relaunchElevated(s, cfgPath, args)
 			}
-			installflow.Run(s, pending, os.Stdout)
+			installflow.Run(s, pending, os.Stdout, nil)
 		}
 		return 0
 	}

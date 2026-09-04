@@ -66,7 +66,7 @@ func TestDownloadDriverPacksRealTorrent(t *testing.T) {
 	}
 
 	var buf bytes.Buffer
-	n, err := DownloadDriverPacks(realTorrentPathForBulk, drpDir, onlyCardReader, &buf, 30*time.Minute)
+	n, err := DownloadDriverPacks(realTorrentPathForBulk, drpDir, onlyCardReader, &buf, 30*time.Minute, nil)
 	if err != nil {
 		t.Fatalf("DownloadDriverPacks() error: %v\noutput:\n%s", err, buf.String())
 	}
@@ -86,7 +86,7 @@ func TestDownloadDriverPacksRealTorrent(t *testing.T) {
 
 	// A second run must find it already present and download nothing.
 	buf.Reset()
-	n, err = DownloadDriverPacks(realTorrentPathForBulk, drpDir, onlyCardReader, &buf, 30*time.Minute)
+	n, err = DownloadDriverPacks(realTorrentPathForBulk, drpDir, onlyCardReader, &buf, 30*time.Minute, nil)
 	if err != nil {
 		t.Fatalf("second DownloadDriverPacks() error: %v", err)
 	}

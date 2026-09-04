@@ -31,7 +31,7 @@ func TestPlaceholderIndexFilename(t *testing.T) {
 }
 
 func TestBootstrapIndexesNoTorrentConfigured(t *testing.T) {
-	if _, err := BootstrapIndexes("", t.TempDir()); err == nil {
+	if _, err := BootstrapIndexes("", t.TempDir(), nil); err == nil {
 		t.Fatal("expected an error with no torrent source configured")
 	}
 }
@@ -59,7 +59,7 @@ func TestBootstrapIndexesRealTorrent(t *testing.T) {
 	}
 
 	indexDir := t.TempDir()
-	count, err := BootstrapIndexes(torrentFile, indexDir)
+	count, err := BootstrapIndexes(torrentFile, indexDir, nil)
 	if err != nil {
 		t.Fatalf("BootstrapIndexes() error: %v", err)
 	}
@@ -89,7 +89,7 @@ func TestBootstrapIndexesRealTorrent(t *testing.T) {
 
 	// A second run against the same (now populated) directory should
 	// download nothing new.
-	count2, err := BootstrapIndexes(torrentFile, indexDir)
+	count2, err := BootstrapIndexes(torrentFile, indexDir, nil)
 	if err != nil {
 		t.Fatalf("second BootstrapIndexes() error: %v", err)
 	}

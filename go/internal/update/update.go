@@ -189,7 +189,11 @@ func (t *Torrent) SelectFiles(names []string) []FileInfo {
 
 // Progress sums BytesCompleted/Length across files, matching the
 // percent-complete calculation ShowProgress displays in update.cpp.
+// Label identifies what's being downloaded (e.g. a driver-pack
+// filename), set by WaitDownload's caller - it carries no meaning on
+// its own.
 type Progress struct {
+	Label     string
 	Completed int64
 	Total     int64
 }
@@ -213,21 +217,37 @@ func (t *Torrent) Progress(files []FileInfo) Progress {
 	return p
 }
 
+// ProgressFunc receives live download progress, invoked from
+// WaitDownload's poll loop - it's how a caller renders the same kind
+// of live percent/speed status update.cpp's ShowProgress builds from
+// libtorrent's torrent_status, instead of blocking silently. May be
+// nil.
+type ProgressFunc func(Progress)
+
 // WaitDownload blocks until every file in files has fully downloaded,
-// ctx is done, or timeout elapses (whichever comes first).
-func (t *Torrent) WaitDownload(ctx context.Context, files []FileInfo, timeout time.Duration) error {
+// ctx is done, or timeout elapses (whichever comes first). label is
+// attached to every Progress reported to onProgress, which may be nil.
+func (t *Torrent) WaitDownload(ctx context.Context, files []FileInfo, timeout time.Duration, label string, onProgress ProgressFunc) error {
+	report := func() Progress {
+		p := t.Progress(files)
+		p.Label = label
+		if onProgress != nil {
+			onProgress(p)
+		}
+		return p
+	}
 	deadline := time.Now().Add(timeout)
 	for time.Now().Before(deadline) {
 		if err := ctx.Err(); err != nil {
 			return err
 		}
-		if t.Progress(files).Percent() >= 100 {
+		if report().Percent() >= 100 {
 			return nil
 		}
 		select {
 		case <-ctx.Done():
 			return ctx.Err()
-		case <-time.After(2 * time.Second):
+		case <-time.After(500 * time.Millisecond):
 		}
 	}
 	return fmt.Errorf("timed out waiting for the download to complete")

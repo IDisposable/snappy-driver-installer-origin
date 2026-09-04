@@ -36,10 +36,12 @@ type Pending struct {
 // to os.Stdout/Stderr, so a caller that isn't a plain terminal (e.g. a
 // TUI screen that owns the whole terminal via the alternate screen
 // buffer) can capture them into a buffer instead of corrupting its own
-// display. This modifies the system - it is only reached when a
-// caller has explicitly requested an install.
-func Run(s *settings.Settings, pending []Pending, out io.Writer) {
-	if err := DownloadPending(s, pending, out); err != nil {
+// display. onProgress, if non-nil, is called with live byte-level
+// progress while a pending driver pack downloads. This modifies the
+// system - it is only reached when a caller has explicitly requested
+// an install.
+func Run(s *settings.Settings, pending []Pending, out io.Writer, onProgress update.ProgressFunc) {
+	if err := DownloadPending(s, pending, out, onProgress); err != nil {
 		fmt.Fprintf(out, "warning: downloading pending driver packs: %v\n", err)
 	}
 
@@ -81,8 +83,9 @@ func Run(s *settings.Settings, pending []Pending, out io.Writer) {
 // per-file download: a device can be matched against a pack whose
 // index was downloaded ahead of its data, and installing it needs the
 // data fetched first. Does nothing if no candidate is pending, so it
-// is always safe to call.
-func DownloadPending(s *settings.Settings, pending []Pending, out io.Writer) error {
+// is always safe to call. onProgress, if non-nil, is called with live
+// byte-level progress for whichever pack is currently downloading.
+func DownloadPending(s *settings.Settings, pending []Pending, out io.Writer, onProgress update.ProgressFunc) error {
 	var need []Pending
 	for _, p := range pending {
 		if p.Candidate.Driverpack.Pending {
@@ -136,7 +139,7 @@ func DownloadPending(s *settings.Settings, pending []Pending, out io.Writer) err
 		fmt.Fprintf(out, "DOWNLOAD %-50s (%s, %d bytes)\n", p.Description, drp.Filename, tf.Length)
 		selected := t.SelectFiles([]string{tf.Path})
 		dlCtx, dlCancel := context.WithTimeout(context.Background(), 30*time.Minute)
-		err := t.WaitDownload(dlCtx, selected, 30*time.Minute)
+		err := t.WaitDownload(dlCtx, selected, 30*time.Minute, drp.Filename, onProgress)
 		dlCancel()
 		if err != nil {
 			fmt.Fprintf(out, "warning: downloading %s: %v\n", drp.Filename, err)

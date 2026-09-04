@@ -209,7 +209,7 @@ func Run(s *settings.Settings) (Result, error) {
 	// already-known one). A failure here is not fatal: Run proceeds
 	// with whatever collection is already present locally.
 	if s.TorrentFile != "" && (res.FirstRun || s.Flags&settings.FlagCheckUpdates != 0) {
-		res.IndexesDownloaded, res.BootstrapError = collection.BootstrapIndexes(s.TorrentFile, s.IndexDir)
+		res.IndexesDownloaded, res.BootstrapError = collection.BootstrapIndexes(s.TorrentFile, s.IndexDir, nil)
 	}
 
 	res.Collection, err = collection.LoadCollection(s.DrpDir, s.IndexDir)
