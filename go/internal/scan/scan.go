@@ -210,9 +210,10 @@ func Run(s *settings.Settings) (Result, error) {
 		return res, fmt.Errorf("loading driver-pack collection: %w", err)
 	}
 
+	major, minor, isAMD64 := virtualEnvironment(s, si)
 	ctx := indexing.MatchContext{
-		Major: si.Windows.Major, Minor: si.Windows.Minor, Build: si.Windows.Build,
-		IsAMD64: si.Is64Bit, IsLaptop: isLaptop, NotebookMarker: marker,
+		Major: major, Minor: minor, Build: si.Windows.Build,
+		IsAMD64: isAMD64, IsLaptop: isLaptop, NotebookMarker: marker,
 		FilterSP: s.Flags&settings.FlagFilterSP != 0,
 	}
 
@@ -305,6 +306,26 @@ func bestPackName(dr DeviceResult) (name string, ok bool) {
 		return "", false
 	}
 	return dr.Candidates[0].Driverpack.Filename, true
+}
+
+// virtualEnvironment resolves the Windows major/minor version and
+// architecture to match against - the real detected values, unless
+// -v/-arch ask to match against a different one instead (checking
+// what a device would match on a target other than the machine
+// actually running, ported from virtual_os_version/virtual_arch_type's
+// original purpose). VirtualOSVersion decodes as major*10+minor, the
+// same convention hardware.FindWindowsVersionName's table already
+// uses (e.g. 100 -> 10.0, 61 -> 6.1) - Build has no virtual equivalent
+// in the original either, so it's always the real detected value.
+func virtualEnvironment(s *settings.Settings, si hardware.SysInfo) (major, minor int, isAMD64 bool) {
+	major, minor, isAMD64 = si.Windows.Major, si.Windows.Minor, si.Is64Bit
+	if s.VirtualOSVersion != 0 {
+		major, minor = s.VirtualOSVersion/10, s.VirtualOSVersion%10
+	}
+	if s.VirtualArchType != 0 {
+		isAMD64 = s.VirtualArchType == 64
+	}
+	return major, minor, isAMD64
 }
 
 // indexDirNeedsBootstrap reports whether indexDir doesn't exist, isn't

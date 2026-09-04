@@ -213,3 +213,42 @@ func TestDeviceSortsFirstPCI0300Placeholder(t *testing.T) {
 		t.Error("deviceSortsFirst(installed PCI\\CC_0300 placeholder) = false, want true")
 	}
 }
+
+func TestVirtualEnvironmentDefaultsToRealValues(t *testing.T) {
+	si := hardware.SysInfo{Is64Bit: true}
+	si.Windows.Major, si.Windows.Minor = 11, 0
+	s := settings.New()
+
+	major, minor, isAMD64 := virtualEnvironment(s, si)
+	if major != 11 || minor != 0 || !isAMD64 {
+		t.Errorf("virtualEnvironment() = (%d, %d, %v), want the real detected values (11, 0, true)", major, minor, isAMD64)
+	}
+}
+
+// TestVirtualEnvironmentAppliesVirtualOSVersion confirms -v:<code>
+// overrides the real major/minor - 61 decodes as 6.1 (Windows 7), the
+// same major*10+minor convention hardware.FindWindowsVersionName uses.
+func TestVirtualEnvironmentAppliesVirtualOSVersion(t *testing.T) {
+	si := hardware.SysInfo{Is64Bit: true}
+	si.Windows.Major, si.Windows.Minor = 11, 0
+	s := settings.New()
+	s.VirtualOSVersion = 61
+
+	major, minor, isAMD64 := virtualEnvironment(s, si)
+	if major != 6 || minor != 1 {
+		t.Errorf("virtualEnvironment() major/minor = %d/%d, want 6/1 (Windows 7)", major, minor)
+	}
+	if !isAMD64 {
+		t.Error("virtualEnvironment() isAMD64 = false, want unaffected by VirtualOSVersion (still the real value)")
+	}
+}
+
+func TestVirtualEnvironmentAppliesVirtualArchType(t *testing.T) {
+	si := hardware.SysInfo{Is64Bit: true}
+	s := settings.New()
+	s.VirtualArchType = 32
+
+	if _, _, isAMD64 := virtualEnvironment(s, si); isAMD64 {
+		t.Error("virtualEnvironment() isAMD64 = true, want false with -arch=32 despite a real 64-bit machine")
+	}
+}
