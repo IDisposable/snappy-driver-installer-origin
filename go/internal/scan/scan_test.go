@@ -103,3 +103,24 @@ func TestDeviceResultVisibleInvalidRequiresExplicitFilter(t *testing.T) {
 		t.Error("Visible(DefaultFilters|FilterInvalid) = false, want true")
 	}
 }
+
+func TestMatchLabel(t *testing.T) {
+	if got := MatchLabel(nil); got != "MISSING" {
+		t.Errorf("MatchLabel(nil) = %q, want %q", got, "MISSING")
+	}
+	cases := []struct {
+		status int
+		want   string
+	}{
+		{matcher.StatusBetter | matcher.StatusNew, "NEWER"},
+		{matcher.StatusBetter | matcher.StatusOld, "OLDER"},
+		{matcher.StatusBetter | matcher.StatusCurrent, "BETTER"},
+		{matcher.StatusBetter, "FOUND"},
+	}
+	for _, c := range cases {
+		best := &collection.Candidate{Result: matcher.Result{Status: c.status}}
+		if got := MatchLabel(best); got != c.want {
+			t.Errorf("MatchLabel(status=%#x) = %q, want %q", c.status, got, c.want)
+		}
+	}
+}

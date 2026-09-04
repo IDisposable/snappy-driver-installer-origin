@@ -227,3 +227,60 @@ func TestDeviceRowSelectionMarker(t *testing.T) {
 		t.Errorf("MISSING row Sel cell = %q, want blank (nothing to install)", got)
 	}
 }
+
+func TestHwidComparisonPrefersEarlierMoreSpecificMatch(t *testing.T) {
+	hw := []string{"USB\\VID_0BDA&PID_5634&MI_00", "USB\\VID_0BDA&PID_5634"}
+	compat := []string{"USB\\Class_0e&SubClass_03", "USB\\Class_0e"}
+
+	// candidate matches the most specific hardware ID; installed only
+	// matches a later, less specific compatible ID.
+	if got := hwidComparison(hw, compat, "USB\\CLASS_0E", "USB\\VID_0BDA&PID_5634&MI_00"); got != 2 {
+		t.Errorf("hwidComparison() = %d, want 2 (candidate matched the more specific entry)", got)
+	}
+	// installed matches the most specific ID this time.
+	if got := hwidComparison(hw, compat, "USB\\VID_0BDA&PID_5634&MI_00", "USB\\CLASS_0E"); got != 1 {
+		t.Errorf("hwidComparison() = %d, want 1 (installed matched the more specific entry)", got)
+	}
+	// both match the very same entry: a tie, not a win for either side.
+	if got := hwidComparison(hw, compat, "USB\\VID_0BDA&PID_5634&MI_00", "USB\\VID_0BDA&PID_5634&MI_00"); got != 0 {
+		t.Errorf("hwidComparison() = %d, want 0 (exact tie)", got)
+	}
+	// neither ID appears in the device's own list at all.
+	if got := hwidComparison(hw, compat, "USB\\SOMETHING_ELSE", "USB\\SOMETHING_ELSE_TOO"); got != 0 {
+		t.Errorf("hwidComparison() = %d, want 0 (neither matches)", got)
+	}
+}
+
+func TestCompareInstalledVsCandidate(t *testing.T) {
+	newer := common.Version{Day: 13, Month: 1, Year: 2024, V1: 10, V2: 0, V3: 22000, V4: 10003}
+	older := common.Version{Day: 21, Month: 6, Year: 2006, V1: 10, V2: 0, V3: 26100, V4: 9223}
+
+	drp := &indexing.Driverpack{Filename: "DP_Test.7z"}
+	best := &collection.Candidate{Driverpack: drp, Result: matcher.Result{DriverVersion: newer, Score: 2, HWID: "USB\\A"}}
+	dr := scan.DeviceResult{
+		Device:         hardware.Device{HardwareIDs: []string{"USB\\A", "USB\\B"}},
+		Installed:      &hardware.InstalledDriver{Version: older, MatchingDeviceID: "USB\\B"},
+		InstalledScore: &collection.InstalledScore{Score: 1},
+	}
+
+	cmp := compareInstalledVsCandidate(dr, best)
+	if cmp.date != 2 {
+		t.Errorf("date = %d, want 2 (candidate's date is newer)", cmp.date)
+	}
+	if cmp.version != 1 {
+		t.Errorf("version = %d, want 1 (installed's raw version number is numerically higher)", cmp.version)
+	}
+	if cmp.score != 1 {
+		t.Errorf("score = %d, want 1 (installed's lower raw score ranks better)", cmp.score)
+	}
+	if cmp.hwid != 2 {
+		t.Errorf("hwid = %d, want 2 (candidate matched the earlier, more specific hardware ID)", cmp.hwid)
+	}
+
+	if got := compareInstalledVsCandidate(scan.DeviceResult{}, best); got != (comparison{}) {
+		t.Errorf("compareInstalledVsCandidate() with no installed driver = %+v, want zero value", got)
+	}
+	if got := compareInstalledVsCandidate(dr, nil); got != (comparison{}) {
+		t.Errorf("compareInstalledVsCandidate() with no candidate = %+v, want zero value", got)
+	}
+}

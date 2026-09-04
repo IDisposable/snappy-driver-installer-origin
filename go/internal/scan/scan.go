@@ -39,6 +39,14 @@ type DeviceResult struct {
 	// from, kept around for a front end that wants to display it (see
 	// cmd/sditui's detail screen and wide-terminal "Installed" column).
 	Installed *hardware.InstalledDriver
+
+	// InstalledScore is the installed driver's own computed score
+	// (see scoreInstalledDriver), or nil if Installed is nil or its
+	// .inf couldn't be read - kept alongside Installed so a front end
+	// can reproduce the original's per-field installed-vs-candidate
+	// comparison (Manager::draw_hint's cm_score) without recomputing
+	// it from scratch.
+	InstalledScore *collection.InstalledScore
 }
 
 // Best returns the top-ranked candidate that represents a genuine
@@ -211,7 +219,10 @@ func Run(s *settings.Settings) (Result, error) {
 		if dm.Status == matcher.StatusIgnored {
 			continue
 		}
-		res.Devices = append(res.Devices, DeviceResult{Device: d, Status: dm.Status, Candidates: dm.Candidates, Installed: installed})
+		res.Devices = append(res.Devices, DeviceResult{
+			Device: d, Status: dm.Status, Candidates: dm.Candidates,
+			Installed: installed, InstalledScore: installedScore,
+		})
 	}
 
 	return res, nil
@@ -252,6 +263,34 @@ func scoreInstalledDriver(si hardware.SysInfo, installed *hardware.InstalledDriv
 	identifierScore := matcher.IdentifierScore(installed.DevPos, installed.IsHardwareID, info.InfPos)
 	score := matcher.Score(info.CatalogFileBits, info.Feature, identifierScore, si.Windows.Major, si.Is64Bit, info.IsNTSection)
 	return &collection.InstalledScore{Score: score, Version: installed.Version}
+}
+
+// MatchLabel renders a short label for a device's best candidate,
+// ported from the STATUS_BETTER_NEW/_CUR/_OLD branches of
+// itembar_t::str_status (the other six BETTER/SAME/WORSE combinations
+// don't apply here: best is nil unless StatusBetter is already set,
+// per DeviceResult.Best). NEW/OLD/CURRENT is the date-vs-installed
+// axis, independent of the BETTER/WORSE/SAME score axis a plain
+// "FOUND" collapses - the original shows a full sentence per case
+// ("More optimal driver available, though it's older"); this returns
+// a short word instead, sized for a table column rather than a
+// sentence. A device with no installed driver to compare dates
+// against at all (first-time install) has neither bit set, so falls
+// through to "FOUND".
+func MatchLabel(best *collection.Candidate) string {
+	if best == nil {
+		return "MISSING"
+	}
+	switch {
+	case best.Result.Status&matcher.StatusNew != 0:
+		return "NEWER"
+	case best.Result.Status&matcher.StatusOld != 0:
+		return "OLDER"
+	case best.Result.Status&matcher.StatusCurrent != 0:
+		return "BETTER"
+	default:
+		return "FOUND"
+	}
 }
 
 // StatusLabel renders a device's status as a short human-readable

@@ -17,7 +17,10 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 
+	"sdio/internal/collection"
+	"sdio/internal/common"
 	"sdio/internal/installflow"
+	"sdio/internal/matcher"
 	"sdio/internal/scan"
 	"sdio/internal/settings"
 )
@@ -179,7 +182,7 @@ func deviceRow(dr scan.DeviceResult, selected, showInstalled bool) table.Row {
 		}
 		row = table.Row{sel, "MISSING", dr.Device.Description, reason, ""}
 	} else {
-		row = table.Row{sel, "FOUND", dr.Device.Description, best.Driverpack.Filename, best.Result.DriverVersion.String()}
+		row = table.Row{sel, scan.MatchLabel(best), dr.Device.Description, best.Driverpack.Filename, best.Result.DriverVersion.String()}
 	}
 	if showInstalled {
 		installedVersion := "not installed"
@@ -553,19 +556,132 @@ func (m model) optionsView() string {
 	return b.String()
 }
 
+// betterStyle/invalidStyle render the detail screen's "greenlight"
+// comparison, ported from Manager::draw_hint's cb/POPUP_CMP_INVALID_
+// COLOR text colors - the original highlights whichever side of a
+// per-field comparison wins in green, and flags a bad signature or
+// OS/arch mismatch in red.
+var (
+	betterStyle  = lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("2"))
+	invalidStyle = lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("1"))
+)
+
+// comparison holds the per-field installed-vs-candidate outcome,
+// ported from Manager::draw_hint's cm_date/cm_ver/cm_hwid/cm_score
+// locals - answering "whose value for this ONE field is better",
+// which is a different, finer-grained question than the overall
+// BETTER/WORSE/SAME verdict DeviceResult.Best already resolves: an
+// installed inbox driver can carry a numerically higher four-part
+// version number (e.g. 10.0.26100.9223 vs. a candidate's
+// 10.0.22000.10003) while the candidate still wins overall on date
+// and score. 0 means tie or "not comparable" (e.g. no installed
+// driver at all); 1 means installed wins that field; 2 means the
+// candidate does.
+type comparison struct {
+	date, version, hwid, score int
+}
+
+func compareInstalledVsCandidate(dr scan.DeviceResult, best *collection.Candidate) comparison {
+	var c comparison
+	if dr.Installed == nil || best == nil {
+		return c
+	}
+	switch r := common.CompareDate(dr.Installed.Version, best.Result.DriverVersion); {
+	case r > 0:
+		c.date = 1
+	case r < 0:
+		c.date = 2
+	}
+	switch r := common.CompareVersion(dr.Installed.Version, best.Result.DriverVersion); {
+	case r > 0:
+		c.version = 1
+	case r < 0:
+		c.version = 2
+	}
+	if dr.InstalledScore != nil {
+		// A lower raw score ranks better - see matcher.Result.Cmp's
+		// negated CmpUnsigned comparison.
+		switch r := matcher.CmpUnsigned(dr.InstalledScore.Score, best.Result.Score); {
+		case r < 0:
+			c.score = 1
+		case r > 0:
+			c.score = 2
+		}
+	}
+	c.hwid = hwidComparison(dr.Device.HardwareIDs, dr.Device.CompatibleIDs, dr.Installed.MatchingDeviceID, best.Result.HWID)
+	return c
+}
+
+// hwidComparison finds whichever of installedID/candidateID matches
+// an earlier (more specific) entry in the device's own combined
+// hardware-then-compatible ID list, ported from the pp/cm_hwid
+// bookkeeping in Manager::draw_hint. Returns 0 if neither matches, or
+// both match the very same entry (an exact tie, not "id" - genuinely
+// no fresh update: the driver pack targets the identical ID the
+// installed driver already used).
+func hwidComparison(hardwareIDs, compatibleIDs []string, installedID, candidateID string) int {
+	for _, p := range hardwareIDs {
+		if pp := hwidMatchBits(p, installedID, candidateID); pp == 1 || pp == 2 {
+			return pp
+		}
+	}
+	for _, p := range compatibleIDs {
+		if pp := hwidMatchBits(p, installedID, candidateID); pp == 1 || pp == 2 {
+			return pp
+		}
+	}
+	return 0
+}
+
+func hwidMatchBits(entry, installedID, candidateID string) int {
+	pp := 0
+	if installedID != "" && strings.EqualFold(installedID, entry) {
+		pp |= 1
+	}
+	if candidateID != "" && strings.EqualFold(candidateID, entry) {
+		pp |= 2
+	}
+	return pp
+}
+
+// styleIf applies betterStyle when winner matches side (1=installed,
+// 2=candidate), otherwise renders value unstyled.
+func styleIf(value string, winner, side int) string {
+	if winner == side {
+		return betterStyle.Render(value)
+	}
+	return value
+}
+
+// styleIfMatched highlights an ID-list entry that matched either
+// side's matching ID (pp!=0, from hwidMatchBits) - ported from
+// Manager::draw_hint's per-entry `pp?POPUP_HWID_COLOR:c0`, which
+// marks "this is one of the relevant IDs" rather than comparing which
+// side wins (that comparative judgment is the "Matched ID" summary
+// line below, via styleIf/cmp.hwid).
+func styleIfMatched(value string, pp int) string {
+	if pp != 0 {
+		return betterStyle.Render(value)
+	}
+	return value
+}
+
 // signatureLabel describes a candidate's catalog-validity in the same
 // terms Manager::filter's altsectscore-based visibility rule uses:
 // 2 is catalog-signed and confirmed valid for the running OS, 1 is
 // present but unsigned or unconfirmed, 0 never reaches here (Best()
-// requires IsDriverValid, i.e. AltSectScore>0).
+// requires IsDriverValid, i.e. AltSectScore>0). Styled red when not
+// fully valid, mirroring Manager::draw_hint's isvalidcat check -
+// there's no equivalent styling for the installed side below since
+// this rewrite never ported Driver::isvalidcat's own catalog lookup.
 func signatureLabel(altSectScore int) string {
 	switch altSectScore {
 	case 2:
 		return "catalog-signed, valid for this OS"
 	case 1:
-		return "unsigned or unconfirmed"
+		return invalidStyle.Render("unsigned or unconfirmed")
 	default:
-		return "invalid"
+		return invalidStyle.Render("invalid")
 	}
 }
 
@@ -587,17 +703,27 @@ func (m model) detailView(dr scan.DeviceResult) string {
 	}
 	fmt.Fprintf(&b, "  Install        %s\n\n", tick)
 
+	best := dr.Best()
+	cmp := compareInstalledVsCandidate(dr, best)
+	installedID, candidateID := "", ""
+	if dr.Installed != nil {
+		installedID = dr.Installed.MatchingDeviceID
+	}
+	if best != nil {
+		candidateID = best.Result.HWID
+	}
+
 	if len(dr.Device.HardwareIDs) > 0 {
 		b.WriteString("Installed hardware ID\n")
 		for _, id := range dr.Device.HardwareIDs {
-			fmt.Fprintf(&b, "  %s\n", id)
+			fmt.Fprintf(&b, "  %s\n", styleIfMatched(id, hwidMatchBits(id, installedID, candidateID)))
 		}
 		b.WriteString("\n")
 	}
 	if len(dr.Device.CompatibleIDs) > 0 {
 		b.WriteString("Installed compatible ID\n")
 		for _, id := range dr.Device.CompatibleIDs {
-			fmt.Fprintf(&b, "  %s\n", id)
+			fmt.Fprintf(&b, "  %s\n", styleIfMatched(id, hwidMatchBits(id, installedID, candidateID)))
 		}
 		b.WriteString("\n")
 	}
@@ -608,26 +734,34 @@ func (m model) detailView(dr scan.DeviceResult) string {
 	} else {
 		inst := dr.Installed
 		fmt.Fprintf(&b, "  Provider       %s\n", inst.ProviderName)
-		fmt.Fprintf(&b, "  Date           %s\n", inst.Version.DateString())
-		fmt.Fprintf(&b, "  Version        %s\n", inst.Version.String())
-		fmt.Fprintf(&b, "  Matched ID     %s\n", inst.MatchingDeviceID)
+		fmt.Fprintf(&b, "  Date           %s\n", styleIf(inst.Version.DateString(), cmp.date, 1))
+		fmt.Fprintf(&b, "  Version        %s\n", styleIf(inst.Version.String(), cmp.version, 1))
+		fmt.Fprintf(&b, "  Matched ID     %s\n", styleIf(inst.MatchingDeviceID, cmp.hwid, 1))
 		fmt.Fprintf(&b, "  Inf file       %s\n", inst.InfPath)
-		fmt.Fprintf(&b, "  Section        %s%s\n\n", inst.InfSection, inst.InfSectionExt)
+		fmt.Fprintf(&b, "  Section        %s%s\n", inst.InfSection, inst.InfSectionExt)
+		if dr.InstalledScore != nil {
+			fmt.Fprintf(&b, "  Score          %s\n", styleIf(fmt.Sprintf("%08X", dr.InstalledScore.Score), cmp.score, 1))
+		}
+		b.WriteString("\n")
 	}
 
 	b.WriteString("Available driver (best match)\n")
-	best := dr.Best()
 	if best == nil {
 		b.WriteString("  (no actionable candidate)\n")
 	} else {
 		drp := best.Driverpack
 		fmt.Fprintf(&b, "  Driver pack    %s\n", drp.Filename)
 		fmt.Fprintf(&b, "  Provider       %s\n", drp.Manufacturer(best.HWIDIndex))
-		fmt.Fprintf(&b, "  Date           %s\n", best.Result.DriverVersion.DateString())
-		fmt.Fprintf(&b, "  Version        %s\n", best.Result.DriverVersion.String())
-		fmt.Fprintf(&b, "  Matched ID     %s\n", best.Result.HWID)
+		fmt.Fprintf(&b, "  Date           %s\n", styleIf(best.Result.DriverVersion.DateString(), cmp.date, 2))
+		fmt.Fprintf(&b, "  Version        %s\n", styleIf(best.Result.DriverVersion.String(), cmp.version, 2))
+		fmt.Fprintf(&b, "  Matched ID     %s\n", styleIf(best.Result.HWID, cmp.hwid, 2))
 		fmt.Fprintf(&b, "  Inf file       %s\n", drp.InfPath(best.HWIDIndex))
-		fmt.Fprintf(&b, "  Section        %s\n", best.Result.Section)
+		section := best.Result.Section
+		if best.Result.DecorScore == 0 {
+			section = invalidStyle.Render(section)
+		}
+		fmt.Fprintf(&b, "  Section        %s\n", section)
+		fmt.Fprintf(&b, "  Score          %s\n", styleIf(fmt.Sprintf("%08X", best.Result.Score), cmp.score, 2))
 		fmt.Fprintf(&b, "  Signature      %s\n", signatureLabel(best.Result.AltSectScore))
 		if drp.Pending {
 			b.WriteString("  (driver pack data not yet downloaded - needs the configured torrent)\n")
