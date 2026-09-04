@@ -41,6 +41,7 @@ const (
 	screenConfirmInstall
 	screenInstalling
 	screenInstallLog
+	screenAbout
 )
 
 // optionItem is one toggleable entry in the options screen, wrapping
@@ -368,6 +369,15 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				return m, nil
 			}
 			return m, nil
+		case screenAbout:
+			switch msg.String() {
+			case "ctrl+c":
+				return m, tea.Quit
+			case "q", "esc", "?":
+				m.screen = screenTable
+				return m, nil
+			}
+			return m, nil
 		}
 		return m.updateTable(msg)
 	}
@@ -384,6 +394,9 @@ func (m model) updateTable(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return m, tea.Quit
 	case "o":
 		m.screen = screenOptions
+		return m, nil
+	case "?":
+		m.screen = screenAbout
 		return m, nil
 	case "enter":
 		if dr := m.currentDevice(); dr != nil {
@@ -580,9 +593,32 @@ func (m model) View() string {
 		return "Installing... please wait.\n"
 	case screenInstallLog:
 		return m.installLogView()
+	case screenAbout:
+		return aboutView
 	}
 	return m.tableView()
 }
+
+// aboutView credits the original project this is a Go reimplementation
+// of. Constant, not a method: it has nothing to do with the current
+// scan/device state.
+const aboutView = `Snappy Driver Installer: Go Forth
+A Go reimplementation of Snappy Driver Installer Origin
+
+Based on Snappy Driver Installer Origin
+  Home page: www.snappy-driver-installer.org
+
+Snappy Driver Installer Origin is free software: you can redistribute
+it and/or modify it under the terms of the GNU General Public License
+as published by the Free Software Foundation, either version 3 of the
+License or (at your option) any later version. See
+https://www.gnu.org/licenses/ for the full text.
+
+This reimplementation carries the same license, being a derivative
+work of the original source.
+
+esc/q/?: back
+`
 
 func (m model) tableView() string {
 	bb, si := m.result.System.BaseBoard, m.result.System.SysInfo
@@ -599,7 +635,7 @@ func (m model) tableView() string {
 	footer := fmt.Sprintf("\n%d matched, %d missing/no better driver, %d selected for install\n"+
 		"Newer/Older/Better all outrank the installed driver - Newer/Older also means\n"+
 		"its own release date is newer/older (enter for the full comparison)\n"+
-		"space: tick, a: select all, n: select none, enter: details, i: install, o: options, q: quit\n",
+		"space: tick, a: select all, n: select none, enter: details, i: install, o: options, ?: about, q: quit\n",
 		m.matched, m.missing, len(m.pendingSelected()))
 	return header + m.table.View() + footer
 }

@@ -520,3 +520,37 @@ func TestDetailViewportScrolls(t *testing.T) {
 		t.Error("YOffset = 0 after pressing down, want it to have scrolled")
 	}
 }
+
+// TestAboutScreenNavigation confirms ? opens the About screen from
+// the table and q/esc/? all return to it - the same "only documented
+// keys act" contract as the other popups.
+func TestAboutScreenNavigation(t *testing.T) {
+	m := newModel(scan.Result{}, settings.New())
+
+	mm, _ := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune("?")})
+	m = mm.(model)
+	if m.screen != screenAbout {
+		t.Fatalf("screen = %v after '?', want screenAbout", m.screen)
+	}
+	if !strings.Contains(m.View(), "Snappy Driver Installer: Go Forth") {
+		t.Errorf("About view missing product name: %s", m.View())
+	}
+
+	for _, key := range []tea.KeyMsg{
+		{Type: tea.KeyRunes, Runes: []rune{'x'}},
+		{Type: tea.KeySpace},
+		{Type: tea.KeyEnter},
+	} {
+		mm, _ = m.Update(key)
+		m = mm.(model)
+		if m.screen != screenAbout {
+			t.Fatalf("unrecognized key %q closed the About screen", key)
+		}
+	}
+
+	mm, _ = m.Update(tea.KeyMsg{Type: tea.KeyEsc})
+	m = mm.(model)
+	if m.screen != screenTable {
+		t.Fatalf("screen = %v after esc, want screenTable", m.screen)
+	}
+}
