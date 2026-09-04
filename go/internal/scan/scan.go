@@ -60,6 +60,15 @@ type Result struct {
 	System     System
 	Collection collection.LoadResult
 	Devices    []DeviceResult
+
+	// IndexesDownloaded is how many index files Run fetched via
+	// collection.BootstrapIndexes before loading the collection (0 if
+	// no bootstrap/update-check was attempted, or none were needed).
+	IndexesDownloaded int
+	// BootstrapError is non-nil if a bootstrap/update-check attempt
+	// failed (e.g. no network) - non-fatal: Run still proceeds with
+	// whatever collection is already present locally.
+	BootstrapError error
 }
 
 // Run performs the full pipeline: hardware detection, driver-pack
@@ -99,6 +108,27 @@ func Run(s *settings.Settings) (Result, error) {
 	}
 	res.System = System{BaseBoard: bb, SysInfo: si, IsLaptop: isLaptop}
 
+	// Bootstrap/refresh the index catalog from the configured torrent,
+	// ported from Updater_t::WelcomeDownloadIndexes (see
+	// collection.BootstrapIndexes). Always attempted when the index
+	// directory is missing or empty, since otherwise a machine with no
+	// local catalog at all can never do anything; also attempted on
+	// request via -checkupdates, matching that flag's documented
+	// purpose ("check for driver pack updates") - re-running the same
+	// bootstrap picks up any index the torrent has that isn't already
+	// present locally, including newly-added pack revisions (which get
+	// their own distinct filename, so are never mistaken for an
+	// already-known one). A failure here is not fatal: Run proceeds
+	// with whatever collection is already present locally.
+	if s.TorrentFile != "" {
+		if err := os.MkdirAll(s.DrpDir, 0o755); err != nil {
+			return res, fmt.Errorf("creating %s: %w", s.DrpDir, err)
+		}
+		if indexDirNeedsBootstrap(s.IndexDir) || s.Flags&settings.FlagCheckUpdates != 0 {
+			res.IndexesDownloaded, res.BootstrapError = collection.BootstrapIndexes(s.TorrentFile, s.IndexDir)
+		}
+	}
+
 	res.Collection, err = collection.LoadCollection(s.DrpDir, s.IndexDir)
 	if err != nil {
 		return res, fmt.Errorf("loading driver-pack collection: %w", err)
@@ -128,6 +158,17 @@ func Run(s *settings.Settings) (Result, error) {
 	}
 
 	return res, nil
+}
+
+// indexDirNeedsBootstrap reports whether indexDir doesn't exist, isn't
+// readable, or has no entries - the "nothing to scan yet" case that
+// forces a bootstrap attempt regardless of -checkupdates.
+func indexDirNeedsBootstrap(indexDir string) bool {
+	entries, err := os.ReadDir(indexDir)
+	if err != nil {
+		return true
+	}
+	return len(entries) == 0
 }
 
 // scoreInstalledDriver computes the currently-installed driver's own

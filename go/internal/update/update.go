@@ -26,6 +26,10 @@ package update
 import (
 	"context"
 	"fmt"
+	"io"
+	"os"
+	"path/filepath"
+	"time"
 
 	"github.com/anacrolix/torrent"
 	"golang.org/x/time/rate"
@@ -207,6 +211,58 @@ func (t *Torrent) Progress(files []FileInfo) Progress {
 		p.Total += f.Length
 	}
 	return p
+}
+
+// WaitDownload blocks until every file in files has fully downloaded,
+// ctx is done, or timeout elapses (whichever comes first).
+func (t *Torrent) WaitDownload(ctx context.Context, files []FileInfo, timeout time.Duration) error {
+	deadline := time.Now().Add(timeout)
+	for time.Now().Before(deadline) {
+		if err := ctx.Err(); err != nil {
+			return err
+		}
+		if t.Progress(files).Percent() >= 100 {
+			return nil
+		}
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		case <-time.After(2 * time.Second):
+		}
+	}
+	return fmt.Errorf("timed out waiting for the download to complete")
+}
+
+// SaveFile relocates a downloaded file from a torrent client's data
+// directory to its final destination, falling back to copy-then-
+// remove if a direct rename fails (e.g. they're on different volumes -
+// the torrent client's temporary data directory and a driver-pack/
+// index directory need not be on the same drive).
+func SaveFile(src, dest string) error {
+	if err := os.MkdirAll(filepath.Dir(dest), 0o755); err != nil {
+		return err
+	}
+	if err := os.Rename(src, dest); err == nil {
+		return nil
+	}
+
+	in, err := os.Open(src)
+	if err != nil {
+		return err
+	}
+	defer in.Close()
+	out, err := os.Create(dest)
+	if err != nil {
+		return err
+	}
+	if _, err := io.Copy(out, in); err != nil {
+		out.Close()
+		return err
+	}
+	if err := out.Close(); err != nil {
+		return err
+	}
+	return os.Remove(src)
 }
 
 // Drop removes the torrent from the client, ported from

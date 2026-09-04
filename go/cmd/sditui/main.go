@@ -92,8 +92,15 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 func (m model) View() string {
 	bb, si := m.result.System.BaseBoard, m.result.System.SysInfo
-	header := fmt.Sprintf("%s %s - Windows %d.%d build %d - %d devices, %d driver packs loaded\n",
-		bb.SystemManufacturer, bb.SystemModel, si.Windows.Major, si.Windows.Minor, si.Windows.Build,
+	var bootstrap string
+	switch {
+	case m.result.BootstrapError != nil:
+		bootstrap = fmt.Sprintf("(index update check failed: %v)\n", m.result.BootstrapError)
+	case m.result.IndexesDownloaded > 0:
+		bootstrap = fmt.Sprintf("(downloaded %d new/updated index file(s))\n", m.result.IndexesDownloaded)
+	}
+	header := fmt.Sprintf("%s%s %s - Windows %d.%d build %d - %d devices, %d driver packs loaded\n",
+		bootstrap, bb.SystemManufacturer, bb.SystemModel, si.Windows.Major, si.Windows.Minor, si.Windows.Build,
 		len(m.result.Devices), len(m.result.Collection.Packs))
 	footer := fmt.Sprintf("\n%d matched, %d missing/no better driver - q: quit\n", m.matched, m.missing)
 	return header + m.table.View() + footer

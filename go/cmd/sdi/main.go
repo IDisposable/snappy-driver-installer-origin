@@ -13,7 +13,6 @@ package main
 import (
 	"context"
 	"fmt"
-	"io"
 	"os"
 	"path/filepath"
 	"strings"
@@ -69,6 +68,12 @@ func run(s *settings.Settings, doInstall bool) error {
 		return err
 	}
 	bb, si := result.System.BaseBoard, result.System.SysInfo
+
+	if result.BootstrapError != nil {
+		fmt.Fprintf(os.Stderr, "warning: checking for index updates: %v\n", result.BootstrapError)
+	} else if result.IndexesDownloaded > 0 {
+		fmt.Printf("Downloaded %d new/updated index file(s)\n", result.IndexesDownloaded)
+	}
 
 	fmt.Printf("System: %s %s, Windows %d.%d build %d (%s), %d devices found\n",
 		bb.SystemManufacturer, bb.SystemModel, si.Windows.Major, si.Windows.Minor, si.Windows.Build,
@@ -222,13 +227,16 @@ func downloadPendingPacks(s *settings.Settings, pending []pendingInstall) error 
 
 		fmt.Printf("DOWNLOAD %-50s (%s, %d bytes)\n", p.description, drp.Filename, tf.Length)
 		selected := t.SelectFiles([]string{tf.Path})
-		if err := waitForDownload(t, selected); err != nil {
+		dlCtx, dlCancel := context.WithTimeout(context.Background(), 30*time.Minute)
+		err := t.WaitDownload(dlCtx, selected, 30*time.Minute)
+		dlCancel()
+		if err != nil {
 			fmt.Fprintf(os.Stderr, "warning: downloading %s: %v\n", drp.Filename, err)
 			continue
 		}
 
 		dest := filepath.Join(drp.Path, drp.Filename)
-		if err := moveFile(filepath.Join(dataDir, filepath.FromSlash(tf.Path)), dest); err != nil {
+		if err := update.SaveFile(filepath.Join(dataDir, filepath.FromSlash(tf.Path)), dest); err != nil {
 			fmt.Fprintf(os.Stderr, "warning: saving %s: %v\n", drp.Filename, err)
 			continue
 		}
@@ -250,51 +258,6 @@ func findTorrentFile(files []update.FileInfo, packFilename string) *update.FileI
 		}
 	}
 	return nil
-}
-
-// waitForDownload polls Progress until every file in files has fully
-// downloaded, or the deadline passes. Real driver packs range from a
-// few hundred KB to several GB, hence the generous timeout.
-func waitForDownload(t *update.Torrent, files []update.FileInfo) error {
-	deadline := time.Now().Add(30 * time.Minute)
-	for time.Now().Before(deadline) {
-		if t.Progress(files).Percent() >= 100 {
-			return nil
-		}
-		time.Sleep(2 * time.Second)
-	}
-	return fmt.Errorf("timed out waiting for the download to complete")
-}
-
-// moveFile relocates src to dest, falling back to copy-then-remove if
-// a direct rename fails (e.g. src and dest are on different volumes -
-// the torrent client's temporary data directory and the driver-pack
-// directory need not be on the same drive).
-func moveFile(src, dest string) error {
-	if err := os.MkdirAll(filepath.Dir(dest), 0o755); err != nil {
-		return err
-	}
-	if err := os.Rename(src, dest); err == nil {
-		return nil
-	}
-
-	in, err := os.Open(src)
-	if err != nil {
-		return err
-	}
-	defer in.Close()
-	out, err := os.Create(dest)
-	if err != nil {
-		return err
-	}
-	if _, err := io.Copy(out, in); err != nil {
-		out.Close()
-		return err
-	}
-	if err := out.Close(); err != nil {
-		return err
-	}
-	return os.Remove(src)
 }
 
 func installOne(s *settings.Settings, p pendingInstall) error {

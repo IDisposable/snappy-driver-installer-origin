@@ -2,6 +2,7 @@ package update
 
 import (
 	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/anacrolix/torrent"
@@ -124,6 +125,30 @@ func TestSelectFilesIgnoresUnknownNames(t *testing.T) {
 	selected := tr.SelectFiles([]string{"this/file/does/not/exist.txt"})
 	if len(selected) != 0 {
 		t.Errorf("SelectFiles() with an unknown name returned %d files, want 0", len(selected))
+	}
+}
+
+func TestSaveFileMovesContentAndCreatesDestDir(t *testing.T) {
+	srcDir := t.TempDir()
+	src := filepath.Join(srcDir, "source.bin")
+	if err := os.WriteFile(src, []byte("hello"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	dest := filepath.Join(t.TempDir(), "nested", "dest.bin")
+	if err := SaveFile(src, dest); err != nil {
+		t.Fatalf("SaveFile() error: %v", err)
+	}
+
+	got, err := os.ReadFile(dest)
+	if err != nil {
+		t.Fatalf("reading dest: %v", err)
+	}
+	if string(got) != "hello" {
+		t.Errorf("dest content = %q, want %q", got, "hello")
+	}
+	if _, err := os.Stat(src); !os.IsNotExist(err) {
+		t.Error("source file should no longer exist after SaveFile")
 	}
 }
 
