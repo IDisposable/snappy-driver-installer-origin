@@ -52,14 +52,14 @@ type boolFlagDef struct {
 var boolFlagDefs = []boolFlagDef{
 	{"checkupdates", "check for driver pack updates", FlagCheckUpdates, true},
 	{"onlyupdates", "only fetch driver packs newer than what's on disk (not implemented - the original's revision-comparison filter isn't ported)", FlagOnlyUpdates, true},
-	{"torrentalerts", "log torrent alert events (not implemented - no alert-logging feature exists yet)", FlagTorrentAlerts, true},
+	{"torrentalerts", "log torrent alert events", FlagTorrentAlerts, true},
 	{"keepseeding", "keep seeding driver packs to other peers after download completes", FlagKeepSeeding, true},
 	{"norestorepnt", "don't create a system restore point", FlagNoRestorePoint, true},
 
 	{"preservecfg", "don't overwrite sdio.cfg on exit", FlagPreserveCfg, false},
 	{"nogui", "run headless, without an interactive front end", FlagNoGUI, false},
 	{"autoclose", "exit automatically once an install or download finishes", FlagAutoClose, false},
-	{"autoupdate", "update driver packs automatically (not implemented)", FlagAutoUpdate, false},
+	{"autoupdate", "download every driver pack automatically, once, right after the first scan", FlagAutoUpdate, false},
 	{"nostop", "install anyway if creating a restore point fails (default: abort the install)", FlagNoStop, false},
 	{"disableinstall", "scan and match only: never install, and never create a restore point", FlagDisableInstall, false},
 	{"delextrainfs", "delete extra .inf files after install", FlagDelExtraInfs, false},
