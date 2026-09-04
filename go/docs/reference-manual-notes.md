@@ -6,16 +6,25 @@ possible "knowledge gaps," so absence of a topic in the manual does not
 prove the engine lacks it.
 
 This file records what the manual says about engine behavior, and
-cross-checks it against the Go rewrite as of this writing
-(`go/internal/settings/flags.go`, `filters.go`, `settings.go`,
-`compat.go`, `parse.go`, `persistence.go`, and `go/README.md`).
+cross-checks it against the Go rewrite as it stood when only
+`go/internal/settings/flags.go`, `filters.go`, `settings.go`,
+`compat.go`, `parse.go`, `persistence.go`, and `go/README.md` existed -
+before `matcher.cpp`, `indexing.cpp`, `install.cpp`, and `update.cpp`
+were ported. **Every "Not done" verdict below that cites one of those
+four modules as the reason is now wrong** - see
+`go/docs/PORTING_NOTES.md` for their real (mostly Done) status. A few
+of the more consequential ones were corrected in place (marked below);
+the rest still need a real re-pass against the manual, which this file
+doesn't attempt - re-verifying ~30 manual sections against
+now-much-larger Go packages is its own task, not a small fix.
 
 Status labels used below:
 - **Done** - Go behavior matches the manual.
 - **Partial** - Go has some of the behavior, or stores the setting but
   does not yet act on it.
-- **Not done** - Go has no equivalent yet (expected for most engine
-  logic: indexing, matching, install, and update are not ported).
+- **Not done** - Go has no equivalent yet. Treat any instance of this
+  label citing indexing/matching/install/update as unverified (see
+  the warning above) rather than trusting it at face value.
 - **Not documented** - the Go rewrite has this, but the manual does not
   mention it at all.
 
@@ -70,15 +79,15 @@ manual, presumably matching original engine behavior in
 
 | Switch | Manual meaning | Go status |
 |---|---|---|
-| `-delextrainfs` | Delete unused `.inf` files after extracting | Done (parsed and stored) |
-| `-nologfile` | Suppress creating a log file | Done |
-| `-nosnapshot` | Suppress creating a snapshot | Done |
-| `-nostamp` | Create logs and snapshots without timestamps in the file name | Done |
+| `-delextrainfs` | Delete unused `.inf` files after extracting | Done - `installflow.InstallOne` calls `install.RemoveExtraInfs` when set |
+| `-nologfile` | Suppress creating a log file | Done (stored only - `cmd/sdigo` doesn't call `internal/logging` at all yet, so there's no log file to suppress either way) |
+| `-nosnapshot` | Suppress creating a snapshot | Done (stored only - no `.snp` state-snapshot writer exists yet) |
+| `-nostamp` | Create logs and snapshots without timestamps in the file name | Done (stored only, same as above) |
 | `-reindex` | Force reindexing of all driver packs | Done (stored; indexing itself not ported) |
-| `-index_hr` | Also write a human-readable (text) index | Done, registered as `-index-hr`; legacy `-index_hr` translated in `compat.go` |
-| `-failsafe` | Disable indexing `WINDOWS\Inf` | Done (stored only) |
-| `-disableinstall` | **Disables driver installation AND restore-point creation** | Partial: Go's help text ("scan and match only, never install") only mentions the install half. Update the help string once install/restore-point logic exists, so it says what the manual says. |
-| `-keeptempfiles` | Do not delete extracted driver-pack files | Done (stored only) |
+| `-index_hr` | Also write a human-readable (text) index | Done, registered as `-index-hr`; legacy `-index_hr` translated in `compat.go`. Stored only - the index write path isn't ported. |
+| `-failsafe` | Disable indexing `WINDOWS\Inf` | Done (stored only) - not needed by `ScanInstalledInf`'s registry-scan port so far |
+| `-disableinstall` | **Disables driver installation AND restore-point creation** | Done - `installflow.Run` skips restore-point creation when either `FlagDisableInstall` or `FlagNoRestorePoint` is set, and its help text in `flags.go` states both halves |
+| `-keeptempfiles` | Do not delete extracted driver-pack files | Done (stored only) - nothing deletes extracted files either way, so there's nothing for this to prevent yet |
 | `-preservecfg` | Do not overwrite `sdio.cfg` on exit | Done |
 
 `-nogui`, `-autoinstall`, `-autoclose`, `-autoupdate` are implemented in
@@ -106,8 +115,8 @@ ported"). Correct interim behavior; revisit once `update.cpp` lands
 
 | Switch | Manual meaning | Go status |
 |---|---|---|
-| `-a:32` / `-a:64` | Emulate a 32-bit or 64-bit Windows environment | Done - ported to `-arch=32`/`-arch=64`, legacy exact-match translated in `compat.go` |
-| `-v:<version>` | Emulate a given non-server Windows version. Documented codes: 50=2000, 51=XP, 52=XP64, 60=Vista, 61=7, 62=8, 63=8.1, 64=10 Tech Preview, 100=10, 110=11 | Partial - stored as raw `VirtualOSVersion int` via `-virtual-os-version`, legacy `-v:` translated in `compat.go`, but the code->version lookup table itself is not wired up (`settings.go` has a `TODO: resolve via the ported WinVersions table once system.cpp lands`) |
+| `-a:32` / `-a:64` | Emulate a 32-bit or 64-bit Windows environment | Partial - parsed into `VirtualArchType` (`-arch=32`/`-arch=64`, legacy exact-match translated in `compat.go`) and logged, but nothing in `internal/scan`/`internal/collection` reads it to actually match against a virtual architecture instead of the real detected one - the setting is stored, the emulation effect isn't implemented |
+| `-v:<version>` | Emulate a given non-server Windows version. Documented codes: 50=2000, 51=XP, 52=XP64, 60=Vista, 61=7, 62=8, 63=8.1, 64=10 Tech Preview, 100=10, 110=11 | Partial - `VirtualOSVersion`'s code->name lookup is wired (`hardware.FindWindowsVersionName`, called from `virtualOSVersionValue.Set` in `parse.go`), but same as `-a:`: nothing in `internal/scan`/`internal/collection` reads `VirtualOSVersion`/`VirtualWindowsVersionName` to actually match against the virtual version instead of the real detected one |
 
 ### Snapshot / state replay
 
@@ -119,7 +128,7 @@ ported"). Correct interim behavior; revisit once `update.cpp` lands
 
 | Switch | Manual meaning | Go status |
 |---|---|---|
-| `-extractdir:<dir>` | Directory used to extract driver packs; default `%temp%\SDIO` | **Not done** - no `ExtractDir` field or flag exists anywhere in `internal/settings`. This is a real gap: add an `ExtractDir` setting (default `%temp%\SDIO`, matching script-mode's documented default) when extraction lands. |
+| `-extractdir:<dir>` | Directory used to extract driver packs; default `%temp%\SDIO` | Done - `Settings.ExtractDirRaw`/`ExtractDir` (default `%TEMP%\SDIO`, matching the manual), `-extractdir` flag, legacy `-extractdir:` translated in `compat.go`; `installflow.InstallOne` extracts into it for real |
 
 ### Finish-command hooks
 
@@ -398,7 +407,11 @@ documented anywhere in the manual (SDIO appears to be install-only from
 a user perspective; uninstalling drivers is presumably done via native
 Windows tools accessible from the Tools submenu, e.g. Device Manager).
 
-Status: **Not done** - `install.cpp` not started.
+Status: **Partial** - `install.cpp` is ported (`internal/install.Driver`
+wraps `newdev.dll!UpdateDriverForPlugAndPlayDevicesW` directly,
+extraction/orchestration in `internal/installflow`), so the described
+install flow works for real. Uninstall is correctly still not done -
+neither Go nor (per this manual) the original engine itself has one.
 
 ### Restore points
 
@@ -411,16 +424,20 @@ Status: **Not done** - `install.cpp` not started.
   creation entirely.
 - `-nostop` / `nostop`: if restore-point creation fails, continue
   anyway instead of aborting.
-- `-disableinstall` also disables restore-point creation (see section 1
-  Go-gap note above).
+- `-disableinstall` also disables restore-point creation (Go now
+  matches this - see section 1's `-disableinstall` row above).
 - Script `restorepoint [description]` command creates one on demand,
   independent of the install flow, with an optional custom description
   string (falls back to an unspecified default description if omitted).
 
-Status: **Not done** - no restore-point code in Go yet (would live in
-the `system.cpp` port, listed "not started (as-needed)" in README,
-which explicitly calls out restore points as one of the wrapped
-OS operations).
+Status: **Partial** - `internal/install.CreateRestorePoint`/
+`GetRestorePointCreationFrequency`/`SetRestorePointCreationFrequency`
+port `SrClient.dll!SRSetRestorePointW` and the registry-throttle-bypass
+sequence from `Manager::thread_install`, wired into `installflow.Run`
+(one restore point before every install run, honoring
+`FlagDisableInstall`/`FlagNoRestorePoint`). The standalone script
+`restorepoint [description]` command has no equivalent - script mode
+itself isn't ported.
 
 ### Driver signing / catalog files
 
@@ -541,14 +558,11 @@ error-handling logic implemented yet in Go.
 
 ## Summary of gaps worth acting on
 
-1. **`-extractdir` has no Go equivalent at all** (no field, no flag).
-   Real gap, not a "future module" deferral - the setting itself is
-   simple and could be added to `internal/settings` now, ahead of the
-   extraction code that will consume it, same as `DrpDir`/`IndexDir`
-   already are.
-2. **`-disableinstall`'s help text is incomplete** relative to the
-   manual (doesn't mention restore-point suppression). Cosmetic now,
-   but fix before real behavior is wired up so the help stays accurate.
+1. ~~`-extractdir` has no Go equivalent at all~~ **Done**:
+   `Settings.ExtractDirRaw`/`ExtractDir`, the `-extractdir` flag, and
+   real extraction into it (`installflow.InstallOne`) all exist now.
+2. ~~`-disableinstall`'s help text is incomplete~~ **Done**: its help
+   text and `installflow.Run` both cover restore-point suppression now.
 3. **Several `flags.go` constants have zero manual documentation**
    (`checkupdates`, `onlyupdates`, `torrentalerts`, `nogui`,
    `autoinstall`, `autoclose`, `autoupdate`). Not necessarily wrong -
@@ -561,11 +575,13 @@ error-handling logic implemented yet in Go.
    `hwid-ignore_<hostname>.txt`. Go is correct (matches real behavior);
    only the manual text is wrong. No code change needed - flagged so
    nobody "fixes" `persistence.go` to match the manual by mistake.
-5. **`-v:<version>` code table** (50/51/52/60/61/62/63/64/100/110 ->
-   Windows version names) is fully specified by the manual but not yet
-   implemented as a lookup in Go (`VirtualOSVersion` is stored raw).
-   Transcribe this table into the `WinVersions` port mentioned in the
-   `settings.go` TODO comment.
+5. ~~`-v:<version>` code table ... not yet implemented as a lookup~~
+   **Partially done**: the lookup itself is transcribed
+   (`hardware.FindWindowsVersionName`, wired from `parse.go`). What's
+   still missing is the actual emulation effect - neither `-a:`'s
+   `VirtualArchType` nor `-v:`'s `VirtualOSVersion` is read anywhere in
+   `internal/scan`/`internal/collection` to match against a virtual
+   environment instead of the real detected one.
 6. **Verbose logging bitmask**: manual documents 13 distinct log
    sections; Go collapsed this to one threshold level. Confirm this
    simplification is an accepted product decision, not an oversight,

@@ -9,8 +9,9 @@ Installer Origin engine, replacing the C++Builder/VCL codebase under
 - Core engine (`internal/*`): hardware detection, driver-pack
   indexing, matching, and install logic.
 - `cmd/sdigo`: the single release binary - an interactive TUI by
-  default, a plain-text or JSON report with `-nogui`, and
-  `hwdump`/`torrenttest` as dev/diagnostic subcommands.
+  default, a plain-text or JSON report with `-nogui`, `cleandrivers` to
+  remove superseded driver-pack files, and `hwdump`/`torrenttest` as
+  dev/diagnostic subcommands.
 - Windows-only target (`GOOS=windows`). 7-Zip and torrent support use
   existing Go libraries rather than porting `project/7zip` and the
   bundled libtorrent glue.
