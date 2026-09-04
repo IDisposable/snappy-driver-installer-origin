@@ -132,6 +132,14 @@ type Result struct {
 	// failed (e.g. no network) - non-fatal: Run still proceeds with
 	// whatever collection is already present locally.
 	BootstrapError error
+
+	// FirstRun is true if the index directory was missing or empty
+	// when Run started - a front end can use this to show a
+	// first-run/Welcome screen. True regardless of whether a torrent
+	// file is configured (unlike the bootstrap it also gates), since
+	// it's answering "does this machine have any local data yet", not
+	// "did a bootstrap actually happen".
+	FirstRun bool
 }
 
 // Run performs the full pipeline: hardware detection, driver-pack
@@ -171,6 +179,11 @@ func Run(s *settings.Settings) (Result, error) {
 	}
 	res.System = System{BaseBoard: bb, SysInfo: si, IsLaptop: isLaptop}
 
+	// Captured before any of this function's own side effects (the
+	// MkdirAll calls below) could change the answer: a front end uses
+	// this to decide whether to show a first-run/Welcome screen.
+	res.FirstRun = indexDirNeedsBootstrap(s.IndexDir)
+
 	// LoadCollection's directory scan errors out entirely on a missing
 	// directory rather than treating it as "0 packs found" - a real
 	// possibility on a fresh install (no drivers/indexes yet, no
@@ -195,7 +208,7 @@ func Run(s *settings.Settings) (Result, error) {
 	// their own distinct filename, so are never mistaken for an
 	// already-known one). A failure here is not fatal: Run proceeds
 	// with whatever collection is already present locally.
-	if s.TorrentFile != "" && (indexDirNeedsBootstrap(s.IndexDir) || s.Flags&settings.FlagCheckUpdates != 0) {
+	if s.TorrentFile != "" && (res.FirstRun || s.Flags&settings.FlagCheckUpdates != 0) {
 		res.IndexesDownloaded, res.BootstrapError = collection.BootstrapIndexes(s.TorrentFile, s.IndexDir)
 	}
 

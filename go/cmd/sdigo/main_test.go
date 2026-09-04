@@ -554,3 +554,57 @@ func TestAboutScreenNavigation(t *testing.T) {
 		t.Fatalf("screen = %v after esc, want screenTable", m.screen)
 	}
 }
+
+// TestNewModelOpensWelcomeOnFirstRun confirms scan.Result.FirstRun
+// controls whether the TUI opens straight to the Welcome screen,
+// without needing an interactive keypress to get there.
+func TestNewModelOpensWelcomeOnFirstRun(t *testing.T) {
+	if m := newModel(scan.Result{FirstRun: true}, settings.New()); m.screen != screenWelcome {
+		t.Errorf("screen = %v with FirstRun=true, want screenWelcome", m.screen)
+	}
+	if m := newModel(scan.Result{FirstRun: false}, settings.New()); m.screen != screenTable {
+		t.Errorf("screen = %v with FirstRun=false, want screenTable", m.screen)
+	}
+}
+
+// TestWelcomeRequiresTorrentFile confirms selecting a download option
+// with no -torrent-file configured reports the problem instead of
+// silently doing nothing or crashing trying to reach a torrent that
+// was never configured.
+func TestWelcomeRequiresTorrentFile(t *testing.T) {
+	s := settings.New()
+	m := newModel(scan.Result{}, s)
+	m.screen = screenWelcome
+
+	mm, _ := m.Update(tea.KeyMsg{Type: tea.KeyEnter})
+	m = mm.(model)
+	if m.screen != screenInstallLog {
+		t.Fatalf("screen = %v, want screenInstallLog (the no-torrent-file message)", m.screen)
+	}
+	if len(m.opLog) == 0 || !strings.Contains(m.opLog[0], "torrent-file") {
+		t.Errorf("opLog = %v, want a message mentioning -torrent-file", m.opLog)
+	}
+}
+
+// TestWelcomeAllDriverPacksNeedsConfirmation confirms the "Download
+// All Driver Packs" item goes through a confirm screen rather than
+// starting a large download on a single keypress.
+func TestWelcomeAllDriverPacksNeedsConfirmation(t *testing.T) {
+	s := settings.New()
+	s.TorrentFile = "dummy.torrent" // just needs to be non-empty for this check
+	m := newModel(scan.Result{}, s)
+	m.screen = screenWelcome
+	m.welcomeIndex = len(welcomeItems) - 1 // "Download All Driver Packs"
+
+	mm, _ := m.Update(tea.KeyMsg{Type: tea.KeyEnter})
+	m = mm.(model)
+	if m.screen != screenWelcomeConfirmAll {
+		t.Fatalf("screen = %v, want screenWelcomeConfirmAll", m.screen)
+	}
+
+	mm, _ = m.Update(tea.KeyMsg{Type: tea.KeyEsc})
+	m = mm.(model)
+	if m.screen != screenWelcome {
+		t.Fatalf("screen = %v after esc, want screenWelcome (cancel, not download)", m.screen)
+	}
+}
