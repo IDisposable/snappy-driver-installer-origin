@@ -218,8 +218,10 @@ func deviceRow(dr scan.DeviceResult, selected, showInstalled bool) table.Row {
 		if best.Driverpack.Pending {
 			// Its index was fetched ahead of its .7z data (see
 			// collection.LoadOnlineIndexes) - installing it means a
-			// download first, worth knowing before ticking it.
-			packName += " [needs download]"
+			// download first, worth knowing before ticking it. Color
+			// rather than a text suffix, so the column doesn't need
+			// extra width to say so.
+			packName = cautionStyle.Render(packName)
 		}
 		row = table.Row{sel, scan.MatchLabel(best), description, packName, best.Result.DriverVersion.String()}
 	}

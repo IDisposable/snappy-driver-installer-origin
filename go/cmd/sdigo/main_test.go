@@ -448,9 +448,10 @@ func TestDeviceRowFlagsMicrosoftDriver(t *testing.T) {
 
 // TestDeviceRowFlagsPendingDownload confirms a matched candidate whose
 // .7z hasn't been downloaded yet (index-only, via
-// collection.LoadOnlineIndexes) says so in the Best match cell, so
-// ticking it doesn't come as a surprise once install tries to fetch it
-// first.
+// collection.LoadOnlineIndexes) still shows its real filename in the
+// Best match cell - cautionStyle.Render flags it by color (untestable
+// as plain text outside a real terminal; lipgloss no-ops without one),
+// not by eating column width with a text suffix.
 func TestDeviceRowFlagsPendingDownload(t *testing.T) {
 	dr := scan.DeviceResult{
 		Device: hardware.Device{Description: "Widget"},
@@ -460,8 +461,8 @@ func TestDeviceRowFlagsPendingDownload(t *testing.T) {
 		}},
 	}
 	got := deviceRow(dr, false, false)[3]
-	if got != "DP_Test_SDIO01_1.7z [needs download]" {
-		t.Errorf("best match cell = %q, want the filename suffixed with [needs download]", got)
+	if !strings.Contains(got, "DP_Test_SDIO01_1.7z") {
+		t.Errorf("best match cell = %q, want it to contain the filename", got)
 	}
 }
 
