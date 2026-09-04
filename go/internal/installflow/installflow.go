@@ -30,8 +30,10 @@ type Pending struct {
 
 // Run extracts and installs every pending candidate: creates one
 // restore point up front (skipped if FlagDisableInstall or
-// FlagNoRestorePoint is set, matching the original), then calls
-// InstallOne for each device. Progress and warnings are written to out
+// FlagNoRestorePoint is set, matching the original), aborting the
+// whole install if that restore point was attempted and failed unless
+// FlagNoStop is set, then calls InstallOne for each device. Progress
+// and warnings are written to out
 // as human-readable lines (one Fprintf call each) rather than directly
 // to os.Stdout/Stderr, so a caller that isn't a plain terminal (e.g. a
 // TUI screen that owns the whole terminal via the alternate screen
@@ -46,7 +48,9 @@ func Run(s *settings.Settings, pending []Pending, out io.Writer, onAlert func(le
 		fmt.Fprintf(out, "warning: downloading pending driver packs: %v\n", err)
 	}
 
-	if s.Flags&(settings.FlagDisableInstall|settings.FlagNoRestorePoint) == 0 {
+	restorePointSelected := s.Flags&(settings.FlagDisableInstall|settings.FlagNoRestorePoint) == 0
+	restorePointFailed := false
+	if restorePointSelected {
 		// Windows throttles System Restore to about one automatic
 		// checkpoint per day; without bypassing that,
 		// install.CreateRestorePoint can silently do nothing if one was
@@ -62,12 +66,22 @@ func Run(s *settings.Settings, pending []Pending, out io.Writer, onAlert func(le
 		}
 		if err := install.CreateRestorePoint(install.RestorePointDescription); err != nil {
 			fmt.Fprintf(out, "warning: could not create a restore point: %v\n", err)
+			restorePointFailed = true
 		}
 		if freqErr == nil {
 			if err := install.SetRestorePointCreationFrequency(origFreq); err != nil {
 				fmt.Fprintf(out, "warning: could not restore the original restore point frequency limit: %v\n", err)
 			}
 		}
+	}
+
+	// A selected-but-failed restore point aborts the whole install
+	// rather than proceeding without one - ported from install.cpp's
+	// "if restore point was selected and failed then abort" guard.
+	// -nostop opts out, matching the flag's documented purpose.
+	if restorePointSelected && restorePointFailed && s.Flags&settings.FlagNoStop == 0 {
+		fmt.Fprintf(out, "install aborted: could not create a restore point (see -nostop to install anyway)\n")
+		return
 	}
 
 	for _, p := range pending {

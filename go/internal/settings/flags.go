@@ -58,9 +58,9 @@ var boolFlagDefs = []boolFlagDef{
 
 	{"preservecfg", "don't overwrite sdio.cfg on exit", FlagPreserveCfg, false},
 	{"nogui", "run headless, without an interactive front end", FlagNoGUI, false},
-	{"autoclose", "exit automatically once finished (not implemented)", FlagAutoClose, false},
+	{"autoclose", "exit automatically once an install or download finishes", FlagAutoClose, false},
 	{"autoupdate", "update driver packs automatically (not implemented)", FlagAutoUpdate, false},
-	{"nostop", "don't stop if creating a restore point fails (not implemented - a restore-point failure never stops the install here regardless)", FlagNoStop, false},
+	{"nostop", "install anyway if creating a restore point fails (default: abort the install)", FlagNoStop, false},
 	{"disableinstall", "scan and match only: never install, and never create a restore point", FlagDisableInstall, false},
 	{"delextrainfs", "delete extra .inf files after install", FlagDelExtraInfs, false},
 	{"nologfile", "don't write a log file (not implemented - no log-file writer exists yet)", FlagNoLogFile, false},

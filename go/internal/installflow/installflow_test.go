@@ -113,6 +113,51 @@ func TestInstallOneNormalModeReachesInstallDriver(t *testing.T) {
 	}
 }
 
+// TestRunAbortsWhenRestorePointFailsAndNotNoStop confirms Run refuses
+// to install anything if the restore point it attempted failed,
+// ported from install.cpp's "if restore point was selected and failed
+// then abort" guard - install.CreateRestorePoint always fails with
+// the platform-unsupported error on this dev machine (see
+// internal/install's !windows stub), which doubles as a real,
+// non-mocked way to force that failure path here.
+func TestRunAbortsWhenRestorePointFailsAndNotNoStop(t *testing.T) {
+	p := realDtPortInstall(t)
+	s := settings.New()
+	s.ExtractDir = t.TempDir()
+
+	var buf strings.Builder
+	Run(s, []Pending{p}, &buf, nil, nil)
+
+	out := buf.String()
+	if !strings.Contains(out, "install aborted") {
+		t.Errorf("Run() output = %q, want it to report the install was aborted", out)
+	}
+	if strings.Contains(out, "INSTALLED") {
+		t.Error("Run() should not have reached InstallOne's success path")
+	}
+}
+
+// TestRunProceedsWhenNoStopSet confirms -nostop overrides the abort
+// above - InstallOne is reached (and fails on its own platform-
+// unsupported error, proving it got that far, not that it succeeded).
+func TestRunProceedsWhenNoStopSet(t *testing.T) {
+	p := realDtPortInstall(t)
+	s := settings.New()
+	s.ExtractDir = t.TempDir()
+	s.Flags |= settings.FlagNoStop
+
+	var buf strings.Builder
+	Run(s, []Pending{p}, &buf, nil, nil)
+
+	out := buf.String()
+	if strings.Contains(out, "install aborted") {
+		t.Errorf("Run() output = %q, want -nostop to skip the abort", out)
+	}
+	if !strings.Contains(out, "install "+p.Description) {
+		t.Errorf("Run() output = %q, want it to have reached InstallOne", out)
+	}
+}
+
 // realTorrentPath is a real cached SDIO update torrent from a
 // production installation (see internal/update's tests) - reused here
 // to validate the actual download-and-move path DownloadPending

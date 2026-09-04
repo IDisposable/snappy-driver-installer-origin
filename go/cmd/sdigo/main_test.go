@@ -663,6 +663,56 @@ func TestWelcomeAllDriverPacksNeedsConfirmation(t *testing.T) {
 	}
 }
 
+// TestInstallDoneQuitsWhenAutoCloseSet confirms -autoclose exits the
+// program once an install finishes, ported from Manager::thread_
+// install's PostMessage(WM_CLOSE) - instead of leaving the log screen
+// up for an unattended run to sit at forever.
+func TestInstallDoneQuitsWhenAutoCloseSet(t *testing.T) {
+	s := settings.New()
+	s.Flags |= settings.FlagAutoClose
+	m := newModel(scan.Result{}, s, nil, testLogger)
+
+	_, cmd := m.Update(installDoneMsg{log: []string{"done"}})
+	if cmd == nil {
+		t.Fatal("Update(installDoneMsg) returned a nil cmd, want tea.Quit")
+	}
+	if _, ok := cmd().(tea.QuitMsg); !ok {
+		t.Errorf("Update(installDoneMsg) cmd = %T, want tea.QuitMsg", cmd())
+	}
+}
+
+// TestInstallDoneDoesNotQuitByDefault confirms the log screen stays up
+// without -autoclose - the normal, attended case.
+func TestInstallDoneDoesNotQuitByDefault(t *testing.T) {
+	m := newModel(scan.Result{}, settings.New(), nil, testLogger)
+
+	mm, cmd := m.Update(installDoneMsg{log: []string{"done"}})
+	if cmd != nil {
+		t.Errorf("Update(installDoneMsg) cmd = %v, want nil without -autoclose", cmd)
+	}
+	if mm.(model).screen != screenInstallLog {
+		t.Errorf("screen = %v, want screenInstallLog", mm.(model).screen)
+	}
+}
+
+// TestWelcomeDownloadDoneQuitsWhenAutoCloseSet confirms -autoclose
+// also exits after a Welcome-screen download, ported from Updater_t's
+// "Torrent finished" auto-exit (update.cpp) - unconditional here since
+// this rewrite has no -autoinstall to chain into afterward.
+func TestWelcomeDownloadDoneQuitsWhenAutoCloseSet(t *testing.T) {
+	s := settings.New()
+	s.Flags |= settings.FlagAutoClose
+	m := newModel(scan.Result{}, s, nil, testLogger)
+
+	_, cmd := m.Update(welcomeDownloadDoneMsg{log: []string{"done"}})
+	if cmd == nil {
+		t.Fatal("Update(welcomeDownloadDoneMsg) returned a nil cmd, want tea.Quit")
+	}
+	if _, ok := cmd().(tea.QuitMsg); !ok {
+		t.Errorf("Update(welcomeDownloadDoneMsg) cmd = %T, want tea.QuitMsg", cmd())
+	}
+}
+
 // TestUSBDriveKeyReportsUnsupportedPlatform exploits the same trick
 // TestInstallOneNormalModeReachesInstallDriver (internal/installflow)
 // uses: usbdrive.ListRemovable returns a real "unsupported platform"

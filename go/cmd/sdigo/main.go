@@ -480,11 +480,25 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		// screen tells the user what happened.
 		m.selected = map[string]bool{}
 		m.refreshTable()
+		if m.s.Flags&settings.FlagAutoClose != 0 {
+			// Ported from Manager::thread_install's PostMessage(WM_CLOSE)
+			// once an install finishes - exits straight from here rather
+			// than waiting at the log screen, matching an unattended run.
+			return m, tea.Quit
+		}
 		return m, nil
 
 	case welcomeDownloadDoneMsg:
 		m.opLog = msg.log
 		m.screen = screenInstallLog
+		if m.s.Flags&settings.FlagAutoClose != 0 {
+			// Ported from Updater_t's "Torrent finished" auto-exit
+			// (update.cpp) - the original skips this when -autoinstall is
+			// also set, since it closes after the install that follows
+			// instead; this rewrite has no -autoinstall to chain into, so
+			// there's nothing to wait for.
+			return m, tea.Quit
+		}
 		return m, nil
 
 	case progressTickMsg:
