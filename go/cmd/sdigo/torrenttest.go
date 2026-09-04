@@ -11,11 +11,11 @@ import (
 	"sdio/internal/update"
 )
 
-// torrenttestMain manually exercises internal/update's selective
+// torrentTest manually exercises internal/update's selective
 // per-file torrent download against a real .torrent file ("sdigo
 // torrenttest ..."), for diagnosing torrent connectivity/webseed
 // issues outside of a full scan/install run.
-func torrenttestMain(args []string) int {
+func torrentTest(args []string) int {
 	fs := flag.NewFlagSet("torrenttest", flag.ContinueOnError)
 	torrentFile := fs.String("torrent", "", "path to a .torrent metadata file (required)")
 	dataDir := fs.String("data-dir", "", "directory to download into (required)")

@@ -9,13 +9,13 @@ import (
 	"sdio/internal/install"
 )
 
-// hwdumpMain prints everything internal/hardware can detect about the
+// hwDump prints everything internal/hardware can detect about the
 // current machine as JSON ("sdigo hwdump"), for cross-checking this
 // rewrite's hardware detection against a real Windows host - the dev
 // environment is WSL, which can't call WMI/SetupAPI directly, but can
 // execute a GOOS=windows binary through PE interop and get real
 // answers from the actual machine.
-func hwdumpMain() int {
+func hwDump() int {
 	var r hwdumpResult
 
 	bb, err := hardware.GetBaseBoard()

@@ -1328,15 +1328,15 @@ func mainErr() int {
 	if len(os.Args) > 1 {
 		switch os.Args[1] {
 		case "hwdump":
-			return hwdumpMain()
+			return hwDump()
 		case "torrenttest":
-			return torrenttestMain(os.Args[2:])
+			return torrentTest(os.Args[2:])
 		}
 	}
-	return sdigoMain(os.Args[1:])
+	return sdiGo(os.Args[1:])
 }
 
-func sdigoMain(args []string) int {
+func sdiGo(args []string) int {
 	s := settings.New()
 	cfgPath, err := s.LoadDefaultCfgResolved()
 	if err != nil {
