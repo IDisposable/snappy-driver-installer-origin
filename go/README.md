@@ -1,118 +1,30 @@
 # SDIO Go rewrite
 
-A rewrite of the Snappy Driver Installer Origin engine in Go, replacing the
-C++Builder/VCL codebase under `../source`. Developed on branch `go-rewrite`.
+Snappy Driver Installer: Go Forth - a Go rewrite of the Snappy Driver
+Installer Origin engine, replacing the C++Builder/VCL codebase under
+`../source`. Developed on branch `go-rewrite`.
 
-## Scope
+## What this is
 
-- Core engine: hardware detection, driver-pack indexing, matching, and
-  install logic. Ported module by module from `../source/*.cpp`.
-- A new front end (TUI or plain CLI) will replace the VCL GUI
-  (`gui.cpp`/`draw.cpp`/`theme*.cpp`) entirely rather than porting it.
-  Matching the old GUI's look is explicitly not a goal.
+- Core engine (`internal/*`): hardware detection, driver-pack
+  indexing, matching, and install logic.
+- `cmd/sdigo`: the single release binary - an interactive TUI by
+  default, a plain-text or JSON report with `-nogui`, and
+  `hwdump`/`torrenttest` as dev/diagnostic subcommands.
 - Windows-only target (`GOOS=windows`). 7-Zip and torrent support use
   existing Go libraries rather than porting `project/7zip` and the
   bundled libtorrent glue.
+- A new front end (TUI or plain CLI) replaces the VCL GUI
+  (`gui.cpp`/`draw.cpp`/`theme*.cpp`) entirely rather than porting it;
+  matching the old GUI's look is explicitly not a goal.
 
-## Hard constraint: on-disk compatibility
+See [docs/COMPATIBILITY.md](docs/COMPATIBILITY.md) for the on-disk
+compatibility contract this rewrite has to honor (config file syntax,
+filter bit layout, index/snapshot file format), and
+[docs/PORTING_NOTES.md](docs/PORTING_NOTES.md) for module-by-module
+traceability back to the original C++ source.
 
-Users must not have to rebuild their existing driver-pack collection or
-lose existing config/state files. Concretely:
-
-- **`sdio.cfg`**: the original engine used colon-glued, underscored
-  switches (`-drp_dir:value`). This rewrite uses the standard library
-  `flag` package with idiomatic syntax (`-drp-dir=value`) for actual
-  command-line parsing, but `Settings.LoadFile` translates an existing
-  file's old-style switches on read (`internal/settings/compat.go`), so
-  nothing needs to be hand-edited. `Settings.Save` always writes the new
-  syntax.
-- **Filter bits**: `-filters:N` is persisted as a raw integer. Its bit
-  positions in `internal/settings/filters.go` intentionally match the
-  original's GUI-menu-item-ID-based numbering rather than being cleaned
-  up, so existing values decode correctly.
-- **Binary index files** (`indexes/**/*.bin`): these use an `"SDW"` +
-  LZMA container format (see below). Reading and writing them must stay
-  byte-compatible once `indexing.cpp` is ported, so existing indexed
-  driver packs don't need to be rebuilt. State snapshots (`logs/*.snp`)
-  use the same container but live under the log directory, which is not
-  required to match - `model.cpp`'s State::save/load can be freely
-  redesigned.
-
-### The SDW container format
-
-Implemented in `internal/sdwfile`. Confirmed byte-for-byte against every
-index file (130+, both filter modes) and every state snapshot (9 files,
-two different machines) in a real installation - see that package's
-tests.
-
-```
-offset 0:  "SDW"           3 bytes, magic
-offset 3:  format version  4 bytes, int32 LE (e.g. 0x205 for .bin files)
-offset 7:  Lzma86 mode     1 byte (0 = none, 1 = x86 BCJ filter applied)
-offset 8:  LZMA props      5 bytes (lc/lp/pb byte + 4-byte dictionary size LE)
-offset 13: uncompressed    8 bytes LE
-           size
-offset 21: LZMA payload    raw LZMA1 stream, length known from the header
-```
-
-The block at offset 7 (mode byte + 13-byte LZMA-alone header) is exactly
-the 7-Zip SDK's `Lzma86_Encode` output format; the `"SDW"` + version
-prefix is this project's own container around it, written by
-`encode()`/`decode()` in `common.cpp`. Two things only showed up against
-real files, not from reading the source: the mode byte is easy to miss
-(skipping it makes an LZMA-alone reader misparse it as the first
-properties byte, producing a nonsensical dictionary size), and about 45%
-of real index files use mode 1 (x86 BCJ filter) - `internal/sdwfile/
-bcjx86.go` ports the inverse filter directly from
-`external/SevenZ/build/C/Bra86.c` (bundled in this repo, public domain).
-Library used for the LZMA-alone layer: `github.com/ulikunitz/xz/lzma`.
-
-## Module port status
-
-Ported bottom-up by dependency; each module is an idiomatic redesign, not
-a mechanical line-by-line translation, with its own tests.
-
-| Source module | Go package | Status | Notes |
-|---|---|---|---|
-| `common.cpp` | `internal/common` | Done | `Version`, `BytesToStr`. Dropped C-string buffer classes (unneeded in Go) and a stale `year>2015` date-validity cutoff. |
-| `logging.cpp` | `internal/logging` | Done | `zerolog`-based `Logger`; verbosity bitmask collapsed to one level threshold. `Timers` uses `time.Time`/`time.Duration`. Crash/exception handlers not ported (no Go equivalent need). |
-| `settings.cpp` | `internal/settings` | Done | `flag.FlagSet`-based parsing; legacy cfg syntax supported on read (see above). GUI presentation fields (theme, scale, window geometry, hint delay, license, expert mode) dropped. `LoadDefaultCfg` ports main()'s `Settings.load(L"sdio.cfg")` startup step (load `sdio.cfg` if present, silently continue if not) - `cmd/sdigo` call it before parsing command-line flags, so a config file's settings apply and the command line can still override them, matching the original's load-then-parse order. The `-cfg:<path>` switch to load an alternate file isn't replicated. Verified against a real `sdio.cfg` (quoted legacy switches, `-filters:1062`, blank lines) from a production installation: run from that directory with no `-drp-dir`/`-index-dir` flags at all, it correctly resolves `drivers`/`indexes\SDI` from the cfg file and produces the same match results as passing them explicitly. `LoadDefaultCfgResolved` (a newer, WinGet-packaging-motivated addition with no original equivalent - the original always assumed a portable, exe-adjacent layout) picks between that portable layout and a per-user `%LOCALAPPDATA%\SDIO` layout: the working directory is checked first for `sdio.cfg`/`drivers`/`indexes` (matching every existing default and test unchanged), then the executable's own directory, and only once neither has any of those markers does it redirect `DrpDir`/`IndexDir`/`OutputDir`/`LogDirRaw` under `%LOCALAPPDATA%\SDIO`. `cmd/sdigo` both call it in place of `LoadDefaultCfg`, and `Save` writes back to whichever path it resolved. `scan.Run` now unconditionally creates `DrpDir`/`IndexDir` if missing (previously only when `-torrent-file` was set) - `LoadCollection`'s directory scan otherwise fails outright on a fresh `%LOCALAPPDATA%\SDIO` with nothing in it yet. Verified live end-to-end against the real reference machine: run from its own directory (which has `sdio.cfg`/`drivers`/`indexes`) it's unaffected, 18/353 unchanged; run from an unrelated empty directory it correctly creates and uses a real `%LOCALAPPDATA%\SDIO\{drivers,indexes}` on the actual Windows host, 0 packs found there (as expected, nothing installed) with no error. |
-| `baseboard.cpp` | `internal/hardware` | Done | Raw COM/WMI calls replaced with `github.com/yusufpapurcu/wmi`. Verified against a real machine via `scripts/test-windows.sh`. |
-| `enum.cpp`: `WinVersions`, `State::getsysinfo_fast`, `State::isnotebook_a` | `internal/hardware` | Done | `GetSysInfoFast()` (battery/monitors/OS version/env) and `IsLaptop()`. Windows version read from the registry instead of the manifest-gated `GetVersionEx`. Verified against a real machine. |
-| `enum.cpp`: `Device` (SetupAPI device enumeration) | `internal/hardware` | Done | `ScanDevices()` via `x/sys/windows`' typed SetupAPI/CfgMgr32 wrappers, which decode `REG_MULTI_SZ` properties straight to `[]string`. Verified against a real machine: found 375 present devices, spot-checked one against the reference log. |
-| `enum.cpp`: `Driver` registry-reading half (`calc_dev_pos`, the registry constructor) | `internal/hardware` | Done | `InstalledDriver`, `OpenInstalledDriver`, `MatchDeviceID`. Reuses `indexing.ParseDate`/`ParseVersionNumber` for `DriverDate`/`DriverVersion`, the same functions used for `.inf` fields. Verified against 5 real installed drivers on a real machine. |
-| `enum.cpp`: `Driver::scaninf` (matching an installed driver back to a driver pack's `.inf`) | - | Not started | Needs the not-yet-built `Driverpack`/inf-cache orchestration in `genindex`. |
-| `system.cpp` (`SystemImp`, `FilemonImp`) | - | Not started (as-needed) | Mostly thin OS-utility wrappers (file/dir ops, restore points, process launch) that map directly to Go stdlib; being pulled in incrementally as later modules need each piece rather than ported as one grab-bag class. |
-| `indexing.cpp`: on-disk container format (`checkindex`/`loadindex`/`saveindex`) | `internal/sdwfile` | Done | `Decode`/`Encode` for the `"SDW"` + Lzma86 container (see above), including the x86 BCJ filter. This is the byte-compatibility-critical piece; verified against every real index file and snapshot available. |
-| `indexing.cpp`: record layout (`data_inffile_t`, `data_manufacturer_t`, `data_desc_t`, `data_HWID_t`, `Txt`, `Hashtable`) | `internal/indexing` | Done | `DecodeIndex`/`EncodeIndex` parse `sdwfile`'s decompressed payload into structured records via a generic `readBlock[T]`/`writeBlock[T]` (replacing `loadable_vector<T>`). Verified against every index file in a real installation (230+): each decodes with zero trailing bytes and correctly-resolved hardware ID strings. |
-| `indexing.cpp`: `.inf` tokenizer (`Parser`) | `internal/indexing` | Done | `InfParser`: `ParseItem`/`ParseField` plus `ParseNumber`/`ParseDate`/`ParseVersionNumber`/`ParseHexByte`. Verified against real `.inf` files (Windows inbox and a real driver pack). |
-| `indexing.cpp`: section discovery, `[Strings]`/`[Version]`/`[Manufacturer]` parsing | `internal/indexing` | Done | `DiscoverSections`, `ParseStrings`, `ParseVersionSection`, `ParseManufacturers`. |
-| `indexing.cpp`: install-section resolution (the `.nt`/bare/decoration/336-suffix fallback chain) | `internal/indexing` + `internal/matcher` (`OSDecorations`, matcher.cpp's `nts[]` table) | Done | `ResolveManufacturerSection`. First content of the new `matcher` package - pulled in early because indexing needs its decoration table, not because matching itself is ported. |
-| `indexing.cpp`: `.7z` archive reading (`genindex`'s `SzArEx_*` calls) | `internal/archive` (`github.com/bodgit/sevenzip`) | Done | Just the extraction primitive; `genindex`'s threading and orchestration aren't ported. |
-| **Full read-side pipeline, end-to-end** | `internal/archive` + `internal/indexing` + `internal/matcher` | Verified | Real driver-pack `.7z` -> extracted `.inf` -> sections -> strings -> version -> manufacturer -> resolved install section + hardware IDs, checked against a real driver pack's actual content (`DP_Ports_SDIO01_26083.7z`), both from a trimmed fixture and from live-extracted archive bytes. |
-| `matcher.cpp`: `Hwidmatch`'s `getdrp_*` field navigation (HWID -> Desc -> Manufacturer -> InfFile) | `internal/indexing` (`Driverpack`) | Done | Wraps an already-decoded `Index` with the same join Hwidmatch's getters perform, without the full `Driverpack`/`Collection` object graph (which also owns `genindex` orchestration - not ported). Verified against every HWID entry (6.6M+) across every real index file (219) with no panics, plus a deep field-by-field check against the known `dtport.inf` device, including the two-section-variant (`DtHw`/`DtHw.NTamd64`) case. |
-| `indexing.cpp`: `Hashtable::Find`/`FindNext`/`AddItem` | `internal/indexing` | Done | Completes the on-disk `Hashtable` type. Verified by rebuilding a real driver-pack index's hash table from scratch and confirming 200 real hardware IDs all resolve back to themselves. |
-| `indexing.cpp`: `.cat` catalog file parsing (`findosattr`, `Driverpack::parsecat`) | `internal/indexing` | Done | `FindOSAttr`, `IsValidCat` (the latter also covers `Driver::isvalidcat` in enum.cpp and `Hwidmatch::isvalidcat` in matcher.cpp, which are byte-identical). Not a PKCS#7/ASN.1 parse - a raw byte scan for a UTF-16LE "OSAtt" marker, confirmed against a real `.cat` file's exact byte layout. |
-| `indexing.cpp`: `genindex` threading/orchestration, `Txt` interning to build new `.bin` files (`Driverpack::saveindex`'s write path) | - | Not started | The read side (`DecodeIndex`) is done; this is the write side, to build/update a collection from scratch. |
-| `matcher.cpp`/`enum.cpp`: driver-ranking scoring (`calc_decorscore`, `calc_markerscore`, `genmarker`, `calc_score`, `calc_identifierscore`, `calc_secttype`) | `internal/matcher` | Done | `DecorationScore`, `MarkerScore`, `NotebookOEMMarker`, `Score`, `IdentifierScore`, `SectionDecorationIndex`, plus 4 more extracted tables (`nts_version/build/arch/score`, `markers[]`, `Filter_1..22`). |
-| `matcher.cpp`: validity/comparison primitives from `Hwidmatch::calc_altsectscore`/`cmp`/`isdup`/`isdrivervalid` | `internal/matcher` | Done | `IsValidVer`, `IsBlacklisted` (+ the Realtek blacklist constants), `IsValidUSB3Hub` (+ the Intel gen2/gen4 hub-ID tables and `IntelPathUsesSDIPrefix`), `CalcNotebookValid`, `CmpUnsigned`, and a `Result` type (`Cmp`/`IsDup`/`IsDriverValid`) standing in for `Hwidmatch`'s scoring fields. |
-| `matcher.cpp`: `Hwidmatch::calc_altsectscore`/`calc_status`/`pickcat`/`isvalidcat` orchestration | `internal/indexing` (`CalcAltSectScore`, `CalcStatus`, `Driverpack.PickCat`/`IsValidCatForDriver`) | Done | Wires the primitives above together using `Driverpack`'s getters. `calc_status`'s `devicematch->isMissing`/`STATUS_MISSING` short-circuit is a caller responsibility (needs the not-yet-ported `Devicematch`/`Driver` types); `CalcStatus` covers everything from the installed-driver-exists branch onward. Verified against 6.6M+ real HWID entries across 219 real index files with no panics, plus targeted tests for the Intel USB3/Realtek/FilterSP/feature-score-masking branches. Caught and fixed a real bug while testing: `DecorationScore`'s architecture parameter is 1-based (1=x86, 2=amd64) while `MarkerScore`'s is 0-based (0=x86, 1=amd64) - conflating them silently zeroed every decoration score. `CalcAltSectScore`'s `FLAG_FILTERSP` branch also folds in a downgrade (`altsectscore` 2 -> 1 if the catalog doesn't actually validate) that the original applies separately, later, in `Manager::filter`'s display pass rather than at score-computation time - equivalent net result, computed once instead of on every re-filter. |
-| `matcher.cpp`: `Devicematch`/`Hwidmatch` construction, `MatcherImp::findHWIDs`/`populate`/`sort` | `internal/collection` (`Match`, `FindHWID`) | Done | New top-level package (hardware+indexing+matcher can't import each other in this direction, so the orchestration tying them together lives one level up). `Match` finds every candidate driver for a device via each pack's on-disk hash table, scores it (identifier/decoration/marker/alt-section score), ranks best-first, and marks dups. `buildCandidate` also folds in a `Manager::filter` default-view display rule: a candidate is forced to `AltSectScore=0` (treated as invalid) when the device has no problem code, already has an installed driver, and the candidate's own score is below catalog-signed-valid (`<2`) - an unsigned/uncertain match isn't worth surfacing over something that already works. Comparing a candidate against the currently-installed driver's own score (calc_status's BETTER/WORSE/SAME/NEW/OLD/CURRENT bits) needed `Driver::scaninf` (see below), now done. Verified end-to-end against a real index file and a synthetic device carrying `dtport`'s real hardware ID: finds both section-variant candidates, ranks the higher-scoring decorated section first. |
-| `enum.cpp`: `Driver::scaninf` + `Driverpack::fillinfo` (matching an installed driver back to its own .inf, recovering its feature score/catalog bits/HWID position) | `internal/indexing` (`ScanInstalledInf`) | Done | This turned out **not** to need genindex's write-side orchestration - that earlier assessment conflated it with an unrelated piece. `scaninf` just reads one `.inf` file directly from `%windir%\inf\` and parses it with the exact same read-side pipeline already ported (`DiscoverSections`/`ParseStrings`/`ParseVersionSection`/`ParseManufacturers`/`ResolveManufacturerSection`); `fillinfo` is a linear search over the resolved devices for a matching (section, hardware ID) pair, which needed one small addition (`ResolvedDevice.Install`, the raw unresolved install-section field, alongside the already-present `InstallPicked`). Wired into `internal/collection.Match` via a new `InstalledScore` parameter (computed in `internal/scan` using `hardware.SysInfo.WinDir` + the installed driver's own registry fields) so `indexing.CalcStatus` now does a real BETTER/WORSE/SAME/NEW/OLD/CURRENT comparison instead of treating every structurally-valid candidate as actionable. **This was a real correctness bug in the CLI/TUI's report, caught and fixed by validating against the real reference machine**: 61 of 93 previously-reported "FOUND" devices (including, ironically, the AMD Radeon 780M example used earlier as a success story) already had an equal-or-better driver installed and were not actually actionable; `cmd/sdigo` now correctly report 32 genuinely-better matches instead. |
-| `matcher.cpp`: `cmpnames`, GUI-facing `Hwidmatch` print/popup methods | - | Not started | Sorting/display helpers for the not-yet-built TUI. |
-| `indexing.cpp`: `Collection::scanfolder` (folder scanning + loading every pack's index) | `internal/collection` (`LoadCollection`) | Done | Scans a driver-pack folder and loads each pack's `indexes/**/*.bin` into a `Driverpack`, ready for `Match`. Assumes packs live directly under the collection root (no subfolder nesting) - the only case the reference installation exhibits; `Driverpack::getindexfilename`'s subfolder-mirroring naming isn't replicated (see `indexFilename`'s doc comment). Reindexing a pack with no valid index isn't supported (genindex's write side isn't ported) - such packs are reported in `LoadResult.Skipped` instead. Verified against a real installation: all 113 real driver packs load with 0 skipped. |
-| `manager.cpp` | - | Not started | `Manager`'s command/state orchestration (GUI-facing); largely superseded by whatever the TUI's own control flow ends up needing. |
-| `install.cpp`: `driver_install` (the actual install call), restore points | `internal/install` | Done | `Driver` wraps `newdev.dll!UpdateDriverForPlugAndPlayDevicesW` directly; `CreateRestorePoint`/`Get`/`SetRestorePointCreationFrequency` port the `SrClient.dll!SRSetRestorePointW` + registry-throttle-bypass sequence from `Manager::thread_install`. `RemoveExtraInfs` ports the stray-`.inf`-cleanup helper. Deliberately not ported: the bundled "install64.exe" 32-bit/WOW64 helper and the mouse-click-simulating "Autoclicker" - both existed only because the original shipped a 32-bit main EXE; a native amd64 Go binary doesn't have that problem. Verified against a real machine: `newdev.dll`/`SrClient.dll` and their exported functions resolve correctly (`cmd/hwdump`'s `install_api_available`), and `GetRestorePointCreationFrequency` reads the real registry value - without ever invoking an actual driver install or restore-point creation, both of which are real system-modifying actions this rewrite didn't test live. |
-| `script.cpp` | - | Not started | Driver-pack script format; depends entirely on the not-yet-ported `manager_g` global, not tractable before `manager.cpp`. |
-| `update.cpp`: torrent download (`Updater_t::StartInstallDownload`/`EndInstallDownload`, the selective per-file download model) | `internal/update` | Done | `Client`/`Torrent` wrap `github.com/anacrolix/torrent` instead of porting the bundled libtorrent glue. `update.h` declares `torrent_url`/`torrent2_url` but never defines them anywhere in this source snapshot, so no tracker/webseed/metadata-fetch URL is hardcoded - callers supply a `.torrent` file path or magnet URI. `Torrent.SelectFiles` ports the "download only the specific driver-pack files a device match needs from the one shared torrent" behavior. Verified against a real cached `torrent/SDIO_Update.torrent` (398 files: drivers, indexes, app binaries, docs) from a production installation, including a real end-to-end download of one small file via the torrent's HTTP webseed (`cmd/torrenttest`), confirmed byte-exact. GUI-facing bits (`ShowProgress`/`ShowPopup`/`OpenDialog`/the script* methods/pause) aren't ported. **Now wired into `cmd/sdigo`'s `-install` path** via `Collection::loadOnlineIndexes` (see below) and `downloadPendingPacks`: a matched candidate whose pack hasn't been downloaded yet is fetched (by `Settings.TorrentFile`, a local `.torrent` path or magnet URI - `-torrent-file`, empty/disabled by default) before extraction. Verified end-to-end with a real download of a genuinely-pending real driver pack (`DP_CardReader_26072.7z`, ~60MB) from the real cached torrent, confirmed as a valid, openable `.7z` afterward - gated behind `SDIO_TEST_REAL_TORRENT=1` since real BitTorrent networking leaves the test process hanging 30-90s past completion (a suspected `go test`-harness-specific quirk, not reproduced by plain binary/`go run` invocations, and irrelevant to production `cmd/sdigo` since its `main()` calls `os.Exit` as its literal last statement). `Torrent.WaitDownload`/`update.SaveFile` factor the polling-loop and move-into-place logic out as reusable helpers (both `downloadPendingPacks` and `collection.BootstrapIndexes`, below, need them). |
-| `update.cpp`: `Updater_t::WelcomeDownloadIndexes` (fetch the index catalog for a machine with none yet, and `-checkupdates`) | `internal/collection` (`BootstrapIndexes`), wired into `internal/scan.Run` | Done | Downloads every index (`.bin`) file the torrent has that isn't already present locally under its underscore-prefixed pending-placeholder name (see `LoadOnlineIndexes` above), saving each with that name - the exact per-file existence check `WelcomeDownloadIndexes` uses, not the more aggressive unconditional-redownload behavior of the scripted `checkupdates` command (`scriptDownloadIndexes`), and not the driver-pack-specific version-comparison flow (`scriptDownloadDrivers`/`System::getcurver`/`getver`) - that would mean eagerly downloading potentially many GB of driver data with no per-device relevance filtering, which contradicts the lazy on-demand download model this rewrite already uses (`downloadPendingPacks`) and was deliberately left unported. `scan.Run` calls this automatically when `Settings.TorrentFile` is set: always if the index directory is missing or empty (a machine with no local catalog at all can't do anything otherwise), or on request via `-checkupdates` (re-running the same bootstrap picks up newly-added pack revisions, which get their own distinct filename so are never mistaken for an already-known one). A failure here is non-fatal - `Run` proceeds with whatever collection is already present locally. **Verified end-to-end from a completely empty directory** (no drivers, no indexes at all) via WSL PE interop: bootstrapped 104 real index files from the real cached torrent, then correctly scanned real hardware, matched devices against the newly-fetched catalog, and flagged a genuine match as needing a download (`[needs download]`, since only its index - not its `.7z` data - had been fetched). A second run against an already-populated directory downloads nothing new (confirmed both via a dedicated test and by the original's own single-existence-check semantics). |
-| `indexing.cpp`: `Collection::loadOnlineIndexes` (packs whose index is downloaded but whose `.7z` data isn't yet - `DRIVERPACK_TYPE_UPDATE`/`getdrp_packontorrent`) | `internal/collection` (`LoadOnlineIndexes`, `Driverpack.Pending`) | Done | Reverse-engineered from source after noticing genuinely mysterious underscore-prefixed orphan `.bin` files in the reference installation's index directory during earlier work (e.g. `_P_Ports_SDIO01_26083.bin` next to `DP_Ports_SDIO01_26083.bin`) - these turned out to be exactly this mechanism: a pack's index is pre-downloaded and its filename's leading `D` (of the `DP_...` convention) is replaced with `_` to mark "not downloaded yet" without `Collection::scanfolder`'s normal `.7z` scan picking it up as already-present. `LoadCollection` now calls this automatically, appending pending packs (marked via a new `Driverpack.Pending` field) so they're matchable like any other pack. Verified against the real reference installation: of 104 real underscore-prefixed placeholder files, 101 already had a locally-downloaded `.7z` (stale placeholders, correctly skipped) and exactly 3 didn't (`DP_CardReader_26072`, `DP_Video_nVIDIA_Server_26040`, `DP_Videos_AMD_Server_26040` - all Server-only/legacy variants) - confirmed both via `LoadOnlineIndexes` directly and via `LoadCollection`'s merged result. |
-| `update.cpp`: everything else (GUI dialog/list-view state, `scriptInitUpdates`/`scriptDownload*`, app-update-vs-driver-update mode switching) | - | Not started | GUI-coupled orchestration superseded by whatever the TUI needs; most of update.cpp's ~4450 lines are this. |
-| `gui.cpp`'s device-list screen | `cmd/sdigo` | Done | The single binary intended for release (WinGet packaging): an interactive Bubble Tea TUI by default, or the same plain-text report `cmd/sdigo` prints (`internal/report.Print`) when `-nogui` is set - `-install` then works the same way it does for `cmd/sdigo`. Runs the same scan as `cmd/sdigo` (`internal/scan.Run`, shared by both front ends) and shows results in a scrollable, styled table. Defaults to showing only genuine upgrades (`settings.DefaultFilters`: missing/newer/better/one, deliberately not the original's compiled-in default, which also shows every device absent from all driver packs as "MISSING" - noisy, and not what real sdio.cfg files converge on), via `DeviceResult.Visible(filters)`, a method separate from `cmd/sdigo`'s `Best()`. The Status column shows `NEWER`/`OLDER`/`BETTER`/`FOUND` (`scan.MatchLabel`, ported from `itembar_t::str_status`'s BETTER_NEW/_CUR/_OLD cases) instead of a single generic "FOUND", since a candidate can win overall while being dated older or newer than what's installed. Device and Best match are fixed-width columns (long outliers clip with an ellipsis); Version and the wide-terminal-only "Installed" (currently-installed driver version) column size themselves to the longest value actually present among the devices being shown via `layoutColumns`, so neither clips nor wastes space. Enter opens a per-device detail screen with the same installed-vs-available comparison the original's hover tooltip shows (provider/date/version/matched ID/inf file/section/score), including its per-field "greenlight" coloring (`compareInstalledVsCandidate`, ported from `Manager::draw_hint`'s cm_date/cm_ver/cm_hwid/cm_score locals): whichever side's date, four-part version number, matched-ID specificity, or raw score wins that one field renders in green, independent of the overall verdict; an invalid/unsigned candidate signature or an OS/arch-mismatched section renders in red. There's no installed-side signature coloring, since this rewrite never ported `Driver::isvalidcat`'s own catalog lookup. Space ticks a row (or the open detail screen's device) for install, `a`/`n` select-all/none, `i` opens a confirm prompt and then installs via `internal/installflow` - a real system-modifying action, not triggered live by any automated check here (same policy as `cmd/sdi -install`). The Status column's short labels are backed by a persistent legend line in the footer and a one-sentence verdict (`verdictSummary`) at the top of the detail screen, both stating plainly that NEWER/OLDER/BETTER all mean "recommended" - a bare "OLDER" read as a plain negative before this, for a driver that's still the right pick overall. The detail screen's Score lines are followed by a short explainer of what the packed hex value actually orders by (catalog-signature validity, then feature number, then hardware-ID match precision), since it's otherwise an opaque number. Verified against real data via WSL PE interop: a bubbletea program given a non-TTY stdin (e.g. `/dev/null` via WSL PE interop) does not exit on its own - it renders normally and then blocks waiting for input that will never arrive, so a smoke run needs to be truncated externally (piping through `head` closes the pipe and the process dies to SIGPIPE; a bare timeout instead leaves it running as a real background process on the Windows host until forcibly killed). Confirmed correct rendering and the validated 18/353 result this way against the reference machine. Interactive keyboard handling (ticking, the detail screen, resize repaint, the confirm/install/log screens) needs a real TTY, unavailable in this dev environment - covered instead by unit tests of the pure row/column/selection/comparison logic plus the cross-platform "unsupported platform" trick for install-path tests. |
-| `gui.cpp`'s options/settings dialogs (all `Settings.Flags` engine toggles and all `Settings.FilterShow` display filters) | `cmd/sdigo` (`o` key) | Done | A second screen listing every registered flag (`settings.FlagOptions`) and every display filter (`settings.FilterOptions`) as toggleable checkboxes - the same two option sets `cmd/sdigo`'s `-<flagname>`/`-filters:N` switches already exposed on the command line, now reachable interactively. Toggling a filter rebuilds the table immediately via `Visible`; toggling a flag persists to `sdio.cfg` on exit (like the CLI) but most flags only take effect on the next scan, since they feed `MatchContext`/`CalcAltSectScore` at scan time rather than at display time. A test (`TestBuildOptionItemsCoversEveryFlagAndFilter`) pins the option-screen's item count to `len(FlagOptions())+len(FilterOptions())` so a newly-added flag or filter can't silently go unexposed. Not verified against a real TTY (see above) - covered instead by unit tests of the toggle logic and filter-driven row visibility, plus a successful Windows cross-compile. |
-| `gui.cpp`, `draw.cpp`, `theme*.cpp`, `welcome.cpp`, `usbwizard.cpp`, `license.cpp`: everything else (settings dialogs beyond the two above, themes, welcome wizard, USB creator, license screen) | - | Not started | |
-
-## Verifying changes
+## Building and running
 
 From `go/`:
 
@@ -123,12 +35,14 @@ go test ./...
 GOOS=windows GOARCH=amd64 go build ./...   # this is a Windows-only app
 ```
 
-## Running it
+Two scripts build and run `cmd/sdigo`, forwarding any arguments as-is:
 
-`cmd/sdigo` is the only binary in this rewrite - the TUI by default, a plain-text report with `-nogui`, and `hwdump`/`torrenttest` as dev/diagnostic subcommands. Two scripts build and run it, forwarding any arguments as-is:
-
-- `scripts/run-windows.sh [args...]` - from WSL: cross-compiles and runs the result directly via PE interop, no Windows-side Go toolchain needed. This is how everything in this README was verified against a real machine during development.
-- `scripts/run-windows.cmd [args...]` - from an actual Windows command prompt: builds natively, so it needs Go installed on Windows. Verified for real via `cmd.exe` invoked from WSL.
+- `scripts/run-windows.sh [args...]` - from WSL: cross-compiles and
+  runs the result directly via PE interop, no Windows-side Go
+  toolchain needed. This is how everything in this rewrite has been
+  verified against a real machine during development.
+- `scripts/run-windows.cmd [args...]` - from an actual Windows command
+  prompt: builds natively, so it needs Go installed on Windows.
 
 ```sh
 go/scripts/run-windows.sh -nogui -drp-dir=D:\drivers -index-dir=D:\indexes
@@ -138,28 +52,4 @@ go/scripts/run-windows.sh hwdump
 scripts\run-windows.cmd -nogui -drp-dir=D:\drivers -index-dir=D:\indexes
 ```
 
-## Building a release
-
-`cmd/sdigo` is the single binary intended for release. Its Windows
-app manifest (`cmd/sdigo/winres/winres.json`) sets
-`requireAdministrator`, since driver installation needs admin rights;
-building it requires an extra step `go build` alone doesn't do:
-
-```sh
-go install github.com/tc-hib/go-winres@latest
-cd go/cmd/sdigo && go-winres make --arch amd64 --out rsrc
-cd .. && GOOS=windows GOARCH=amd64 go build -o sdigo.exe ./cmd/sdigo
-```
-
-The generated `rsrc_windows_amd64.syso` is gitignored, not committed:
-embedding it makes the resulting exe require elevation to even start,
-which breaks the WSL PE interop technique this README's development
-verification relies on (a manifest-elevated exe can't be launched that
-way - confirmed directly: it fails immediately with "Invalid
-argument"). Regular `go build ./...` during development therefore
-produces an unelevated binary; only a release build goes through the
-step above.
-
-`.github/workflows/release.yml` runs this same sequence on a
-`v*.*.*` tag push and attaches the resulting `sdigo.exe` to a GitHub
-Release. Not yet run for real - review before pushing the first tag.
+See [docs/RELEASE.md](docs/RELEASE.md) for building the release binary.
