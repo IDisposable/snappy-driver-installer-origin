@@ -45,7 +45,8 @@ import (
 type screen int
 
 const (
-	screenTable screen = iota
+	screenScanning screen = iota
+	screenTable
 	screenOptions
 	screenDetail
 	screenConfirmInstall
@@ -309,6 +310,18 @@ type model struct {
 	s      *settings.Settings
 	result scan.Result
 
+	// prepared caches scan.Prepare's hardware-detection output so a
+	// rescan after a background download (welcomeDownloadDoneMsg/
+	// installDoneMsg) only has to redo collection loading and matching,
+	// not device enumeration.
+	prepared scan.Prepared
+
+	// pendingResumeSelected is newModel's resumeSelected argument, held
+	// here until scanDoneMsg has a result to apply it against - the
+	// scan itself is now async (see Init), so it can't be applied at
+	// construction time like it used to be.
+	pendingResumeSelected map[string]bool
+
 	table            table.Model
 	rows             []scan.DeviceResult // parallel to table.Rows(), for cursor -> device lookup
 	width, height    int
@@ -416,41 +429,64 @@ func (m *model) currentDevice() *scan.DeviceResult {
 // elevation relaunch (see sdiGo/relaunchElevated) - the model starts
 // straight on the confirm-install screen instead of the table, so the
 // user's "y" isn't silently dropped by the elevation round trip.
-func newModel(result scan.Result, s *settings.Settings, resumeSelected map[string]bool, logger *logging.Logger) model {
-	matched, missing := 0, 0
-	for _, dr := range result.Devices {
-		if dr.Best() != nil {
-			matched++
-		} else {
-			missing++
-		}
-	}
-
+// newModel builds the initial TUI state before anything has been
+// scanned yet - Init kicks off the real scan work in the background
+// (see scanDoneMsg) so the program can render a "please wait" screen
+// right away instead of leaving the terminal silent for however long
+// hardware detection and driver-pack matching take.
+func newModel(s *settings.Settings, resumeSelected map[string]bool, logger *logging.Logger) model {
 	t := table.New(table.WithFocused(true), table.WithHeight(20))
 	styles := table.DefaultStyles()
 	styles.Header = styles.Header.Bold(true).BorderStyle(lipgloss.NormalBorder()).BorderBottom(true)
 	styles.Selected = styles.Selected.Bold(true)
 	t.SetStyles(styles)
 
-	m := model{
-		table: t, result: result, s: s, matched: matched, missing: missing,
+	return model{
+		table: t, s: s,
 		options: buildOptionItems(), selected: map[string]bool{},
 		width: 100, height: 30,
-		detailViewport: viewport.New(100, 24),
-		logger:         logger,
+		detailViewport:        viewport.New(100, 24),
+		logger:                logger,
+		pendingResumeSelected: resumeSelected,
 	}
-	if result.FirstRun {
-		m.screen = screenWelcome
-	}
-	if len(resumeSelected) > 0 {
-		m.selected = resumeSelected
-		m.screen = screenConfirmInstall
-	}
-	m.refreshTable()
-	return m
 }
 
-func (m model) Init() tea.Cmd { return nil }
+// scanDoneMsg carries scan.Prepare/MatchWithCollection's result back
+// to Update once the background scan Init launches finishes.
+type scanDoneMsg struct {
+	prepared scan.Prepared
+	result   scan.Result
+	err      error
+}
+
+// Init runs the real scan in the background instead of blocking
+// program startup on it - see scanDoneMsg and screenScanning's View.
+func (m model) Init() tea.Cmd {
+	return func() tea.Msg {
+		p, err := scan.Prepare(m.s)
+		if err != nil {
+			return scanDoneMsg{err: err}
+		}
+		res, err := scan.MatchWithCollection(m.s, p)
+		return scanDoneMsg{prepared: p, result: res, err: err}
+	}
+}
+
+// applyResult populates the model from a fresh scan.Result - the
+// initial scan, or a rescan after a background download may have
+// changed what's on disk (see welcomeDownloadDoneMsg/installDoneMsg).
+func (m *model) applyResult(result scan.Result) {
+	m.result = result
+	m.matched, m.missing = 0, 0
+	for _, dr := range result.Devices {
+		if dr.Best() != nil {
+			m.matched++
+		} else {
+			m.missing++
+		}
+	}
+	m.refreshTable()
+}
 
 func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
@@ -470,16 +506,61 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 		return m, nil
 
+	case scanDoneMsg:
+		if msg.err != nil {
+			m.opLog = []string{fmt.Sprintf("error: %v", msg.err)}
+			m.screen = screenInstallLog
+			return m, nil
+		}
+		m.prepared = msg.prepared
+		m.applyResult(msg.result)
+		m.screen = screenTable
+		if msg.result.FirstRun {
+			m.screen = screenWelcome
+		}
+
+		var cmd tea.Cmd
+		switch {
+		case m.s.TorrentFile != "" && m.s.Flags&settings.FlagCheckUpdates != 0:
+			// Ported from -checkupdates' documented purpose ("check for
+			// driver pack updates") - runs as its own background step
+			// after the table's first render instead of blocking it, the
+			// way the original's launch-time bootstrap did.
+			m.screen = screenWelcomeDownloading
+			m.dlProgress = &progressTracker{}
+			cmd = tea.Batch(runIndexRefreshCmd(m.s, m.dlProgress, m.alertLogger()), tickProgressCmd())
+		case m.s.Flags&settings.FlagAutoUpdate != 0:
+			// Ported from the "-autoupdate command line parameter" launch-
+			// time auto-trigger (update.cpp) - fires once, right after the
+			// first scan.
+			m.screen = screenWelcomeDownloading
+			m.dlProgress = &progressTracker{}
+			cmd = tea.Batch(runWelcomeDownloadCmd(m.s, update.AllDriverPacks, m.dlProgress, m.alertLogger()), tickProgressCmd())
+		}
+		if len(m.pendingResumeSelected) > 0 {
+			// An elevation relaunch resuming a confirmed selection wins
+			// over any auto-triggered download - the user already
+			// committed to installing before elevating.
+			m.selected = m.pendingResumeSelected
+			m.screen = screenConfirmInstall
+			cmd = nil
+		}
+		return m, cmd
+
 	case installDoneMsg:
 		m.opLog = msg.log
 		m.screen = screenInstallLog
 		// A completed install invalidates the ticked devices' old
-		// candidate state (they may now already have that driver) -
-		// clearing avoids re-offering the same install as still
-		// pending. This rewrite doesn't auto-rescan afterward; the log
-		// screen tells the user what happened.
+		// candidate state (they may now already have that driver), and
+		// may have changed the Installed comparison for other devices
+		// too - MatchWithCollection re-reads each device's installed
+		// driver from the registry, so this also picks up the version
+		// just installed instead of showing stale "not installed"/older
+		// data until the next full restart.
 		m.selected = map[string]bool{}
-		m.refreshTable()
+		if res, err := scan.MatchWithCollection(m.s, m.prepared); err == nil {
+			m.applyResult(res)
+		}
 		if m.s.Flags&settings.FlagAutoClose != 0 {
 			// Ported from Manager::thread_install's PostMessage(WM_CLOSE)
 			// once an install finishes - exits straight from here rather
@@ -491,6 +572,13 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case welcomeDownloadDoneMsg:
 		m.opLog = msg.log
 		m.screen = screenInstallLog
+		// Whatever just downloaded (indexes, driver packs) may have
+		// changed what's on disk - rescan so the table reflects it
+		// instead of showing stale "needs download"/missing rows until
+		// the next full restart.
+		if res, err := scan.MatchWithCollection(m.s, m.prepared); err == nil {
+			m.applyResult(res)
+		}
 		if m.s.Flags&settings.FlagAutoClose != 0 {
 			// Ported from Updater_t's "Torrent finished" auto-exit
 			// (update.cpp) - the original skips this when -autoinstall is
@@ -1039,6 +1127,8 @@ func runWelcomeDownloadCmd(s *settings.Settings, filter update.DriverPackFilter,
 
 func (m model) View() string {
 	switch m.screen {
+	case screenScanning:
+		return "Scanning hardware and loading driver packs - please wait...\n"
 	case screenOptions:
 		return m.optionsView()
 	case screenDetail:
@@ -1698,16 +1788,17 @@ func sdiGo(args []string) int {
 		}
 	}
 
-	result, err := scan.Run(s)
-	if err != nil {
-		fmt.Fprintln(os.Stderr, "error:", err)
-		return 1
-	}
-
 	// -nogui prints a scan report instead of launching the interactive
 	// table - plain text by default, or JSON with -json for scripts/CI
-	// that need to parse the result without a terminal.
+	// that need to parse the result without a terminal. Unlike the TUI
+	// (see newModel/Init), there's no terminal to keep responsive here,
+	// so scan.Run's synchronous bootstrap-then-scan is fine as is.
 	if s.Flags&settings.FlagNoGUI != 0 {
+		result, err := scan.Run(s)
+		if err != nil {
+			fmt.Fprintln(os.Stderr, "error:", err)
+			return 1
+		}
 		var pending []installflow.Pending
 		if *doJSON {
 			var err error
@@ -1727,7 +1818,7 @@ func sdiGo(args []string) int {
 		return 0
 	}
 
-	p := tea.NewProgram(newModel(result, s, resumeSelected, logger), tea.WithAltScreen())
+	p := tea.NewProgram(newModel(s, resumeSelected, logger), tea.WithAltScreen())
 	final, err := p.Run()
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "error:", err)

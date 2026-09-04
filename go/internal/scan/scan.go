@@ -140,22 +140,39 @@ type Result struct {
 	FirstRun bool
 }
 
-// Run performs the full pipeline: hardware detection, driver-pack
-// collection loading, and per-device matching.
-func Run(s *settings.Settings) (Result, error) {
-	var res Result
+// Prepared carries Prepare's hardware-detection results into
+// MatchWithCollection - split out from Run so a caller (cmd/sdigo's
+// TUI) can show a match against whatever collection is already on
+// disk right away, then call MatchWithCollection again alone once a
+// background bootstrap/download finishes, without repeating hardware
+// detection (SetupAPI device enumeration over hundreds of devices
+// isn't free).
+type Prepared struct {
+	System   System
+	FirstRun bool
+
+	devices  []hardware.Device
+	si       hardware.SysInfo
+	isLaptop bool
+	marker   string
+}
+
+// Prepare detects hardware and creates DrpDir/IndexDir if missing -
+// the fast, no-network part of Run.
+func Prepare(s *settings.Settings) (Prepared, error) {
+	var p Prepared
 
 	bb, err := hardware.GetBaseBoard()
 	if err != nil {
-		return res, fmt.Errorf("reading base board info: %w", err)
+		return p, fmt.Errorf("reading base board info: %w", err)
 	}
 	si, err := hardware.GetSysInfoFast()
 	if err != nil {
-		return res, fmt.Errorf("reading system info: %w", err)
+		return p, fmt.Errorf("reading system info: %w", err)
 	}
 	devices, err := hardware.ScanDevices()
 	if err != nil {
-		return res, fmt.Errorf("scanning devices: %w", err)
+		return p, fmt.Errorf("scanning devices: %w", err)
 	}
 
 	hasACPIBattery := false
@@ -171,12 +188,14 @@ func Run(s *settings.Settings) (Result, error) {
 	if isLaptop {
 		marker = matcher.NotebookOEMMarker(bb.SystemManufacturer)
 	}
-	res.System = System{BaseBoard: bb, SysInfo: si, IsLaptop: isLaptop}
 
-	// Captured before any of this function's own side effects (the
-	// MkdirAll calls below) could change the answer: a front end uses
-	// this to decide whether to show a first-run/Welcome screen.
-	res.FirstRun = indexDirNeedsBootstrap(s.IndexDir)
+	p.System = System{BaseBoard: bb, SysInfo: si, IsLaptop: isLaptop}
+	p.devices, p.si, p.isLaptop, p.marker = devices, si, isLaptop, marker
+
+	// Captured before this function's own side effects below (the
+	// MkdirAll calls) could change the answer: a front end uses this to
+	// decide whether to show a first-run/Welcome screen.
+	p.FirstRun = indexDirNeedsBootstrap(s.IndexDir)
 
 	// LoadCollection's directory scan errors out entirely on a missing
 	// directory rather than treating it as "0 packs found" - a real
@@ -184,48 +203,43 @@ func Run(s *settings.Settings) (Result, error) {
 	// -torrent-file configured to create them). Creating both
 	// unconditionally keeps a brand new data directory usable.
 	if err := os.MkdirAll(s.DrpDir, 0o755); err != nil {
-		return res, fmt.Errorf("creating %s: %w", s.DrpDir, err)
+		return p, fmt.Errorf("creating %s: %w", s.DrpDir, err)
 	}
 	if err := os.MkdirAll(s.IndexDir, 0o755); err != nil {
-		return res, fmt.Errorf("creating %s: %w", s.IndexDir, err)
+		return p, fmt.Errorf("creating %s: %w", s.IndexDir, err)
 	}
+	return p, nil
+}
 
-	// Bootstrap/refresh the index catalog from the configured torrent
-	// (see collection.BootstrapIndexes). Always attempted when the index
-	// directory is empty, since otherwise a machine with no local
-	// catalog at all can never do anything; also attempted on request
-	// via -checkupdates, matching that flag's documented purpose
-	// ("check for driver pack updates") - re-running the same
-	// bootstrap picks up any index the torrent has that isn't already
-	// present locally, including newly-added pack revisions (which get
-	// their own distinct filename, so are never mistaken for an
-	// already-known one). A failure here is not fatal: Run proceeds
-	// with whatever collection is already present locally.
-	if s.TorrentFile != "" && (res.FirstRun || s.Flags&settings.FlagCheckUpdates != 0) {
-		res.IndexesDownloaded, res.BootstrapError = collection.BootstrapIndexes(s.TorrentFile, s.IndexDir, s.UpdatesDir, s.Flags&settings.FlagKeepSeeding != 0, nil, nil)
-	}
+// MatchWithCollection loads whatever driver-pack collection is
+// currently on disk and matches every device Prepare found against
+// it. Call again with the same Prepared after a bootstrap/download to
+// refresh with the new data, without repeating hardware detection.
+func MatchWithCollection(s *settings.Settings, p Prepared) (Result, error) {
+	res := Result{System: p.System, FirstRun: p.FirstRun}
 
+	var err error
 	res.Collection, err = collection.LoadCollection(s.DrpDir, s.IndexDir)
 	if err != nil {
 		return res, fmt.Errorf("loading driver-pack collection: %w", err)
 	}
 
-	major, minor, isAMD64 := virtualEnvironment(s, si)
+	major, minor, isAMD64 := virtualEnvironment(s, p.si)
 	ctx := indexing.MatchContext{
-		Major: major, Minor: minor, Build: si.Windows.Build,
-		IsAMD64: isAMD64, IsLaptop: isLaptop, NotebookMarker: marker,
+		Major: major, Minor: minor, Build: p.si.Windows.Build,
+		IsAMD64: isAMD64, IsLaptop: p.isLaptop, NotebookMarker: p.marker,
 		FilterSP: s.Flags&settings.FlagFilterSP != 0,
 	}
 
-	res.Devices = make([]DeviceResult, 0, len(devices))
-	for _, d := range devices {
+	res.Devices = make([]DeviceResult, 0, len(p.devices))
+	for _, d := range p.devices {
 		var installed *hardware.InstalledDriver
 		if d.DriverKeyName != "" {
 			if drv, err := hardware.OpenInstalledDriver(d.DriverKeyName, d); err == nil {
 				installed = &drv
 			}
 		}
-		installedScore := scoreInstalledDriver(si, installed)
+		installedScore := scoreInstalledDriver(p.si, installed)
 
 		dm := collection.Match(d, installed, installedScore, res.Collection.Packs, ctx, s.IgnoreList)
 		if dm.Status == matcher.StatusIgnored {
@@ -239,6 +253,41 @@ func Run(s *settings.Settings) (Result, error) {
 	sortDevices(res.Devices)
 
 	return res, nil
+}
+
+// Run performs the full pipeline: Prepare, an inline bootstrap if
+// warranted, then MatchWithCollection - the synchronous, one-shot
+// entry point -nogui and other non-interactive callers use. cmd/sdigo's
+// TUI instead calls Prepare/MatchWithCollection directly, so a
+// bootstrap can run as its own background step after an initial match
+// against whatever's already on disk, rather than blocking the first
+// render on a network operation.
+func Run(s *settings.Settings) (Result, error) {
+	p, err := Prepare(s)
+	if err != nil {
+		return Result{}, err
+	}
+
+	// Bootstrap/refresh the index catalog from the configured torrent
+	// (see collection.BootstrapIndexes). Always attempted when the index
+	// directory is empty, since otherwise a machine with no local
+	// catalog at all can never do anything; also attempted on request
+	// via -checkupdates, matching that flag's documented purpose
+	// ("check for driver pack updates") - re-running the same
+	// bootstrap picks up any index the torrent has that isn't already
+	// present locally, including newly-added pack revisions (which get
+	// their own distinct filename, so are never mistaken for an
+	// already-known one). A failure here is not fatal: Run proceeds
+	// with whatever collection is already present locally.
+	var indexesDownloaded int
+	var bootstrapErr error
+	if s.TorrentFile != "" && (p.FirstRun || s.Flags&settings.FlagCheckUpdates != 0) {
+		indexesDownloaded, bootstrapErr = collection.BootstrapIndexes(s.TorrentFile, s.IndexDir, s.UpdatesDir, s.Flags&settings.FlagKeepSeeding != 0, nil, nil)
+	}
+
+	res, err := MatchWithCollection(s, p)
+	res.IndexesDownloaded, res.BootstrapError = indexesDownloaded, bootstrapErr
+	return res, err
 }
 
 // sortDevices orders res.Devices the same way every front end (TUI

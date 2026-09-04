@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -27,6 +28,17 @@ import (
 // testLogger is a discard-everything Logger for tests that need to
 // pass one to newModel but aren't exercising logging itself.
 var testLogger = logging.New(zerolog.Disabled, nil)
+
+// newTestModel builds a model as if Init's background scan had
+// already completed with result - the scan itself is real async work
+// now (see scanDoneMsg), so tests that just want a populated model to
+// exercise other behavior drive that message directly instead of
+// waiting on a real scan.Prepare/MatchWithCollection call.
+func newTestModel(result scan.Result, s *settings.Settings, resumeSelected map[string]bool) model {
+	m := newModel(s, resumeSelected, testLogger)
+	mm, _ := m.Update(scanDoneMsg{result: result})
+	return mm.(model)
+}
 
 // realDtPortCandidate builds a real candidate.Candidate for the
 // reference installation's dtport pack, the same real fixture
@@ -513,7 +525,7 @@ func TestResizeWhileDetailScreenOpenDoesNotPanic(t *testing.T) {
 		Candidates: []collection.Candidate{best},
 	}}}
 	s := settings.New()
-	m := newModel(result, s, nil, testLogger)
+	m := newTestModel(result, s, nil)
 
 	mm, _ := m.Update(tea.WindowSizeMsg{Width: 200, Height: 50})
 	m = mm.(model)
@@ -553,7 +565,7 @@ func TestDetailViewportScrolls(t *testing.T) {
 		InstalledScore: &collection.InstalledScore{Score: 99, Feature: 1},
 	}}}
 	s := settings.New()
-	m := newModel(result, s, nil, testLogger)
+	m := newTestModel(result, s, nil)
 
 	mm, _ := m.Update(tea.WindowSizeMsg{Width: 100, Height: 8}) // short enough that content overflows
 	m = mm.(model)
@@ -579,7 +591,7 @@ func TestDetailViewportScrolls(t *testing.T) {
 // the table and q/esc/? all return to it - the same "only documented
 // keys act" contract as the other popups.
 func TestAboutScreenNavigation(t *testing.T) {
-	m := newModel(scan.Result{}, settings.New(), nil, testLogger)
+	m := newTestModel(scan.Result{}, settings.New(), nil)
 
 	mm, _ := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune("?")})
 	m = mm.(model)
@@ -613,11 +625,105 @@ func TestAboutScreenNavigation(t *testing.T) {
 // controls whether the TUI opens straight to the Welcome screen,
 // without needing an interactive keypress to get there.
 func TestNewModelOpensWelcomeOnFirstRun(t *testing.T) {
-	if m := newModel(scan.Result{FirstRun: true}, settings.New(), nil, testLogger); m.screen != screenWelcome {
+	if m := newTestModel(scan.Result{FirstRun: true}, settings.New(), nil); m.screen != screenWelcome {
 		t.Errorf("screen = %v with FirstRun=true, want screenWelcome", m.screen)
 	}
-	if m := newModel(scan.Result{FirstRun: false}, settings.New(), nil, testLogger); m.screen != screenTable {
+	if m := newTestModel(scan.Result{FirstRun: false}, settings.New(), nil); m.screen != screenTable {
 		t.Errorf("screen = %v with FirstRun=false, want screenTable", m.screen)
+	}
+}
+
+// TestScanDoneReportsError confirms a failed background scan (Init's
+// tea.Cmd) shows the error instead of leaving screenScanning up
+// forever or panicking on the zero-value scan.Result that comes with
+// it.
+func TestScanDoneReportsError(t *testing.T) {
+	m := newModel(settings.New(), nil, testLogger)
+	mm, _ := m.Update(scanDoneMsg{err: errors.New("boom")})
+	m = mm.(model)
+	if m.screen != screenInstallLog {
+		t.Fatalf("screen = %v, want screenInstallLog", m.screen)
+	}
+	if len(m.opLog) == 0 || !strings.Contains(m.opLog[0], "boom") {
+		t.Errorf("opLog = %v, want it to mention the error", m.opLog)
+	}
+}
+
+// TestScanDoneTriggersCheckUpdatesDownload confirms -checkupdates
+// auto-starts an index refresh right after the first scan, as its own
+// background step (screenWelcomeDownloading) rather than blocking the
+// scan itself the way the original's launch-time bootstrap did.
+func TestScanDoneTriggersCheckUpdatesDownload(t *testing.T) {
+	s := settings.New()
+	s.TorrentFile = "dummy.torrent"
+	s.Flags |= settings.FlagCheckUpdates
+	m := newModel(s, nil, testLogger)
+
+	mm, cmd := m.Update(scanDoneMsg{result: scan.Result{}})
+	m = mm.(model)
+	if m.screen != screenWelcomeDownloading {
+		t.Fatalf("screen = %v, want screenWelcomeDownloading", m.screen)
+	}
+	if cmd == nil {
+		t.Error("Update(scanDoneMsg) cmd = nil, want the background download command")
+	}
+}
+
+// TestScanDoneTriggersAutoUpdateDownload is the same proof for
+// -autoupdate, ported from update.cpp's "-autoupdate command line
+// parameter" launch-time auto-trigger.
+func TestScanDoneTriggersAutoUpdateDownload(t *testing.T) {
+	s := settings.New()
+	s.Flags |= settings.FlagAutoUpdate
+	m := newModel(s, nil, testLogger)
+
+	mm, cmd := m.Update(scanDoneMsg{result: scan.Result{}})
+	m = mm.(model)
+	if m.screen != screenWelcomeDownloading {
+		t.Fatalf("screen = %v, want screenWelcomeDownloading", m.screen)
+	}
+	if cmd == nil {
+		t.Error("Update(scanDoneMsg) cmd = nil, want the background download command")
+	}
+}
+
+// TestScanDoneResumeSelectedWinsOverAutoTrigger confirms an elevation-
+// relaunch resume takes priority over -checkupdates/-autoupdate's
+// auto-trigger - the user already committed to installing before
+// elevating, that shouldn't be preempted by an unrelated auto-download.
+func TestScanDoneResumeSelectedWinsOverAutoTrigger(t *testing.T) {
+	s := settings.New()
+	s.TorrentFile = "dummy.torrent"
+	s.Flags |= settings.FlagCheckUpdates
+	m := newModel(s, map[string]bool{"DEV1": true}, testLogger)
+
+	mm, _ := m.Update(scanDoneMsg{result: scan.Result{}})
+	m = mm.(model)
+	if m.screen != screenConfirmInstall {
+		t.Fatalf("screen = %v, want screenConfirmInstall (resume wins)", m.screen)
+	}
+	if !m.selected["DEV1"] {
+		t.Errorf("selected = %v, want DEV1 restored despite the auto-trigger", m.selected)
+	}
+}
+
+// TestWelcomeDownloadDoneRescans confirms a completed download
+// reloads the collection and rematches instead of leaving the table
+// showing pre-download data - real directories (empty) so
+// scan.MatchWithCollection actually runs instead of erroring on a
+// nonexistent path.
+func TestWelcomeDownloadDoneRescans(t *testing.T) {
+	s := settings.New()
+	s.DrpDir, s.IndexDir = t.TempDir(), t.TempDir()
+	m := newTestModel(scan.Result{Devices: []scan.DeviceResult{{}}}, s, nil)
+	if m.matched+m.missing == 0 {
+		t.Fatal("test setup: expected the initial result to have at least one device")
+	}
+
+	mm, _ := m.Update(welcomeDownloadDoneMsg{log: []string{"done"}})
+	m = mm.(model)
+	if m.matched != 0 || m.missing != 0 {
+		t.Errorf("matched/missing = %d/%d, want 0/0 after rescanning an empty collection with no prepared devices", m.matched, m.missing)
 	}
 }
 
@@ -627,7 +733,7 @@ func TestNewModelOpensWelcomeOnFirstRun(t *testing.T) {
 // was never configured.
 func TestWelcomeRequiresTorrentFile(t *testing.T) {
 	s := settings.New()
-	m := newModel(scan.Result{}, s, nil, testLogger)
+	m := newTestModel(scan.Result{}, s, nil)
 	m.screen = screenWelcome
 
 	mm, _ := m.Update(tea.KeyMsg{Type: tea.KeyEnter})
@@ -646,7 +752,7 @@ func TestWelcomeRequiresTorrentFile(t *testing.T) {
 func TestWelcomeAllDriverPacksNeedsConfirmation(t *testing.T) {
 	s := settings.New()
 	s.TorrentFile = "dummy.torrent" // just needs to be non-empty for this check
-	m := newModel(scan.Result{}, s, nil, testLogger)
+	m := newTestModel(scan.Result{}, s, nil)
 	m.screen = screenWelcome
 	m.welcomeIndex = len(welcomeItems) - 1 // "Download All Driver Packs"
 
@@ -670,7 +776,7 @@ func TestWelcomeAllDriverPacksNeedsConfirmation(t *testing.T) {
 func TestInstallDoneQuitsWhenAutoCloseSet(t *testing.T) {
 	s := settings.New()
 	s.Flags |= settings.FlagAutoClose
-	m := newModel(scan.Result{}, s, nil, testLogger)
+	m := newTestModel(scan.Result{}, s, nil)
 
 	_, cmd := m.Update(installDoneMsg{log: []string{"done"}})
 	if cmd == nil {
@@ -684,7 +790,7 @@ func TestInstallDoneQuitsWhenAutoCloseSet(t *testing.T) {
 // TestInstallDoneDoesNotQuitByDefault confirms the log screen stays up
 // without -autoclose - the normal, attended case.
 func TestInstallDoneDoesNotQuitByDefault(t *testing.T) {
-	m := newModel(scan.Result{}, settings.New(), nil, testLogger)
+	m := newTestModel(scan.Result{}, settings.New(), nil)
 
 	mm, cmd := m.Update(installDoneMsg{log: []string{"done"}})
 	if cmd != nil {
@@ -702,7 +808,7 @@ func TestInstallDoneDoesNotQuitByDefault(t *testing.T) {
 func TestWelcomeDownloadDoneQuitsWhenAutoCloseSet(t *testing.T) {
 	s := settings.New()
 	s.Flags |= settings.FlagAutoClose
-	m := newModel(scan.Result{}, s, nil, testLogger)
+	m := newTestModel(scan.Result{}, s, nil)
 
 	_, cmd := m.Update(welcomeDownloadDoneMsg{log: []string{"done"}})
 	if cmd == nil {
@@ -720,7 +826,7 @@ func TestWelcomeDownloadDoneQuitsWhenAutoCloseSet(t *testing.T) {
 // that error (instead of silently doing nothing) is a real,
 // mock-free proof the key is wired to the real function.
 func TestUSBDriveKeyReportsUnsupportedPlatform(t *testing.T) {
-	m := newModel(scan.Result{}, settings.New(), nil, testLogger)
+	m := newTestModel(scan.Result{}, settings.New(), nil)
 
 	mm, _ := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'u'}})
 	m = mm.(model)
@@ -736,7 +842,7 @@ func TestUSBDriveKeyReportsUnsupportedPlatform(t *testing.T) {
 // cursor within bounds and enter opens the confirm screen without
 // starting a copy, using synthetic drives (no real hardware needed).
 func TestUpdateUSBDriveNavigationAndConfirm(t *testing.T) {
-	m := newModel(scan.Result{}, settings.New(), nil, testLogger)
+	m := newTestModel(scan.Result{}, settings.New(), nil)
 	m.screen = screenUSBDrive
 	m.usbDrives = []usbdrive.Drive{
 		{Root: `E:\`, TotalBytes: 1000, FreeBytes: 900},
@@ -778,7 +884,7 @@ func TestUpdateUSBDriveNavigationAndConfirm(t *testing.T) {
 // trick used elsewhere in this file to prove a path is genuinely
 // reached rather than assumed.
 func TestUpdateConfirmInstallRelaunchesElevatedWhenNotElevated(t *testing.T) {
-	m := newModel(scan.Result{}, settings.New(), nil, testLogger)
+	m := newTestModel(scan.Result{}, settings.New(), nil)
 	m.screen = screenConfirmInstall
 	m.selected = map[string]bool{"DEV1": true, "DEV2": false}
 
@@ -798,7 +904,7 @@ func TestUpdateConfirmInstallRelaunchesElevatedWhenNotElevated(t *testing.T) {
 // confirm-install screen, so the "y" that triggered the relaunch
 // isn't silently dropped.
 func TestNewModelResumeSelectedOpensConfirmInstall(t *testing.T) {
-	m := newModel(scan.Result{}, settings.New(), map[string]bool{"DEV1": true}, testLogger)
+	m := newTestModel(scan.Result{}, settings.New(), map[string]bool{"DEV1": true})
 	if m.screen != screenConfirmInstall {
 		t.Fatalf("screen = %v, want screenConfirmInstall when resumeSelected is non-empty", m.screen)
 	}
@@ -883,7 +989,7 @@ func TestActiveFileLinesCapsShownFiles(t *testing.T) {
 // Downloading screen renders activeFileLines' output alongside the
 // overall percent, not just the overall percent alone.
 func TestDownloadStatusViewShowsPerFileBreakdown(t *testing.T) {
-	m := newModel(scan.Result{}, settings.New(), nil, testLogger)
+	m := newTestModel(scan.Result{}, settings.New(), nil)
 	m.dlProgress = &progressTracker{}
 	m.dlProgress.report(update.Progress{
 		Completed: 150, Total: 200,
