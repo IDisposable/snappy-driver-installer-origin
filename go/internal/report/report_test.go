@@ -37,8 +37,8 @@ func TestPrintReportsFoundAndMissingDevices(t *testing.T) {
 	if !strings.Contains(out, "Widget Controller") || !strings.Contains(out, "DP_Test_SDIO01_1.7z") {
 		t.Errorf("Print() output missing the found device/driver pack: %s", out)
 	}
-	if !strings.Contains(out, "MISSING") || !strings.Contains(out, "Mystery Device") {
-		t.Errorf("Print() output missing the MISSING device line: %s", out)
+	if !strings.Contains(out, "Missing") || !strings.Contains(out, "Mystery Device") {
+		t.Errorf("Print() output missing the Missing device line: %s", out)
 	}
 	if !strings.Contains(out, "1 devices matched, 1 missing/no driver found") {
 		t.Errorf("Print() summary line wrong: %s", out)

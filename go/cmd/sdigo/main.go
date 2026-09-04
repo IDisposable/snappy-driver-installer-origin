@@ -1,12 +1,13 @@
 // Command sdigo is Snappy Driver Installer: Go Forth, the single-EXE
 // entry point for this Go rewrite of Snappy Driver Installer Origin:
-// an
-// interactive TUI by default (replacing gui.cpp/draw.cpp/theme*.cpp's
-// device-list screen - see go/README.md), or the same plain-text
-// report cmd/sdi prints when -nogui is set. It shows a scrollable
-// table with an options screen (all engine flags and display
-// filters), a per-device detail screen, and per-row selection wired
-// to the real install path (internal/installflow).
+// an interactive TUI by default (replacing gui.cpp/draw.cpp/theme*.cpp's
+// device-list screen - see go/README.md), or a plain-text report
+// (internal/report.Print) when -nogui is set. The TUI shows a
+// scrollable table with an options screen (all engine flags and
+// display filters), a per-device detail screen, and per-row selection
+// wired to the real install path (internal/installflow). "sdigo
+// hwdump"/"sdigo torrenttest" are dev/diagnostic subcommands with no
+// end-user purpose of their own.
 package main
 
 import (
@@ -16,6 +17,7 @@ import (
 	"strings"
 
 	"github.com/charmbracelet/bubbles/table"
+	"github.com/charmbracelet/bubbles/viewport"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 
@@ -194,7 +196,7 @@ func deviceRow(dr scan.DeviceResult, selected, showInstalled bool) table.Row {
 		case dr.Candidates[0].Result.AltSectScore != 0:
 			reason = "already has an equal or better driver installed"
 		}
-		row = table.Row{sel, "MISSING", description, reason, ""}
+		row = table.Row{sel, scan.MatchLabel(nil), description, reason, ""}
 	} else {
 		row = table.Row{sel, scan.MatchLabel(best), description, best.Driverpack.Filename, best.Result.DriverVersion.String()}
 	}
@@ -240,6 +242,11 @@ type model struct {
 	width, height    int
 	showInstalledCol bool
 
+	// detailViewport scrolls the detail screen's content - it's often
+	// taller than the terminal, so unlike every other screen it needs
+	// to be more than a plain string.
+	detailViewport viewport.Model
+
 	matched, missing int
 	selected         map[string]bool // keyed by Device.InstanceID
 
@@ -258,8 +265,20 @@ func (m *model) refreshTable() {
 	m.rows = visibleDevices(m.result.Devices, m.s.Filters)
 	cols, showInstalled := layoutColumns(m.width, m.rows)
 	m.showInstalledCol = showInstalled
+
+	// SetColumns re-renders immediately against whatever rows are
+	// already loaded. If the column count is changing (showInstalled
+	// flipping on a resize) those old rows are the wrong shape for the
+	// new columns, and bubbles/table indexes off the end of them.
+	// Clearing first means SetColumns has nothing to render, and the
+	// real SetRows call below always matches the columns already in
+	// place. SetRows(nil) also resets the cursor to -1 with nothing to
+	// clamp it back afterward, so it's saved and restored explicitly.
+	cursor := m.table.Cursor()
+	m.table.SetRows(nil)
 	m.table.SetColumns(cols)
 	m.table.SetRows(tableRows(m.rows, m.selected, showInstalled))
+	m.table.SetCursor(cursor)
 }
 
 // currentDevice returns the device under the table's cursor, or nil
@@ -292,6 +311,7 @@ func newModel(result scan.Result, s *settings.Settings) model {
 		table: t, result: result, s: s, matched: matched, missing: missing,
 		options: buildOptionItems(), selected: map[string]bool{},
 		width: 100, height: 30,
+		detailViewport: viewport.New(100, 24),
 	}
 	m.refreshTable()
 	return m
@@ -308,6 +328,13 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.table.SetHeight(h)
 		}
 		m.refreshTable()
+
+		m.detailViewport.Width = m.width
+		if h := m.height - 2; h > 0 {
+			m.detailViewport.Height = h
+		} else {
+			m.detailViewport.Height = 1
+		}
 		return m, nil
 
 	case installDoneMsg:
@@ -359,8 +386,10 @@ func (m model) updateTable(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		m.screen = screenOptions
 		return m, nil
 	case "enter":
-		if m.currentDevice() != nil {
+		if dr := m.currentDevice(); dr != nil {
 			m.screen = screenDetail
+			m.detailViewport.SetContent(m.detailView(*dr))
+			m.detailViewport.GotoTop()
 		}
 		return m, nil
 	case " ":
@@ -428,10 +457,11 @@ func (m model) updateOptions(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 }
 
 // updateDetail handles key input on the per-device detail screen.
-// updateDetail handles key input on the per-device detail screen.
 // Only the keys the footer documents do anything - an unrecognized
 // key is ignored rather than closing the screen, so a stray keypress
-// can't dismiss it by accident.
+// can't dismiss it by accident. Scroll keys (arrows/pgup/pgdn/home/
+// end) are forwarded to detailViewport, since content routinely runs
+// longer than the terminal.
 func (m model) updateDetail(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	dr := m.currentDevice()
 	setSelected := func(v bool) {
@@ -444,6 +474,7 @@ func (m model) updateDetail(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			delete(m.selected, dr.Device.InstanceID)
 		}
 		m.table.SetRows(tableRows(m.rows, m.selected, m.showInstalledCol))
+		m.detailViewport.SetContent(m.detailView(*dr))
 	}
 
 	switch msg.String() {
@@ -465,6 +496,10 @@ func (m model) updateDetail(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	case "q", "esc":
 		m.screen = screenTable
 		return m, nil
+	case "up", "down", "k", "j", "pgup", "pgdown", "home", "end", "ctrl+u", "ctrl+d":
+		var cmd tea.Cmd
+		m.detailViewport, cmd = m.detailViewport.Update(msg)
+		return m, cmd
 	}
 	return m, nil
 }
@@ -536,8 +571,8 @@ func (m model) View() string {
 	case screenOptions:
 		return m.optionsView()
 	case screenDetail:
-		if dr := m.currentDevice(); dr != nil {
-			return m.detailView(*dr)
+		if m.currentDevice() != nil {
+			return detailHelpLine + "\n" + m.detailViewport.View()
 		}
 	case screenConfirmInstall:
 		return m.confirmInstallView()
@@ -562,7 +597,7 @@ func (m model) tableView() string {
 		bootstrap, bb.SystemManufacturer, bb.SystemModel, si.Windows.Major, si.Windows.Minor, si.Windows.Build,
 		len(m.result.Devices), len(m.result.Collection.Packs))
 	footer := fmt.Sprintf("\n%d matched, %d missing/no better driver, %d selected for install\n"+
-		"NEWER/OLDER/BETTER all outrank the installed driver - NEWER/OLDER also means\n"+
+		"Newer/Older/Better all outrank the installed driver - Newer/Older also means\n"+
 		"its own release date is newer/older (enter for the full comparison)\n"+
 		"space: tick, a: select all, n: select none, enter: details, i: install, o: options, q: quit\n",
 		m.matched, m.missing, len(m.pendingSelected()))
@@ -741,7 +776,7 @@ func signatureLabel(altSectScore int) string {
 // recommended, ported from the STR_STATUS_BETTER_NEW/_CUR/_OLD
 // sentences itembar_t::str_status builds - the Status column only has
 // room for a short word (scan.MatchLabel), which can otherwise read
-// as a plain negative ("OLDER") for a driver that's still the
+// as a plain negative ("Older") for a driver that's still the
 // recommended pick overall.
 func verdictSummary(best *collection.Candidate) string {
 	if best == nil {
@@ -793,7 +828,7 @@ func scoreDifferences(dr scan.DeviceResult, best *collection.Candidate, is64Bit 
 
 	candFeature := drp.Feature(best.HWIDIndex)
 	if inst.Feature != candFeature {
-		lines = append(lines, fmt.Sprintf("Driver pack's own priority hint: installed=%d, candidate=%d, 255=default/unset (%s wins - lower is preferred)",
+		lines = append(lines, fmt.Sprintf("Driver pack's priority hint: installed=%d, candidate=%d, 255=default (%s wins - lower is preferred)",
 			inst.Feature, candFeature, side(inst.Feature < candFeature)))
 	}
 
@@ -811,12 +846,16 @@ func scoreDifferences(dr scan.DeviceResult, best *collection.Candidate, is64Bit 
 	return lines
 }
 
+// detailHelpLine is rendered as a fixed header above the scrollable
+// detail viewport, rather than as part of its content, so it stays
+// visible regardless of scroll position.
+const detailHelpLine = "Device detail - space: toggle install, y: mark and back, n: unmark and back, q/esc: back, ↑↓: scroll\n"
+
 // detailView renders the full comparison the original's hover
 // tooltip shows (installed vs. available driver), for the device
 // under the table's cursor.
 func (m model) detailView(dr scan.DeviceResult) string {
 	var b strings.Builder
-	b.WriteString("Device detail - space: toggle install, y: mark and back, n: unmark and back, q/esc: back\n\n")
 
 	fmt.Fprintf(&b, "Device\n")
 	fmt.Fprintf(&b, "  Description    %s\n", dr.Device.Description)
@@ -932,7 +971,26 @@ func main() {
 	os.Exit(mainErr())
 }
 
+// mainErr dispatches "sdigo hwdump"/"sdigo torrenttest" as dev/
+// diagnostic subcommands (real hardware/torrent access with no scan
+// or install side effects) before falling through to the normal scan/
+// TUI/-nogui path, so this is the only executable a release needs to
+// build - hwdump and torrenttest never had end-user value on their
+// own, only as tools for verifying this rewrite against a real
+// machine.
 func mainErr() int {
+	if len(os.Args) > 1 {
+		switch os.Args[1] {
+		case "hwdump":
+			return hwdumpMain()
+		case "torrenttest":
+			return torrenttestMain(os.Args[2:])
+		}
+	}
+	return sdigoMain(os.Args[1:])
+}
+
+func sdigoMain(args []string) int {
 	s := settings.New()
 	cfgPath, err := s.LoadDefaultCfgResolved()
 	if err != nil {
@@ -941,7 +999,7 @@ func mainErr() int {
 
 	fs := s.FlagSet("sdigo")
 	doInstall := fs.Bool("install", false, "with -nogui, install matched drivers (modifies the system; without this flag, only scan and report)")
-	if err := fs.Parse(os.Args[1:]); err != nil {
+	if err := fs.Parse(args); err != nil {
 		return 2
 	}
 	s.ExpandDirs()

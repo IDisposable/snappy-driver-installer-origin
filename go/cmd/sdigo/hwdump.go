@@ -1,9 +1,3 @@
-// Command hwdump prints everything the internal/hardware package can
-// detect about the current machine as JSON. It exists to cross-check
-// the Go rewrite's hardware detection against a real Windows host: the
-// dev environment is WSL, which can't call WMI/SetupAPI directly, but
-// can execute a GOOS=windows binary through its PE interop and get
-// real answers from the actual machine. See go/scripts/test-windows.sh.
 package main
 
 import (
@@ -15,39 +9,14 @@ import (
 	"sdio/internal/install"
 )
 
-type result struct {
-	BaseBoard      *hardware.BaseBoard `json:"base_board,omitempty"`
-	BaseBoardError string              `json:"base_board_error,omitempty"`
-
-	SysInfo      *hardware.SysInfo `json:"sys_info,omitempty"`
-	SysInfoError string            `json:"sys_info_error,omitempty"`
-
-	DeviceCount      int      `json:"device_count,omitempty"`
-	SampleDeviceDesc []string `json:"sample_device_desc,omitempty"`
-	DevicesError     string   `json:"devices_error,omitempty"`
-
-	SampleInstalledDrivers []sampleDriver `json:"sample_installed_drivers,omitempty"`
-
-	IsLaptop *bool `json:"is_laptop,omitempty"`
-
-	InstallAPIAvailable bool   `json:"install_api_available"`
-	InstallAPIError     string `json:"install_api_error,omitempty"`
-	RestorePointFreqMin int    `json:"restore_point_frequency_min,omitempty"`
-	RestorePointFreqErr string `json:"restore_point_frequency_error,omitempty"`
-}
-
-type sampleDriver struct {
-	Device       string `json:"device"`
-	Desc         string `json:"desc"`
-	Provider     string `json:"provider"`
-	Version      string `json:"version"`
-	DevPos       int    `json:"dev_pos"`
-	IsHardwareID bool   `json:"is_hardware_id"`
-	Error        string `json:"error,omitempty"`
-}
-
-func main() {
-	var r result
+// hwdumpMain prints everything internal/hardware can detect about the
+// current machine as JSON ("sdigo hwdump"), for cross-checking this
+// rewrite's hardware detection against a real Windows host - the dev
+// environment is WSL, which can't call WMI/SetupAPI directly, but can
+// execute a GOOS=windows binary through PE interop and get real
+// answers from the actual machine.
+func hwdumpMain() int {
+	var r hwdumpResult
 
 	bb, err := hardware.GetBaseBoard()
 	if err != nil {
@@ -82,7 +51,7 @@ func main() {
 
 			if d.DriverKeyName != "" && driversSampled < 5 {
 				driversSampled++
-				sample := sampleDriver{Device: d.Description}
+				sample := hwdumpSampleDriver{Device: d.Description}
 				drv, err := hardware.OpenInstalledDriver(d.DriverKeyName, d)
 				if err != nil {
 					sample.Error = err.Error()
@@ -117,6 +86,38 @@ func main() {
 	enc := json.NewEncoder(os.Stdout)
 	enc.SetIndent("", "  ")
 	if err := enc.Encode(r); err != nil {
-		os.Exit(1)
+		return 1
 	}
+	return 0
+}
+
+type hwdumpResult struct {
+	BaseBoard      *hardware.BaseBoard `json:"base_board,omitempty"`
+	BaseBoardError string              `json:"base_board_error,omitempty"`
+
+	SysInfo      *hardware.SysInfo `json:"sys_info,omitempty"`
+	SysInfoError string            `json:"sys_info_error,omitempty"`
+
+	DeviceCount      int      `json:"device_count,omitempty"`
+	SampleDeviceDesc []string `json:"sample_device_desc,omitempty"`
+	DevicesError     string   `json:"devices_error,omitempty"`
+
+	SampleInstalledDrivers []hwdumpSampleDriver `json:"sample_installed_drivers,omitempty"`
+
+	IsLaptop *bool `json:"is_laptop,omitempty"`
+
+	InstallAPIAvailable bool   `json:"install_api_available"`
+	InstallAPIError     string `json:"install_api_error,omitempty"`
+	RestorePointFreqMin int    `json:"restore_point_frequency_min,omitempty"`
+	RestorePointFreqErr string `json:"restore_point_frequency_error,omitempty"`
+}
+
+type hwdumpSampleDriver struct {
+	Device       string `json:"device"`
+	Desc         string `json:"desc"`
+	Provider     string `json:"provider"`
+	Version      string `json:"version"`
+	DevPos       int    `json:"dev_pos"`
+	IsHardwareID bool   `json:"is_hardware_id"`
+	Error        string `json:"error,omitempty"`
 }

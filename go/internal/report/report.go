@@ -39,11 +39,11 @@ func Print(w io.Writer, result scan.Result) []installflow.Pending {
 			missing++
 			switch {
 			case len(dr.Candidates) == 0:
-				fmt.Fprintf(w, "MISSING  %-50s (%s)\n", dr.Device.Description, scan.StatusLabel(dr.Status))
+				fmt.Fprintf(w, "Missing  %-50s (%s)\n", dr.Device.Description, scan.StatusLabel(dr.Status))
 			case dr.Candidates[0].Result.AltSectScore == 0:
-				fmt.Fprintf(w, "MISSING  %-50s (no valid candidate found)\n", dr.Device.Description)
+				fmt.Fprintf(w, "Missing  %-50s (no valid candidate found)\n", dr.Device.Description)
 			default:
-				fmt.Fprintf(w, "MISSING  %-50s (already has an equal or better driver installed)\n", dr.Device.Description)
+				fmt.Fprintf(w, "Missing  %-50s (already has an equal or better driver installed)\n", dr.Device.Description)
 			}
 			continue
 		}

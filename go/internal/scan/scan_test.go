@@ -105,17 +105,17 @@ func TestDeviceResultVisibleInvalidRequiresExplicitFilter(t *testing.T) {
 }
 
 func TestMatchLabel(t *testing.T) {
-	if got := MatchLabel(nil); got != "MISSING" {
-		t.Errorf("MatchLabel(nil) = %q, want %q", got, "MISSING")
+	if got := MatchLabel(nil); got != "Missing" {
+		t.Errorf("MatchLabel(nil) = %q, want %q", got, "Missing")
 	}
 	cases := []struct {
 		status int
 		want   string
 	}{
-		{matcher.StatusBetter | matcher.StatusNew, "NEWER"},
-		{matcher.StatusBetter | matcher.StatusOld, "OLDER"},
-		{matcher.StatusBetter | matcher.StatusCurrent, "BETTER"},
-		{matcher.StatusBetter, "FOUND"},
+		{matcher.StatusBetter | matcher.StatusNew, "Newer"},
+		{matcher.StatusBetter | matcher.StatusOld, "Older"},
+		{matcher.StatusBetter | matcher.StatusCurrent, "Better"},
+		{matcher.StatusBetter, "Found"},
 	}
 	for _, c := range cases {
 		best := &collection.Candidate{Result: matcher.Result{Status: c.status}}

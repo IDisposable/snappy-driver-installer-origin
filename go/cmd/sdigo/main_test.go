@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/charmbracelet/bubbles/table"
+	tea "github.com/charmbracelet/bubbletea"
 
 	"sdio/internal/collection"
 	"sdio/internal/common"
@@ -374,7 +375,7 @@ func TestScoreDifferencesEnumeratesEachFactor(t *testing.T) {
 	joined := strings.Join(diffs, "\n")
 	for _, want := range []string{
 		"Catalog signature: candidate is properly signed",
-		"Driver pack's own priority hint: installed=100, candidate=255, 255=default/unset (installed wins",
+		"Driver pack's priority hint: installed=100, candidate=255, 255=default (installed wins",
 		"Hardware ID match: candidate matched a more specific ID",
 		"Release date: candidate is dated more recently",
 		"Overall rank: candidate wins (00000014 vs 0000000A",
@@ -438,5 +439,84 @@ func TestDeviceRowFlagsMicrosoftDriver(t *testing.T) {
 	nonMS.Installed = &hardware.InstalledDriver{ProviderName: "Realtek"}
 	if got := deviceRow(nonMS, false, false)[2]; got != "Widget" {
 		t.Errorf("device cell = %q, want %q (no MS flag for a non-Microsoft installed driver)", got, "Widget")
+	}
+}
+
+// TestResizeWhileDetailScreenOpenDoesNotPanic reproduces a real crash:
+// bubbles/table.SetColumns re-renders immediately against whatever
+// rows are already loaded, and if showInstalled flips (changing the
+// column count) those rows are the wrong shape, indexing off the end
+// of the new columns. Shrinking the window while the detail screen is
+// open exercises exactly that path via refreshTable.
+func TestResizeWhileDetailScreenOpenDoesNotPanic(t *testing.T) {
+	best := realDtPortCandidate(t)
+	best.Result.AltSectScore = 2
+	best.Result.DecorScore = 1
+	best.Result.Status = matcher.StatusBetter
+
+	result := scan.Result{Devices: []scan.DeviceResult{{
+		Device:     hardware.Device{Description: "Widget", InstanceID: "d1", HardwareIDs: []string{best.Result.HWID}},
+		Candidates: []collection.Candidate{best},
+	}}}
+	s := settings.New()
+	m := newModel(result, s)
+
+	mm, _ := m.Update(tea.WindowSizeMsg{Width: 200, Height: 50})
+	m = mm.(model)
+
+	mm, _ = m.Update(tea.KeyMsg{Type: tea.KeyEnter})
+	m = mm.(model)
+	if m.screen != screenDetail {
+		t.Fatalf("expected screenDetail, got %v", m.screen)
+	}
+	_ = m.View()
+
+	for _, size := range []tea.WindowSizeMsg{
+		{Width: 40, Height: 10},
+		{Width: 10, Height: 3},
+		{Width: 1, Height: 1},
+		{Width: 200, Height: 50},
+	} {
+		mm, _ = m.Update(size)
+		m = mm.(model)
+		_ = m.View() // must not panic at any size
+	}
+}
+
+// TestDetailViewportScrolls confirms the detail screen's content
+// actually scrolls when it overflows a short terminal, rather than
+// silently clipping with no way to see the rest.
+func TestDetailViewportScrolls(t *testing.T) {
+	best := realDtPortCandidate(t)
+	best.Result.AltSectScore = 2
+	best.Result.DecorScore = 1
+	best.Result.Status = matcher.StatusBetter
+
+	result := scan.Result{Devices: []scan.DeviceResult{{
+		Device:         hardware.Device{Description: "Widget", InstanceID: "d1", HardwareIDs: []string{best.Result.HWID}},
+		Candidates:     []collection.Candidate{best},
+		Installed:      &hardware.InstalledDriver{ProviderName: "Realtek", MatchingDeviceID: best.Result.HWID},
+		InstalledScore: &collection.InstalledScore{Score: 99, Feature: 1},
+	}}}
+	s := settings.New()
+	m := newModel(result, s)
+
+	mm, _ := m.Update(tea.WindowSizeMsg{Width: 100, Height: 8}) // short enough that content overflows
+	m = mm.(model)
+	mm, _ = m.Update(tea.KeyMsg{Type: tea.KeyEnter})
+	m = mm.(model)
+
+	if !m.detailViewport.AtTop() {
+		t.Fatal("expected the viewport to open scrolled to the top")
+	}
+	if m.detailViewport.TotalLineCount() <= m.detailViewport.Height {
+		t.Fatalf("test fixture bug: content (%d lines) must exceed the viewport height (%d) to test scrolling",
+			m.detailViewport.TotalLineCount(), m.detailViewport.Height)
+	}
+
+	mm, _ = m.Update(tea.KeyMsg{Type: tea.KeyDown})
+	m = mm.(model)
+	if m.detailViewport.YOffset == 0 {
+		t.Error("YOffset = 0 after pressing down, want it to have scrolled")
 	}
 }

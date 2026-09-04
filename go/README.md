@@ -126,16 +126,17 @@ GOOS=windows GOARCH=amd64 go build ./...   # this is a Windows-only app
 
 ## Running it
 
-Two scripts build and run one of `cmd/sdi`/`cmd/sdigo`/`cmd/hwdump`/`cmd/torrenttest` (default `sdi`), forwarding any additional arguments to it:
+`cmd/sdigo` is the only binary a release needs; `cmd/sdi` remains as a lightweight dev convenience (identical to `sdigo -nogui`). Two scripts build and run one of `cmd/sdigo`/`cmd/sdi` (default `sdigo`), forwarding any additional arguments to it - `hwdump`/`torrenttest` are also accepted as a target name for convenience, building `cmd/sdigo` and passing the subcommand through as the first argument:
 
 - `scripts/run-windows.sh [target] [args...]` - from WSL: cross-compiles and runs the result directly via PE interop, no Windows-side Go toolchain needed. This is how everything in this README was verified against a real machine during development.
 - `scripts/run-windows.cmd [target] [args...]` - from an actual Windows command prompt: builds natively, so it needs Go installed on Windows. Verified for real via `cmd.exe` invoked from WSL.
 
 ```sh
-go/scripts/run-windows.sh sdi -drp-dir=D:\drivers -index-dir=D:\indexes
+go/scripts/run-windows.sh -nogui -drp-dir=D:\drivers -index-dir=D:\indexes
+go/scripts/run-windows.sh hwdump
 ```
 ```bat
-scripts\run-windows.cmd sdi -drp-dir=D:\drivers -index-dir=D:\indexes
+scripts\run-windows.cmd -nogui -drp-dir=D:\drivers -index-dir=D:\indexes
 ```
 
 ## Building a release

@@ -279,27 +279,27 @@ func scoreInstalledDriver(si hardware.SysInfo, installed *hardware.InstalledDriv
 // ported from the STATUS_BETTER_NEW/_CUR/_OLD branches of
 // itembar_t::str_status (the other six BETTER/SAME/WORSE combinations
 // don't apply here: best is nil unless StatusBetter is already set,
-// per DeviceResult.Best). NEW/OLD/CURRENT is the date-vs-installed
-// axis, independent of the BETTER/WORSE/SAME score axis a plain
-// "FOUND" collapses - the original shows a full sentence per case
+// per DeviceResult.Best). New/Old/Current is the date-vs-installed
+// axis, independent of the Better/Worse/Same score axis a plain
+// "Found" collapses - the original shows a full sentence per case
 // ("More optimal driver available, though it's older"); this returns
 // a short word instead, sized for a table column rather than a
 // sentence. A device with no installed driver to compare dates
 // against at all (first-time install) has neither bit set, so falls
-// through to "FOUND".
+// through to "Found".
 func MatchLabel(best *collection.Candidate) string {
 	if best == nil {
-		return "MISSING"
+		return "Missing"
 	}
 	switch {
 	case best.Result.Status&matcher.StatusNew != 0:
-		return "NEWER"
+		return "Newer"
 	case best.Result.Status&matcher.StatusOld != 0:
-		return "OLDER"
+		return "Older"
 	case best.Result.Status&matcher.StatusCurrent != 0:
-		return "BETTER"
+		return "Better"
 	default:
-		return "FOUND"
+		return "Found"
 	}
 }
 

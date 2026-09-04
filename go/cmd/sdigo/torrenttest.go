@@ -1,14 +1,9 @@
-// Command torrenttest manually exercises internal/update's selective
-// per-file torrent download against a real .torrent file, for
-// diagnosing torrent connectivity/webseed issues outside of a full
-// SDIO run.
 package main
 
 import (
 	"context"
 	"flag"
 	"fmt"
-	"log"
 	"os"
 	"strings"
 	"time"
@@ -16,26 +11,35 @@ import (
 	"sdio/internal/update"
 )
 
-func main() {
-	torrentFile := flag.String("torrent", "", "path to a .torrent metadata file (required)")
-	dataDir := flag.String("data-dir", "", "directory to download into (required)")
-	files := flag.String("files", "", "comma-separated file paths (as shown by -list) to download")
-	list := flag.Bool("list", false, "list every file in the torrent and exit")
-	timeout := flag.Duration("timeout", 2*time.Minute, "how long to wait for the selected files to complete")
-	flag.Parse()
+// torrenttestMain manually exercises internal/update's selective
+// per-file torrent download against a real .torrent file ("sdigo
+// torrenttest ..."), for diagnosing torrent connectivity/webseed
+// issues outside of a full scan/install run.
+func torrenttestMain(args []string) int {
+	fs := flag.NewFlagSet("torrenttest", flag.ContinueOnError)
+	torrentFile := fs.String("torrent", "", "path to a .torrent metadata file (required)")
+	dataDir := fs.String("data-dir", "", "directory to download into (required)")
+	files := fs.String("files", "", "comma-separated file paths (as shown by -list) to download")
+	list := fs.Bool("list", false, "list every file in the torrent and exit")
+	timeout := fs.Duration("timeout", 2*time.Minute, "how long to wait for the selected files to complete")
+	if err := fs.Parse(args); err != nil {
+		return 2
+	}
 
 	if *torrentFile == "" || *dataDir == "" {
-		fmt.Fprintln(os.Stderr, "usage: torrenttest -torrent=<path> -data-dir=<dir> [-list] [-files=a,b,c]")
-		flag.PrintDefaults()
-		os.Exit(2)
+		fmt.Fprintln(os.Stderr, "usage: sdigo torrenttest -torrent=<path> -data-dir=<dir> [-list] [-files=a,b,c]")
+		fs.PrintDefaults()
+		return 2
 	}
 
-	if err := run(*torrentFile, *dataDir, *files, *list, *timeout); err != nil {
-		log.Fatal(err)
+	if err := torrenttestRun(*torrentFile, *dataDir, *files, *list, *timeout); err != nil {
+		fmt.Fprintln(os.Stderr, "error:", err)
+		return 1
 	}
+	return 0
 }
 
-func run(torrentFile, dataDir, files string, list bool, timeout time.Duration) error {
+func torrenttestRun(torrentFile, dataDir, files string, list bool, timeout time.Duration) error {
 	c, err := update.NewClient(update.Config{DataDir: dataDir})
 	if err != nil {
 		return err

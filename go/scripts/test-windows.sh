@@ -1,7 +1,9 @@
 #!/usr/bin/env bash
-# Builds cmd/hwdump for Windows and runs it directly from WSL, which
-# executes it as a real Windows process via PE interop - giving actual
-# WMI/SetupAPI/registry answers from the host machine, not a mock.
+# Builds cmd/sdigo for Windows and runs its "hwdump" subcommand
+# directly from WSL, which executes it as a real Windows process via
+# PE interop - giving actual WMI/SetupAPI/registry answers from the
+# host machine, not a mock. Equivalent to run-windows.sh hwdump; kept
+# as its own script since it predates sdigo's subcommand dispatch.
 #
 # Usage: go/scripts/test-windows.sh
 # Output: JSON on stdout from hwdump; compare fields by hand (or pipe
@@ -19,11 +21,11 @@ if ! grep -qi microsoft /proc/version 2>/dev/null; then
 	exit 1
 fi
 
-BIN="$(mktemp -u /tmp/hwdump-XXXXXX.exe)"
+BIN="$(mktemp -u /tmp/sdigo-XXXXXX.exe)"
 trap 'rm -f "$BIN"' EXIT
 
-echo "Building cmd/hwdump for windows/amd64..." >&2
-GOOS=windows GOARCH=amd64 go build -o "$BIN" ./cmd/hwdump
+echo "Building cmd/sdigo for windows/amd64..." >&2
+GOOS=windows GOARCH=amd64 go build -o "$BIN" ./cmd/sdigo
 
 echo "Running on the real Windows host via WSL interop..." >&2
-"$BIN"
+"$BIN" hwdump
