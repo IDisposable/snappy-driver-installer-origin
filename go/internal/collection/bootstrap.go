@@ -42,7 +42,9 @@ func placeholderIndexFilename(properBinName string) string {
 // in-progress file data - not a temp directory, so an interrupted
 // download resumes instead of restarting from zero next run.
 // onProgress, if non-nil, is called with live byte-level progress.
-func BootstrapIndexes(torrentFile, indexDir, updatesDir string, seed bool, onProgress update.ProgressFunc) (int, error) {
+// onAlert, if non-nil, is called for the torrent client's own
+// Warning-or-higher events (see update.Config.OnAlert).
+func BootstrapIndexes(torrentFile, indexDir, updatesDir string, seed bool, onAlert func(level, message string), onProgress update.ProgressFunc) (int, error) {
 	if torrentFile == "" {
 		return 0, fmt.Errorf("no torrent source configured")
 	}
@@ -53,7 +55,7 @@ func BootstrapIndexes(torrentFile, indexDir, updatesDir string, seed bool, onPro
 		return 0, fmt.Errorf("creating %s: %w", updatesDir, err)
 	}
 
-	c, err := update.NewClient(update.Config{DataDir: updatesDir, Seed: seed})
+	c, err := update.NewClient(update.Config{DataDir: updatesDir, Seed: seed, OnAlert: onAlert})
 	if err != nil {
 		return 0, fmt.Errorf("starting torrent client: %w", err)
 	}
@@ -104,9 +106,10 @@ func BootstrapIndexes(torrentFile, indexDir, updatesDir string, seed bool, onPro
 	dlCtx, dlCancel := context.WithTimeout(context.Background(), 10*time.Minute)
 	defer dlCancel()
 	label := fmt.Sprintf("%d index file(s)", len(selected))
-	if err := t.WaitDownload(dlCtx, selected, 10*time.Minute, label, onProgress); err != nil {
-		return 0, fmt.Errorf("downloading indexes: %w", err)
-	}
+	waitErr := t.WaitDownload(dlCtx, selected, 10*time.Minute, label, onProgress)
+	// waitErr (a timeout, most often) doesn't mean nothing downloaded -
+	// save whatever did complete instead of discarding it; os.Stat
+	// below skips whichever files didn't reach 100%.
 
 	count := 0
 	for _, fi := range selected {
@@ -115,11 +118,17 @@ func BootstrapIndexes(torrentFile, indexDir, updatesDir string, seed bool, onPro
 			continue
 		}
 		src := filepath.Join(updatesDir, filepath.FromSlash(fi.Path))
+		if _, err := os.Stat(src); err != nil {
+			continue // never completed
+		}
 		dest := filepath.Join(indexDir, placeholder)
 		if err := update.SaveFile(src, dest); err != nil {
 			continue // best-effort: one bad file shouldn't fail the whole bootstrap
 		}
 		count++
+	}
+	if waitErr != nil {
+		return count, fmt.Errorf("downloading indexes: %w (%d of %d completed and saved)", waitErr, count, len(selected))
 	}
 	return count, nil
 }

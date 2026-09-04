@@ -4,6 +4,7 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+	"time"
 
 	"github.com/anacrolix/torrent"
 )
@@ -149,6 +150,49 @@ func TestSaveFileMovesContentAndCreatesDestDir(t *testing.T) {
 	}
 	if _, err := os.Stat(src); !os.IsNotExist(err) {
 		t.Error("source file should no longer exist after SaveFile")
+	}
+}
+
+// TestSaveFileRetriesUntilSourceBecomesAvailable exercises the retry
+// path added for a real, empirically observed failure: the torrent
+// client can still hold src open for a moment after a download
+// reaches 100%, so the first rename attempt fails even though the
+// data itself is already complete and correct. A held file lock can't
+// be reproduced portably in a test, so this drives the same "not
+// available yet, then available" shape via a source that doesn't
+// exist until partway through the retry window - what matters here is
+// that SaveFile keeps trying instead of failing on the first attempt.
+func TestSaveFileRetriesUntilSourceBecomesAvailable(t *testing.T) {
+	src := filepath.Join(t.TempDir(), "source.bin")
+	dest := filepath.Join(t.TempDir(), "dest.bin")
+
+	go func() {
+		time.Sleep(saveFileRetryDelay + 50*time.Millisecond)
+		os.WriteFile(src, []byte("hello"), 0o644)
+	}()
+
+	if err := SaveFile(src, dest); err != nil {
+		t.Fatalf("SaveFile() error: %v", err)
+	}
+	got, err := os.ReadFile(dest)
+	if err != nil || string(got) != "hello" {
+		t.Errorf("dest content = %q (err=%v), want %q, nil", got, err, "hello")
+	}
+}
+
+// TestSaveFileGivesUpAfterRetriesExhausted confirms a source that
+// never appears still returns an error eventually, rather than
+// retrying forever.
+func TestSaveFileGivesUpAfterRetriesExhausted(t *testing.T) {
+	src := filepath.Join(t.TempDir(), "never-created.bin")
+	dest := filepath.Join(t.TempDir(), "dest.bin")
+
+	start := time.Now()
+	if err := SaveFile(src, dest); err == nil {
+		t.Fatal("SaveFile() error = nil, want an error for a source that never appears")
+	}
+	if elapsed := time.Since(start); elapsed < saveFileRetryDelay {
+		t.Errorf("SaveFile() returned after %v, want it to have retried for at least one delay interval", elapsed)
 	}
 }
 

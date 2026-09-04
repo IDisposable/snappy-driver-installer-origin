@@ -37,11 +37,12 @@ type Pending struct {
 // TUI screen that owns the whole terminal via the alternate screen
 // buffer) can capture them into a buffer instead of corrupting its own
 // display. onProgress, if non-nil, is called with live byte-level
-// progress while a pending driver pack downloads. This modifies the
-// system - it is only reached when a caller has explicitly requested
-// an install.
-func Run(s *settings.Settings, pending []Pending, out io.Writer, onProgress update.ProgressFunc) {
-	if err := DownloadPending(s, pending, out, onProgress); err != nil {
+// progress while a pending driver pack downloads. onAlert, if
+// non-nil, is called for the torrent client's own Warning-or-higher
+// events (see update.Config.OnAlert). This modifies the system - it
+// is only reached when a caller has explicitly requested an install.
+func Run(s *settings.Settings, pending []Pending, out io.Writer, onAlert func(level, message string), onProgress update.ProgressFunc) {
+	if err := DownloadPending(s, pending, out, onAlert, onProgress); err != nil {
 		fmt.Fprintf(out, "warning: downloading pending driver packs: %v\n", err)
 	}
 
@@ -85,7 +86,9 @@ func Run(s *settings.Settings, pending []Pending, out io.Writer, onProgress upda
 // data fetched first. Does nothing if no candidate is pending, so it
 // is always safe to call. onProgress, if non-nil, is called with live
 // byte-level progress for whichever pack is currently downloading.
-func DownloadPending(s *settings.Settings, pending []Pending, out io.Writer, onProgress update.ProgressFunc) error {
+// onAlert, if non-nil, is called for the torrent client's own
+// Warning-or-higher events (see update.Config.OnAlert).
+func DownloadPending(s *settings.Settings, pending []Pending, out io.Writer, onAlert func(level, message string), onProgress update.ProgressFunc) error {
 	var need []Pending
 	for _, p := range pending {
 		if p.Candidate.Driverpack.Pending {
@@ -108,7 +111,7 @@ func DownloadPending(s *settings.Settings, pending []Pending, out io.Writer, onP
 		return err
 	}
 
-	c, err := update.NewClient(update.Config{DataDir: s.UpdatesDir, Seed: s.Flags&settings.FlagKeepSeeding != 0})
+	c, err := update.NewClient(update.Config{DataDir: s.UpdatesDir, Seed: s.Flags&settings.FlagKeepSeeding != 0, OnAlert: onAlert})
 	if err != nil {
 		return fmt.Errorf("starting torrent client: %w", err)
 	}

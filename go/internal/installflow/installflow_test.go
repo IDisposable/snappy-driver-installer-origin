@@ -166,7 +166,7 @@ func TestDownloadPendingRealTorrent(t *testing.T) {
 		},
 	}}
 
-	if err := DownloadPending(s, pending, io.Discard, nil); err != nil {
+	if err := DownloadPending(s, pending, io.Discard, nil, nil); err != nil {
 		t.Fatalf("DownloadPending() error: %v", err)
 	}
 

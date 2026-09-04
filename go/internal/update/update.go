@@ -30,6 +30,7 @@ import (
 	"path/filepath"
 	"time"
 
+	alog "github.com/anacrolix/log"
 	"github.com/anacrolix/torrent"
 	"golang.org/x/time/rate"
 )
@@ -43,6 +44,15 @@ type Config struct {
 	DownloadKBps int    // 0 = unlimited
 	UploadKBps   int    // 0 = unlimited
 	Seed         bool   // keep serving pieces to other peers after completing (IsSeedingDrivers)
+
+	// OnAlert, if non-nil, is called for every Warning-or-higher event
+	// the torrent client itself logs (peer/tracker/webseed errors, not
+	// this package's own operations) - ported from Updater_t's alert
+	// handling (FLAG_TORRENTALERTS). Left unset, these are silently
+	// discarded rather than left at anacrolix/torrent's own default of
+	// writing straight to stderr, which would corrupt a caller that
+	// owns the whole terminal (e.g. a TUI's alternate screen buffer).
+	OnAlert func(level, message string)
 }
 
 // Client wraps *torrent.Client.
@@ -64,12 +74,28 @@ func NewClient(cfg Config) (*Client, error) {
 	if cfg.UploadKBps > 0 {
 		tc.UploadRateLimiter = rate.NewLimiter(rate.Limit(cfg.UploadKBps*1024), 256<<10)
 	}
+	tc.Logger = alog.NewLogger()
+	tc.Logger.SetHandlers(alertHandler{cfg.OnAlert})
 
 	cl, err := torrent.NewClient(tc)
 	if err != nil {
 		return nil, fmt.Errorf("creating torrent client: %w", err)
 	}
 	return &Client{cl: cl}, nil
+}
+
+// alertHandler routes anacrolix/torrent's own log records to OnAlert
+// instead of its default stderr handler, dropping anything below
+// Warning (routine debug/info chatter isn't an "alert").
+type alertHandler struct {
+	onAlert func(level, message string)
+}
+
+func (h alertHandler) Handle(r alog.Record) {
+	if h.onAlert == nil || r.Level.LessThan(alog.Warning) {
+		return
+	}
+	h.onAlert(r.Level.LogString(), r.String())
 }
 
 // Close shuts down the client and every torrent it's managing.
@@ -273,24 +299,57 @@ func (t *Torrent) WaitDownload(ctx context.Context, files []FileInfo, timeout ti
 	return fmt.Errorf("timed out waiting for the download to complete")
 }
 
+// saveFileRetries/saveFileRetryDelay bound how long SaveFile waits for
+// a just-completed download's source file to become movable. The
+// torrent client keeps a shared read-handle pool open past a piece's
+// last write for verification/seeding (see anacrolix/torrent's
+// storage/file-handle-cache.go), so a rename attempted the instant
+// WaitDownload sees 100% can transiently fail on Windows with the
+// data already fully correct on disk - confirmed against a real
+// "Download All" run, where every affected file did succeed given a
+// later retry.
+const (
+	saveFileRetries    = 10
+	saveFileRetryDelay = 300 * time.Millisecond
+)
+
 // SaveFile relocates a downloaded file from a torrent client's data
 // directory to its final destination, falling back to copy-then-
 // remove if a direct rename fails (e.g. they're on different volumes -
 // the torrent client's temporary data directory and a driver-pack/
-// index directory need not be on the same drive).
+// index directory need not be on the same drive). Both the rename and
+// the copy's initial open retry past a transient "in use" failure -
+// see saveFileRetries.
 func SaveFile(src, dest string) error {
 	if err := os.MkdirAll(filepath.Dir(dest), 0o755); err != nil {
 		return err
 	}
-	if err := os.Rename(src, dest); err == nil {
-		return nil
+
+	var renameErr error
+	for i := 0; i < saveFileRetries; i++ {
+		if renameErr = os.Rename(src, dest); renameErr == nil {
+			return nil
+		}
+		if i < saveFileRetries-1 {
+			time.Sleep(saveFileRetryDelay)
+		}
 	}
 
-	in, err := os.Open(src)
-	if err != nil {
-		return err
+	var in *os.File
+	var openErr error
+	for i := 0; i < saveFileRetries; i++ {
+		if in, openErr = os.Open(src); openErr == nil {
+			break
+		}
+		if i < saveFileRetries-1 {
+			time.Sleep(saveFileRetryDelay)
+		}
+	}
+	if openErr != nil {
+		return fmt.Errorf("rename failed (%w) and source is still unreadable: %w", renameErr, openErr)
 	}
 	defer in.Close()
+
 	out, err := os.Create(dest)
 	if err != nil {
 		return err

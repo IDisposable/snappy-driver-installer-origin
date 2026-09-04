@@ -9,6 +9,8 @@ import (
 	"path/filepath"
 	"strings"
 	"time"
+
+	"sdio/internal/common"
 )
 
 // DriverPackFilter reports whether a driver-pack filename (just the
@@ -39,9 +41,10 @@ func NetworkDriverPacks(filename string) bool {
 // for in-progress file data - not a temp directory, so an interrupted
 // download resumes instead of restarting from zero next run.
 // onProgress, if non-nil, is called with live byte-level progress
-// across every selected file - see ProgressFunc. Returns how many
-// files were newly downloaded.
-func DownloadDriverPacks(torrentFile, drpDir, updatesDir string, seed bool, filter DriverPackFilter, out io.Writer, timeout time.Duration, onProgress ProgressFunc) (int, error) {
+// across every selected file - see ProgressFunc. onAlert, if non-nil,
+// is called for the torrent client's own Warning-or-higher events
+// (see Config.OnAlert). Returns how many files were newly downloaded.
+func DownloadDriverPacks(torrentFile, drpDir, updatesDir string, seed bool, onAlert func(level, message string), filter DriverPackFilter, out io.Writer, timeout time.Duration, onProgress ProgressFunc) (int, error) {
 	if err := os.MkdirAll(drpDir, 0o755); err != nil {
 		return 0, err
 	}
@@ -49,7 +52,7 @@ func DownloadDriverPacks(torrentFile, drpDir, updatesDir string, seed bool, filt
 		return 0, err
 	}
 
-	c, err := NewClient(Config{DataDir: updatesDir, Seed: seed})
+	c, err := NewClient(Config{DataDir: updatesDir, Seed: seed, OnAlert: onAlert})
 	if err != nil {
 		return 0, fmt.Errorf("starting torrent client: %w", err)
 	}
@@ -94,6 +97,17 @@ func DownloadDriverPacks(torrentFile, drpDir, updatesDir string, seed bool, filt
 	label := fmt.Sprintf("%d driver pack(s)", len(selected))
 	if err := t.WaitDownload(dlCtx, selected, timeout, label, onProgress); err != nil {
 		fmt.Fprintf(out, "warning: download did not finish: %v\n", err)
+		// Which file(s), not just that something didn't finish -
+		// otherwise a webseed outage or a peer-less file (both real,
+		// seen against the actual public torrent) look identical to
+		// "everything worked" once downloaded silently drops them.
+		for _, fp := range t.Progress(selected).Files {
+			if fp.Percent() < 100 {
+				fmt.Fprintf(out, "  incomplete: %s (%d%%, %s of %s - no peers/webseed data for the rest)\n",
+					path.Base(filepath.ToSlash(fp.Path)), fp.Percent(),
+					common.BytesToStr(uint64(fp.Completed)), common.BytesToStr(uint64(fp.Total)))
+			}
+		}
 	}
 
 	downloaded := 0
@@ -101,7 +115,7 @@ func DownloadDriverPacks(torrentFile, drpDir, updatesDir string, seed bool, filt
 		base := path.Base(filepath.ToSlash(f.Path))
 		src := filepath.Join(updatesDir, filepath.FromSlash(f.Path))
 		if _, err := os.Stat(src); err != nil {
-			continue // never completed
+			continue // never completed, already reported above
 		}
 		dest := filepath.Join(drpDir, base)
 		if err := SaveFile(src, dest); err != nil {
