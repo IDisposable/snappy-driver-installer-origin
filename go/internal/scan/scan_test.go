@@ -64,21 +64,31 @@ func TestDeviceResultVisibleDefaultFiltersMatchesBetter(t *testing.T) {
 	}
 }
 
+// TestDeviceResultVisibleNoCandidatesUsesDeviceStatus confirms every
+// no-candidate-at-all status (NF_MISSING/NF_UNKNOWN/NF_STANDARD, the
+// "absent in driver packs" bucket) is hidden under DefaultFilters -
+// this rewrite has no way to find a driver for these regardless, and
+// real-world sdio.cfg files converge on not showing them (see
+// settings.DefaultFilters' doc comment). FilterNFMissing explicitly
+// re-enables the "not installed" case if a caller wants it back.
 func TestDeviceResultVisibleNoCandidatesUsesDeviceStatus(t *testing.T) {
 	cases := []struct {
 		name   string
 		status int
-		want   bool
 	}{
-		{"nf-missing shown by default", matcher.StatusNFMissing, true},
-		{"nf-standard hidden by default", matcher.StatusNFStandard, false},
-		{"nf-unknown hidden by default", matcher.StatusNFUnknown, false},
+		{"nf-missing hidden by default", matcher.StatusNFMissing},
+		{"nf-standard hidden by default", matcher.StatusNFStandard},
+		{"nf-unknown hidden by default", matcher.StatusNFUnknown},
 	}
 	for _, c := range cases {
 		dr := DeviceResult{Status: c.status}
-		if got := dr.Visible(settings.DefaultFilters); got != c.want {
-			t.Errorf("%s: Visible(DefaultFilters) = %v, want %v", c.name, got, c.want)
+		if got := dr.Visible(settings.DefaultFilters); got {
+			t.Errorf("%s: Visible(DefaultFilters) = true, want false", c.name)
 		}
+	}
+	dr := DeviceResult{Status: matcher.StatusNFMissing}
+	if !dr.Visible(settings.DefaultFilters | settings.FilterNFMissing) {
+		t.Error("Visible(DefaultFilters|FilterNFMissing) = false, want true")
 	}
 }
 

@@ -23,10 +23,19 @@ const (
 	FilterInvalid    FilterShow = 1 << 12 // ID_SHOW_INVALID
 )
 
-// DefaultFilters matches the original's default: not-installed, better
-// matches, missing-and-not-found devices, and only the best match per
-// device. "Newer" is left out by default, as in the original.
-const DefaultFilters = FilterMissing | FilterBetter | FilterNFMissing | FilterOne
+// DefaultFilters deliberately does NOT match the original's
+// compiled-in default (FilterMissing|FilterBetter|FilterNFMissing|
+// FilterOne, from Settings_t's constructor in settings.cpp). That
+// default shows every device with literally no candidate driver pack
+// at all (FilterNFMissing) as "MISSING" - noisy for devices this
+// rewrite has no way to find a driver for regardless (virtual buses,
+// vendor-specific services, etc.), and not what real installations
+// converge on: a real production sdio.cfg's persisted filters value
+// (1062) drops FilterNFMissing and adds FilterNewer instead. This
+// constant matches that real-world value, per explicit user direction
+// ("the GUI doesn't show missing drivers for things that are not in
+// the driver packs... I think that needs to be the default").
+const DefaultFilters = FilterMissing | FilterNewer | FilterBetter | FilterOne
 
 // FilterOption is one entry of FilterOptions, for a front end (e.g. a
 // TUI options screen) to list and toggle every display filter without

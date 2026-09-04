@@ -31,6 +31,14 @@ type DeviceResult struct {
 	Device     hardware.Device
 	Status     int // matcher.Status* bits
 	Candidates []collection.Candidate
+
+	// Installed is the currently installed driver's own registry-read
+	// details (provider, inf path/section, version, matched ID), or
+	// nil if the device has no driver key or it couldn't be read - the
+	// same *hardware.InstalledDriver Run() already computes a score
+	// from, kept around for a front end that wants to display it (see
+	// cmd/sditui's detail screen and wide-terminal "Installed" column).
+	Installed *hardware.InstalledDriver
 }
 
 // Best returns the top-ranked candidate that represents a genuine
@@ -203,7 +211,7 @@ func Run(s *settings.Settings) (Result, error) {
 		if dm.Status == matcher.StatusIgnored {
 			continue
 		}
-		res.Devices = append(res.Devices, DeviceResult{Device: d, Status: dm.Status, Candidates: dm.Candidates})
+		res.Devices = append(res.Devices, DeviceResult{Device: d, Status: dm.Status, Candidates: dm.Candidates, Installed: installed})
 	}
 
 	return res, nil
