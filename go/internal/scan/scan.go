@@ -55,6 +55,55 @@ func (r DeviceResult) Best() *collection.Candidate {
 	return &r.Candidates[0]
 }
 
+// Visible reports whether this device should be shown under filters,
+// ported from the per-status-bit OR logic in Manager::filter
+// (`options&statustnl[k].filter && status&statustnl[k].status`),
+// adapted to this rewrite's single-best-candidate-per-device model
+// (FILTER_SHOW_ONE is always effectively active in the original too -
+// its own flag read is dead code, unconditionally overwritten with 1).
+// Unlike Best, which always applies the original's default filter set
+// regardless of the caller's actual Settings.Filters, Visible lets a
+// front end honor the user's configured filters (see cmd/sditui's
+// options screen).
+func (r DeviceResult) Visible(filters settings.FilterShow) bool {
+	if len(r.Candidates) == 0 {
+		switch r.Status {
+		case matcher.StatusNFMissing:
+			return filters&settings.FilterNFMissing != 0
+		case matcher.StatusNFUnknown:
+			return filters&settings.FilterNFUnknown != 0
+		case matcher.StatusNFStandard:
+			return filters&settings.FilterNFStandard != 0
+		}
+		return false
+	}
+
+	st := r.Candidates[0].Result.Status
+	visible := false
+	if filters&settings.FilterBetter != 0 && st&matcher.StatusBetter != 0 {
+		visible = true
+	}
+	if filters&settings.FilterWorseRank != 0 && st&matcher.StatusWorse != 0 {
+		visible = true
+	}
+	if filters&settings.FilterNewer != 0 && st&matcher.StatusNew != 0 {
+		visible = true
+	}
+	if filters&settings.FilterCurrent != 0 && st&matcher.StatusCurrent != 0 {
+		visible = true
+	}
+	if filters&settings.FilterOld != 0 && st&matcher.StatusOld != 0 {
+		visible = true
+	}
+	if !visible {
+		return false
+	}
+	if st&matcher.StatusInvalid != 0 && filters&settings.FilterInvalid == 0 {
+		return false
+	}
+	return true
+}
+
 // Result is the outcome of a full scan.
 type Result struct {
 	System     System

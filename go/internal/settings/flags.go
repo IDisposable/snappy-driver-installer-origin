@@ -74,3 +74,23 @@ var boolFlagDefs = []boolFlagDef{
 	{"reindex", "force driver pack reindexing", FlagForceReindexing, false},
 	{"index-hr", "write a human-readable index alongside the binary one", FlagPrintIndex, false},
 }
+
+// FlagOption is one entry of FlagOptions, for a front end (e.g. a TUI
+// options screen) to list and toggle every registered engine flag
+// without needing to know boolFlagDefs' internal layout.
+type FlagOption struct {
+	Name    string
+	Help    string
+	Bit     Flags
+	Persist bool // whether this flag round-trips through sdio.cfg
+}
+
+// FlagOptions lists every registered boolean engine flag (the same
+// set FlagSet/Save use), for building a settings UI.
+func FlagOptions() []FlagOption {
+	out := make([]FlagOption, len(boolFlagDefs))
+	for i, d := range boolFlagDefs {
+		out[i] = FlagOption{Name: d.name, Help: d.help, Bit: d.flag, Persist: d.persist}
+	}
+	return out
+}
