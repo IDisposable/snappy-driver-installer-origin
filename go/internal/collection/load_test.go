@@ -1,11 +1,42 @@
 package collection
 
 import (
+	"os"
 	"path/filepath"
 	"testing"
 
 	"sdio/internal/indexing"
 )
+
+// realIndexDirCopy copies the reference installation's real index
+// directory into a fresh temp dir and returns its path - LoadCollection
+// can now write a freshly-built index for any pack it finds missing/
+// stale one for (see BuildIndexFromArchive), and these tests must not
+// let that land in the real, OneDrive-synced production directory just
+// from running `go test`. driverpackDir itself is never written to
+// (only read to discover/extract .7z files), so it's fine to point
+// straight at the real one.
+func realIndexDirCopy(t *testing.T, realIndexDir string) string {
+	t.Helper()
+	entries, err := os.ReadDir(realIndexDir)
+	if err != nil {
+		t.Skipf("no real installation available: %v", err)
+	}
+	dst := t.TempDir()
+	for _, e := range entries {
+		if e.IsDir() {
+			continue
+		}
+		data, err := os.ReadFile(filepath.Join(realIndexDir, e.Name()))
+		if err != nil {
+			t.Fatalf("copying %s: %v", e.Name(), err)
+		}
+		if err := os.WriteFile(filepath.Join(dst, e.Name()), data, 0o644); err != nil {
+			t.Fatalf("copying %s: %v", e.Name(), err)
+		}
+	}
+	return dst
+}
 
 func TestIndexFilename(t *testing.T) {
 	cases := []struct{ in, want string }{
@@ -92,9 +123,9 @@ func TestLoadOnlineIndexesRealInstallation(t *testing.T) {
 // download should land.
 func TestLoadCollectionIncludesPendingPacks(t *testing.T) {
 	const driverpackDir = "/mnt/d/OneDrive/Desktop/Reinstall/DriverInstaller/drivers"
-	const indexDir = "/mnt/d/OneDrive/Desktop/Reinstall/DriverInstaller/indexes/SDI"
+	indexDir := realIndexDirCopy(t, "/mnt/d/OneDrive/Desktop/Reinstall/DriverInstaller/indexes/SDI")
 
-	result, err := LoadCollection(driverpackDir, indexDir)
+	result, err := LoadCollection(driverpackDir, indexDir, false, false)
 	if err != nil {
 		t.Skipf("no real installation available: %v", err)
 	}
@@ -118,18 +149,15 @@ func TestLoadCollectionIncludesPendingPacks(t *testing.T) {
 }
 
 // TestLoadCollectionRealInstallation loads every real driver pack in
-// the reference installation, confirming most load successfully (a
-// handful of stale/mismatched index files are tolerated - see
-// go/README.md's note on the reference collection containing orphaned
-// .bin files with no matching .7z), then runs Match for the known
-// dtport device against the loaded collection to confirm the loaded
-// Driverpack values are usable end-to-end, not just individually
-// decodable.
+// the reference installation (a pack with a missing/stale index now
+// gets a fresh one built from its own .7z instead of being skipped -
+// see BuildIndexFromArchive), confirming very few packs are genuinely
+// unusable (an unreadable .7z, not just a missing index).
 func TestLoadCollectionRealInstallation(t *testing.T) {
 	const driverpackDir = "/mnt/d/OneDrive/Desktop/Reinstall/DriverInstaller/drivers"
-	const indexDir = "/mnt/d/OneDrive/Desktop/Reinstall/DriverInstaller/indexes/SDI"
+	indexDir := realIndexDirCopy(t, "/mnt/d/OneDrive/Desktop/Reinstall/DriverInstaller/indexes/SDI")
 
-	result, err := LoadCollection(driverpackDir, indexDir)
+	result, err := LoadCollection(driverpackDir, indexDir, false, false)
 	if err != nil {
 		t.Skipf("no real installation available: %v", err)
 	}

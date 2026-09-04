@@ -219,7 +219,8 @@ func MatchWithCollection(s *settings.Settings, p Prepared) (Result, error) {
 	res := Result{System: p.System, FirstRun: p.FirstRun}
 
 	var err error
-	res.Collection, err = collection.LoadCollection(s.DrpDir, s.IndexDir)
+	res.Collection, err = collection.LoadCollection(s.DrpDir, s.IndexDir,
+		s.Flags&settings.FlagForceReindexing != 0, s.Flags&settings.FlagPrintIndex != 0)
 	if err != nil {
 		return res, fmt.Errorf("loading driver-pack collection: %w", err)
 	}

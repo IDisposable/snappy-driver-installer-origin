@@ -18,12 +18,10 @@ type SkippedPack struct {
 }
 
 // LoadResult separates driver packs that loaded successfully from
-// ones whose index couldn't be read (missing, corrupt, or otherwise
-// unreadable) - ported from the file-discovery half of
-// Collection::scanfolder, minus reindexing: a driver pack with no
-// valid index can't be built by this rewrite yet (genindex's write
-// side isn't ported - see go/README.md), so such packs are reported
-// in Skipped rather than indexed on the fly.
+// ones a fresh index couldn't be built for either (missing/corrupt
+// existing index, and the pack's own .7z couldn't be read to build a
+// replacement) - ported from the file-discovery half of
+// Collection::scanfolder.
 type LoadResult struct {
 	Packs   []*indexing.Driverpack
 	Skipped []SkippedPack
@@ -44,11 +42,17 @@ func indexFilename(packFilename string) string {
 
 // LoadCollection scans driverpackDir for .7z driver packs (see
 // indexing.ScanDriverpackFolder) and loads each one's compiled index
-// from indexDir - reindexing isn't supported (see LoadResult's doc),
-// so a pack with no valid index is only reported, never rebuilt. It
-// also loads any pending (not-yet-downloaded) packs found via
-// LoadOnlineIndexes, appended to LoadResult.Packs with Pending set.
-func LoadCollection(driverpackDir, indexDir string) (LoadResult, error) {
+// from indexDir, building a fresh one from the pack's own .7z contents
+// (see BuildIndexFromArchive/SaveIndex) whenever the existing index is
+// missing/corrupt or reindex is set - ported from Collection::
+// scanfolder's genindex fallback. writeHumanReadable additionally
+// writes a text dump (-index-hr) alongside any index actually (re)
+// built this call; it has no effect on a pack whose existing index was
+// already valid and reindex wasn't set, matching COLLECTION_PRINT_
+// INDEX's original scope (a side effect of genindex, not a standalone
+// action). It also loads any pending (not-yet-downloaded) packs found
+// via LoadOnlineIndexes, appended to LoadResult.Packs with Pending set.
+func LoadCollection(driverpackDir, indexDir string, reindex, writeHumanReadable bool) (LoadResult, error) {
 	files, err := indexing.ScanDriverpackFolder(driverpackDir)
 	if err != nil {
 		return LoadResult{}, err
@@ -56,12 +60,31 @@ func LoadCollection(driverpackDir, indexDir string) (LoadResult, error) {
 
 	var result LoadResult
 	for _, f := range files {
-		idx, err := loadIndex(filepath.Join(indexDir, indexFilename(f.Filename)))
+		indexPath := filepath.Join(indexDir, indexFilename(f.Filename))
+		idx, err := loadIndex(indexPath)
+		if err == nil && !reindex {
+			result.Packs = append(result.Packs, &indexing.Driverpack{Path: f.Dir, Filename: f.Filename, Index: idx})
+			continue
+		}
+
+		idx, err = BuildIndexFromArchive(filepath.Join(f.Dir, f.Filename))
 		if err != nil {
 			result.Skipped = append(result.Skipped, SkippedPack{Filename: f.Filename, Err: err})
 			continue
 		}
-		result.Packs = append(result.Packs, &indexing.Driverpack{Path: f.Dir, Filename: f.Filename, Index: idx})
+		// Best-effort: a pack that couldn't be saved/dumped is still
+		// usable for this run from the in-memory index just built: only
+		// a genuinely unreadable .7z (handled above) makes a pack
+		// unusable.
+		_ = SaveIndex(idx, indexPath)
+		drp := &indexing.Driverpack{Path: f.Dir, Filename: f.Filename, Index: idx}
+		if writeHumanReadable {
+			if hrFile, err := os.Create(strings.TrimSuffix(indexPath, filepath.Ext(indexPath)) + ".txt"); err == nil {
+				indexing.WriteHumanReadable(drp, hrFile)
+				hrFile.Close()
+			}
+		}
+		result.Packs = append(result.Packs, drp)
 	}
 
 	pending, err := LoadOnlineIndexes(indexDir, result.Packs)

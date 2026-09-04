@@ -65,8 +65,8 @@ var boolFlagDefs = []boolFlagDef{
 	{"delextrainfs", "delete extra .inf files after install", FlagDelExtraInfs, false},
 	{"nologfile", "don't write a log file (not implemented - no log-file writer exists yet)", FlagNoLogFile, false},
 	{"nosnapshot", "don't save a system snapshot (not implemented - no snapshot writer exists yet)", FlagNoSnapshot, false},
-	{"reindex", "force driver pack reindexing (not implemented - the index write path isn't ported yet)", FlagForceReindexing, false},
-	{"index-hr", "write a human-readable index alongside the binary one (not implemented - the index write path isn't ported yet)", FlagPrintIndex, false},
+	{"reindex", "rebuild every driver pack's index from its own .7z, even if a valid one already exists", FlagForceReindexing, false},
+	{"index-hr", "also write a human-readable text index alongside any index (re)built this run", FlagPrintIndex, false},
 }
 
 // FlagOption is one entry of FlagOptions, for a front end (e.g. a TUI
