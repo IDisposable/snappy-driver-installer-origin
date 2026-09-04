@@ -77,8 +77,8 @@ func TestDefaults(t *testing.T) {
 	if s.OutputDir != filepath.Join("indexes", "txt") {
 		t.Errorf("OutputDir = %q", s.OutputDir)
 	}
-	if s.Flags&FlagUseLZMA == 0 {
-		t.Error("expected FlagUseLZMA set by default")
+	if s.Flags != 0 {
+		t.Errorf("Flags = %d, want 0 (no flag defaults to set)", s.Flags)
 	}
 	if s.Filters != DefaultFilters {
 		t.Errorf("Filters = %d, want %d", s.Filters, DefaultFilters)
@@ -179,17 +179,11 @@ func TestParseVirtualOSVersionUnknownCode(t *testing.T) {
 
 func TestParseFiltersp(t *testing.T) {
 	s := New()
-	if s.Flags&FlagUseLZMA == 0 {
-		t.Fatal("expected FlagUseLZMA set before parse")
-	}
 	if err := s.Parse([]string{"-filtersp"}); err != nil {
 		t.Fatalf("Parse() error: %v", err)
 	}
 	if s.Flags&FlagFilterSP == 0 {
 		t.Error("expected FlagFilterSP set")
-	}
-	if s.Flags&FlagUseLZMA != 0 {
-		t.Error("expected FlagUseLZMA cleared by -filtersp")
 	}
 }
 
@@ -220,7 +214,7 @@ func TestSaveLoadRoundTripsPersistentFlagsOnly(t *testing.T) {
 	if err := s.Parse([]string{
 		"-drp-dir", "custom-drivers",
 		"-checkupdates", // persistent
-		"-autoinstall",  // not persistent
+		"-autoclose",    // not persistent
 		"-filters", "9",
 	}); err != nil {
 		t.Fatalf("Parse() error: %v", err)
@@ -252,8 +246,8 @@ func TestSaveLoadRoundTripsPersistentFlagsOnly(t *testing.T) {
 	if loaded.Flags&FlagCheckUpdates == 0 {
 		t.Error("expected persistent FlagCheckUpdates to round-trip")
 	}
-	if loaded.Flags&FlagAutoInstall != 0 {
-		t.Error("expected non-persistent FlagAutoInstall to NOT round-trip")
+	if loaded.Flags&FlagAutoClose != 0 {
+		t.Error("expected non-persistent FlagAutoClose to NOT round-trip")
 	}
 	if loaded.Filters != 9 {
 		t.Errorf("Filters = %d, want 9", loaded.Filters)
@@ -337,6 +331,30 @@ func TestLoadFileAcceptsLegacyCfgSyntax(t *testing.T) {
 	}
 	if s.Filters != 9 {
 		t.Errorf("Filters = %d, want 9", s.Filters)
+	}
+}
+
+// TestLoadFileDropsRemovedFlags confirms a cfg file written by an
+// earlier build of this rewrite (before autoinstall/novirusalerts/
+// failsafe/keepunpackedindex/keeptempfiles/nostamp were removed for
+// having no wired effect) still loads without error - every token
+// from a cfg file passes through the same legacyDroppedExact table
+// regardless of old vs. new syntax, so a removed flag's own name
+// (identical in both) is silently dropped rather than failing Parse.
+func TestLoadFileDropsRemovedFlags(t *testing.T) {
+	dir := t.TempDir()
+	cfgPath := filepath.Join(dir, "sdio.cfg")
+	cfg := "-checkupdates\n-autoinstall\n-novirusalerts\n-failsafe\n-keepunpackedindex\n-keeptempfiles\n-nostamp\n"
+	if err := os.WriteFile(cfgPath, []byte(cfg), 0o644); err != nil {
+		t.Fatalf("writing cfg fixture: %v", err)
+	}
+
+	s := New()
+	if err := s.LoadFile(cfgPath); err != nil {
+		t.Fatalf("LoadFile() error: %v", err)
+	}
+	if s.Flags&FlagCheckUpdates == 0 {
+		t.Error("expected FlagCheckUpdates set")
 	}
 }
 

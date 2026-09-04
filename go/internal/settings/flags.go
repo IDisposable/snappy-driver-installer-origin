@@ -8,23 +8,15 @@ type Flags uint64
 
 const (
 	FlagForceReindexing Flags = 1 << iota
-	FlagUseLZMA
 	FlagPrintIndex
 	FlagNoGUI
 	FlagCheckUpdates
 	FlagDisableInstall
-	FlagAutoInstall
-	FlagFailSafe
 	FlagAutoClose
 	FlagNoRestorePoint
 	FlagNoLogFile
 	FlagNoSnapshot
-	FlagNoStamp
-	FlagNoVirusAlerts
 	FlagPreserveCfg
-	FlagKeepUnpackIndex
-	FlagKeepTempFiles
-	FlagDPInstMode
 	FlagDelExtraInfs
 	FlagOnlyUpdates
 	FlagAutoUpdate
@@ -33,8 +25,6 @@ const (
 	FlagKeepSeeding
 	FlagNoStop
 	FlagExtractOnly
-	FlagScriptMode
-	FlagUpdatesOK
 )
 
 // boolFlagDef ties a command-line flag name to a Flags bit, and records
@@ -65,22 +55,16 @@ var boolFlagDefs = []boolFlagDef{
 	{"torrentalerts", "log torrent alert events (not implemented - no alert-logging feature exists yet)", FlagTorrentAlerts, true},
 	{"keepseeding", "keep seeding driver packs to other peers after download completes", FlagKeepSeeding, true},
 	{"norestorepnt", "don't create a system restore point", FlagNoRestorePoint, true},
-	{"novirusalerts", "don't warn about suspected virus-flagged files (not implemented - no virus-flagging feature exists yet)", FlagNoVirusAlerts, true},
-	{"keepunpackedindex", "keep unpacked index files after use (not implemented - the index write path isn't ported yet)", FlagKeepUnpackIndex, true},
 
 	{"preservecfg", "don't overwrite sdio.cfg on exit", FlagPreserveCfg, false},
 	{"nogui", "run headless, without an interactive front end", FlagNoGUI, false},
-	{"autoinstall", "install matched drivers without prompting (not implemented - the TUI always asks for explicit confirmation before installing)", FlagAutoInstall, false},
 	{"autoclose", "exit automatically once finished (not implemented)", FlagAutoClose, false},
 	{"autoupdate", "update driver packs automatically (not implemented)", FlagAutoUpdate, false},
 	{"nostop", "don't stop if creating a restore point fails (not implemented - a restore-point failure never stops the install here regardless)", FlagNoStop, false},
-	{"keeptempfiles", "don't delete temporary extraction files (not implemented - nothing deletes them yet either way)", FlagKeepTempFiles, false},
 	{"disableinstall", "scan and match only: never install, and never create a restore point", FlagDisableInstall, false},
-	{"failsafe", "run in fail-safe mode (not implemented - not needed by this rewrite's registry-scan port so far)", FlagFailSafe, false},
 	{"delextrainfs", "delete extra .inf files after install", FlagDelExtraInfs, false},
 	{"nologfile", "don't write a log file (not implemented - no log-file writer exists yet)", FlagNoLogFile, false},
 	{"nosnapshot", "don't save a system snapshot (not implemented - no snapshot writer exists yet)", FlagNoSnapshot, false},
-	{"nostamp", "don't timestamp log file names (not implemented - no log-file writer exists yet)", FlagNoStamp, false},
 	{"reindex", "force driver pack reindexing (not implemented - the index write path isn't ported yet)", FlagForceReindexing, false},
 	{"index-hr", "write a human-readable index alongside the binary one (not implemented - the index write path isn't ported yet)", FlagPrintIndex, false},
 }

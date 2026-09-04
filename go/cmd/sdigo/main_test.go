@@ -90,7 +90,7 @@ func TestBuildOptionItemsCoversEveryFlagAndFilter(t *testing.T) {
 
 func TestOptionItemToggleFlag(t *testing.T) {
 	s := settings.New()
-	item := optionItem{isFlag: true, flagBit: settings.FlagAutoInstall}
+	item := optionItem{isFlag: true, flagBit: settings.FlagAutoClose}
 	if item.checked(s) {
 		t.Fatal("checked() = true before toggle, want false")
 	}

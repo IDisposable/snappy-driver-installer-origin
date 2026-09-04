@@ -149,7 +149,6 @@ func (s *Settings) FlagSet(name string) *flag.FlagSet {
 		}
 		if b {
 			s.Flags |= FlagFilterSP
-			s.Flags &^= FlagUseLZMA
 		}
 		return nil
 	})

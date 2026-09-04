@@ -87,7 +87,6 @@ func New() *Settings {
 		LogDirRaw:     "logs",
 		ExtractDirRaw: `%TEMP%\SDIO`,
 		StateFile:     "untitled.snp",
-		Flags:         FlagUseLZMA,
 		StateMode:     StateModeReal,
 		Filters:       DefaultFilters,
 	}

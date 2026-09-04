@@ -32,9 +32,13 @@ var legacyExactRenames = map[string]string{
 
 // legacyDroppedPrefixes and legacyDroppedExact are switches the
 // original engine had that this rewrite doesn't (GUI presentation
-// state, torrent tuning not yet ported). They're silently ignored
-// when reading an existing cfg file instead of causing a hard parse
-// error.
+// state, torrent tuning not yet ported, or an engine flag judged not
+// worth keeping - see internal/settings/flags.go's boolFlagDefs
+// history). They're silently ignored when reading an existing cfg
+// file instead of causing a hard parse error - this applies equally
+// to a cfg an earlier build of this same rewrite wrote, since every
+// token from a cfg file passes through translateLegacyArg regardless
+// of old vs. new syntax.
 var legacyDroppedPrefixes = []string{
 	"-lang:", "-theme:", "-hintdelay:", "-license:",
 	"-wndwx:", "-wndwy:", "-wndsc:", "-scale:", "-verbose:",
@@ -47,6 +51,17 @@ var legacyDroppedExact = map[string]bool{
 	"-showdrpnames1": true,
 	"-showdrpnames2": true,
 	"-oldstyle":      true,
+
+	// Removed engine flags with no wired effect in this rewrite (see
+	// flags.go's boolFlagDefs) - dropped rather than left registered,
+	// unlike the flags kept with a "(not implemented)" help note,
+	// since these were judged not worth keeping even as a visible gap.
+	"-novirusalerts":     true,
+	"-autoinstall":       true,
+	"-failsafe":          true,
+	"-keepunpackedindex": true,
+	"-keeptempfiles":     true,
+	"-nostamp":           true,
 }
 
 // translateLegacyArg rewrites a single token from an existing cfg file
