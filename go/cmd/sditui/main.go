@@ -734,15 +734,57 @@ func verdictSummary(best *collection.Candidate) string {
 	}
 }
 
-// scoreExplainer describes what the hex Score value actually is
-// (matcher.Score), for a field that would otherwise be an opaque hex
-// number.
-const scoreExplainer = "Score is a packed ranking number, not a percentage - lower is\n" +
-	"better. It orders candidates by catalog-signature validity for\n" +
-	"this OS/architecture first, then the driver's declared feature\n" +
-	"number, then how directly the hardware ID matched (an exact\n" +
-	"hardware-ID match ranks above a compatible-ID match). Only\n" +
-	"meaningful compared between two candidates for the same device.\n"
+// scoreDifferences enumerates, in the same priority order
+// matcher.Score itself combines them (catalog signature highest,
+// then feature number, then hardware-ID match precision), which
+// specific factors differ between the installed driver and this
+// candidate and which side wins each one - the concrete "why" behind
+// the two opaque hex Score values, instead of a description of what
+// Score is in the abstract. A tied factor is omitted. Returns nil if
+// there's nothing to compare (no installed driver, or its own score
+// couldn't be computed).
+func scoreDifferences(dr scan.DeviceResult, best *collection.Candidate, is64Bit bool) []string {
+	if dr.InstalledScore == nil || best == nil {
+		return nil
+	}
+	inst := dr.InstalledScore
+	drp := best.Driverpack
+
+	var lines []string
+	side := func(installedWins bool) string {
+		if installedWins {
+			return "installed"
+		}
+		return "candidate"
+	}
+
+	instSig := matcher.SignatureScore(inst.CatalogFileBits, is64Bit, inst.IsNTSection)
+	candIsNTSection := strings.Contains(strings.ToLower(drp.InstallPicked(best.HWIDIndex)), ".nt")
+	candSig := matcher.SignatureScore(drp.CatalogFileBits(best.HWIDIndex), is64Bit, candIsNTSection)
+	if instSig != candSig {
+		lines = append(lines, fmt.Sprintf("Catalog signature: %s is properly signed for this system, the other isn't",
+			side(instSig < candSig)))
+	}
+
+	candFeature := drp.Feature(best.HWIDIndex)
+	if inst.Feature != candFeature {
+		lines = append(lines, fmt.Sprintf("Feature number: installed=%d, candidate=%d (%s wins - lower ranks higher)",
+			inst.Feature, candFeature, side(inst.Feature < candFeature)))
+	}
+
+	cmp := compareInstalledVsCandidate(dr, best)
+	if cmp.hwid != 0 {
+		lines = append(lines, fmt.Sprintf("Hardware ID match: %s matched a more specific ID", side(cmp.hwid == 1)))
+	}
+	if cmp.date != 0 {
+		lines = append(lines, fmt.Sprintf("Release date: %s is dated more recently (a separate factor from overall rank)", side(cmp.date == 1)))
+	}
+	if cmp.score != 0 {
+		lines = append(lines, fmt.Sprintf("Overall rank: %s wins (%08X vs %08X, lower wins)", side(cmp.score == 1), inst.Score, best.Result.Score))
+	}
+
+	return lines
+}
 
 // detailView renders the full comparison the original's hover
 // tooltip shows (installed vs. available driver), for the device
@@ -827,7 +869,13 @@ func (m model) detailView(dr scan.DeviceResult) string {
 		if drp.Pending {
 			b.WriteString("  (driver pack data not yet downloaded - needs the configured torrent)\n")
 		}
-		b.WriteString("\n" + scoreExplainer)
+
+		if diffs := scoreDifferences(dr, best, m.result.System.SysInfo.Is64Bit); len(diffs) > 0 {
+			b.WriteString("\nWhy the candidate outranks (or doesn't) the installed driver,\nin order of how much each factor counts toward Score:\n")
+			for i, line := range diffs {
+				fmt.Fprintf(&b, "  %d. %s\n", i+1, line)
+			}
+		}
 	}
 	return b.String()
 }

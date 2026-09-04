@@ -1,6 +1,7 @@
 package main
 
 import (
+	"os"
 	"strings"
 	"testing"
 
@@ -12,8 +13,48 @@ import (
 	"sdio/internal/indexing"
 	"sdio/internal/matcher"
 	"sdio/internal/scan"
+	"sdio/internal/sdwfile"
 	"sdio/internal/settings"
 )
+
+// realDtPortCandidate builds a real candidate.Candidate for the
+// reference installation's dtport pack, the same real fixture
+// internal/installflow's tests use, for exercising scoreDifferences
+// against actual driver-pack data (Feature/CatalogFileBits/
+// InstallPicked) rather than a hand-built stand-in.
+func realDtPortCandidate(t *testing.T) collection.Candidate {
+	t.Helper()
+	const indexPath = "/mnt/d/OneDrive/Desktop/Reinstall/DriverInstaller/indexes/SDI/DP_Ports_SDIO01_26083.bin"
+	const packDir = "/mnt/d/OneDrive/Desktop/Reinstall/DriverInstaller/drivers"
+	const packFilename = "DP_Ports_SDIO01_26083.7z"
+
+	f, err := os.Open(indexPath)
+	if err != nil {
+		t.Skipf("real index file not available at %s: %v", indexPath, err)
+	}
+	defer f.Close()
+	_, payload, err := sdwfile.Decode(f, true)
+	if err != nil {
+		t.Fatalf("Decode() error: %v", err)
+	}
+	idx, err := indexing.DecodeIndex(payload)
+	if err != nil {
+		t.Fatalf("DecodeIndex() error: %v", err)
+	}
+	drp := &indexing.Driverpack{Path: packDir, Filename: packFilename, Index: idx}
+
+	wantHWID := `DTBUS\COMPORT&VID_37DD&PID_6001`
+	for i := range idx.HWIDs {
+		if strings.EqualFold(drp.HWID(i), wantHWID) {
+			return collection.Candidate{
+				Driverpack: drp, HWIDIndex: i,
+				Result: matcher.Result{HWID: wantHWID, DriverVersion: common.Version{V1: 1, V2: 0, V3: 0, V4: 6}},
+			}
+		}
+	}
+	t.Fatalf("HWID %q not found in %s", wantHWID, indexPath)
+	return collection.Candidate{}
+}
 
 // TestBuildOptionItemsCoversEveryFlagAndFilter guards against the
 // options screen silently dropping a config option if
@@ -305,5 +346,53 @@ func TestVerdictSummaryAlwaysStatesRecommended(t *testing.T) {
 		if got := verdictSummary(best); !strings.HasPrefix(got, "Recommended") {
 			t.Errorf("verdictSummary(status=%#x) = %q, want it to start with \"Recommended\"", status, got)
 		}
+	}
+}
+
+// TestScoreDifferencesEnumeratesEachFactor uses the real dtport
+// driver pack (Feature=255, CatalogFileBits=8/signed, InstallPicked
+// "dtport.nt") against a deliberately worse-in-every-respect
+// installed driver, confirming every factor scoreDifferences knows
+// about is reported with the candidate as the winner.
+func TestScoreDifferencesEnumeratesEachFactor(t *testing.T) {
+	best := realDtPortCandidate(t)
+	best.Result.DriverVersion = common.Version{Year: 2024, Month: 1, Day: 13, V1: 1, V2: 0, V3: 0, V4: 6}
+	best.Result.Score = 10
+
+	dr := scan.DeviceResult{
+		Device: hardware.Device{HardwareIDs: []string{best.Result.HWID}},
+		Installed: &hardware.InstalledDriver{
+			MatchingDeviceID: `NOT\IN\THE\LIST`,
+			Version:          common.Version{Year: 2020, Month: 1, Day: 1, V1: 0, V2: 9, V3: 0, V4: 0},
+		},
+		InstalledScore: &collection.InstalledScore{
+			Score: 20, CatalogFileBits: 0, Feature: 100, IsNTSection: true,
+		},
+	}
+
+	diffs := scoreDifferences(dr, &best, true)
+	joined := strings.Join(diffs, "\n")
+	for _, want := range []string{
+		"Catalog signature: candidate is properly signed",
+		"Feature number: installed=100, candidate=255 (installed wins",
+		"Hardware ID match: candidate matched a more specific ID",
+		"Release date: candidate is dated more recently",
+		"Overall rank: candidate wins (00000014 vs 0000000A",
+	} {
+		if !strings.Contains(joined, want) {
+			t.Errorf("scoreDifferences() missing %q; got:\n%s", want, joined)
+		}
+	}
+}
+
+// TestScoreDifferencesOmitsTiedFactors confirms a device with no
+// installed driver at all (nothing to compare against) returns no
+// lines, rather than a list of false differences.
+func TestScoreDifferencesOmitsTiedFactors(t *testing.T) {
+	best := realDtPortCandidate(t)
+	dr := scan.DeviceResult{Device: hardware.Device{HardwareIDs: []string{best.Result.HWID}}}
+
+	if diffs := scoreDifferences(dr, &best, true); diffs != nil {
+		t.Errorf("scoreDifferences() with no installed driver = %v, want nil", diffs)
 	}
 }

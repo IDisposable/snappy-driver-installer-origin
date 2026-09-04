@@ -14,14 +14,14 @@ const (
 	CatalogFileNTAMD64Bit = 1 << 7 // indexing.FieldCatalogFileNTAMD64
 )
 
-// signatureScore computes the catalog-signature component of a
+// SignatureScore computes the catalog-signature component of a
 // driver's overall Score, ported from calc_signature in enum.cpp.
 // is64Bit is the running system's architecture; isNTSection reports
 // whether the driver's chosen install section is ".nt"-decorated
 // (checked via strings.Contains on InfSection/InfSectionExt in the
 // original - that check itself isn't ported here, since it needs the
 // not-yet-ported Driver type; callers compute isNTSection themselves).
-func signatureScore(catalogFileBits int, is64Bit bool, isNTSection bool) int {
+func SignatureScore(catalogFileBits int, is64Bit bool, isNTSection bool) int {
 	if is64Bit {
 		if catalogFileBits&(CatalogFileBit|CatalogFileNTBit|CatalogFileNTAMD64Bit|CatalogFileNTIA64Bit) != 0 {
 			return 0
@@ -45,7 +45,7 @@ func signatureScore(catalogFileBits int, is64Bit bool, isNTSection bool) int {
 // later use a richer score layout folding in the signature and
 // feature bits; older versions use a simpler one).
 func Score(catalogFileBits, feature, identifierScore, major int, is64Bit, isNTSection bool) uint32 {
-	sig := signatureScore(catalogFileBits, is64Bit, isNTSection)
+	sig := SignatureScore(catalogFileBits, is64Bit, isNTSection)
 	if major >= 6 {
 		return uint32(sig<<16) + uint32(feature<<16) + uint32(identifierScore)
 	}

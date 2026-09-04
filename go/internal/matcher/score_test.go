@@ -37,27 +37,27 @@ func TestIdentifierScoreKnownValues(t *testing.T) {
 func TestSignatureScore64BitWithGenericCatalog(t *testing.T) {
 	// A driver with a plain/nt/ntamd64/ntia64 catalog reference on a
 	// 64-bit system needs no extra signature bonus.
-	if got := signatureScore(CatalogFileNTAMD64Bit, true, false); got != 0 {
-		t.Errorf("signatureScore = %#x, want 0", got)
+	if got := SignatureScore(CatalogFileNTAMD64Bit, true, false); got != 0 {
+		t.Errorf("SignatureScore = %#x, want 0", got)
 	}
 }
 
 func TestSignatureScore64BitWithOnlyX86Catalog(t *testing.T) {
 	// Only an x86-specific catalog on a 64-bit system: architecture
 	// mismatch, falls through to the isNTSection bonus.
-	got := signatureScore(CatalogFileNTx86Bit, true, false)
+	got := SignatureScore(CatalogFileNTx86Bit, true, false)
 	if got != 0xC000 {
-		t.Errorf("signatureScore = %#x, want 0xC000", got)
+		t.Errorf("SignatureScore = %#x, want 0xC000", got)
 	}
-	got = signatureScore(CatalogFileNTx86Bit, true, true)
+	got = SignatureScore(CatalogFileNTx86Bit, true, true)
 	if got != 0x8000 {
-		t.Errorf("signatureScore (NT section) = %#x, want 0x8000", got)
+		t.Errorf("SignatureScore (NT section) = %#x, want 0x8000", got)
 	}
 }
 
 func TestSignatureScoreNoCatalogAtAll(t *testing.T) {
-	if got := signatureScore(0, false, false); got != 0xC000 {
-		t.Errorf("signatureScore(no catalog) = %#x, want 0xC000", got)
+	if got := SignatureScore(0, false, false); got != 0xC000 {
+		t.Errorf("SignatureScore(no catalog) = %#x, want 0xC000", got)
 	}
 }
 

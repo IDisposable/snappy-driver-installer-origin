@@ -31,9 +31,17 @@ import (
 // version, computed the same way a candidate driver-pack entry is
 // scored (matcher.Score) so indexing.CalcStatus can compare them
 // fairly. See indexing.ScanInstalledInf for how to compute Score.
+// CatalogFileBits/Feature/IsNTSection are the raw ingredients Score
+// was built from (matcher.Score), kept alongside it so a caller can
+// explain which specific factor makes one driver rank above another,
+// not just the combined number.
 type InstalledScore struct {
 	Score   uint32
 	Version common.Version
+
+	CatalogFileBits int
+	Feature         int
+	IsNTSection     bool
 }
 
 // cmProbDisabled is CM_PROB_DISABLED, duplicated from the unexported

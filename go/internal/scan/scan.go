@@ -269,7 +269,10 @@ func scoreInstalledDriver(si hardware.SysInfo, installed *hardware.InstalledDriv
 
 	identifierScore := matcher.IdentifierScore(installed.DevPos, installed.IsHardwareID, info.InfPos)
 	score := matcher.Score(info.CatalogFileBits, info.Feature, identifierScore, si.Windows.Major, si.Is64Bit, info.IsNTSection)
-	return &collection.InstalledScore{Score: score, Version: installed.Version}
+	return &collection.InstalledScore{
+		Score: score, Version: installed.Version,
+		CatalogFileBits: info.CatalogFileBits, Feature: info.Feature, IsNTSection: info.IsNTSection,
+	}
 }
 
 // MatchLabel renders a short label for a device's best candidate,
