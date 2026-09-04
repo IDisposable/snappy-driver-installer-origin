@@ -8,7 +8,7 @@
         },
         "description": "Snappy Driver Installer: Go Forth",
         "minimum-os": "win10",
-        "execution-level": "requireAdministrator",
+        "execution-level": "asInvoker",
         "ui-access": false,
         "auto-elevate": false,
         "dpi-awareness": "system",

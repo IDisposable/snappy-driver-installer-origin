@@ -2,6 +2,7 @@ package report
 
 import (
 	"bytes"
+	"encoding/json"
 	"strings"
 	"testing"
 
@@ -46,6 +47,48 @@ func TestPrintReportsFoundAndMissingDevices(t *testing.T) {
 
 	if len(pending) != 1 || pending[0].Description != "Widget Controller" {
 		t.Errorf("Print() pending = %+v, want exactly the Widget Controller candidate", pending)
+	}
+}
+
+func TestPrintJSONReportsFoundAndMissingDevices(t *testing.T) {
+	drp := &indexing.Driverpack{Filename: "DP_Test_SDIO01_1.7z"}
+	result := scan.Result{
+		Devices: []scan.DeviceResult{
+			{
+				Device: hardware.Device{Description: "Widget Controller"},
+				Candidates: []collection.Candidate{{
+					Driverpack: drp,
+					Result:     matcher.Result{AltSectScore: 2, DecorScore: 1, Status: matcher.StatusBetter},
+				}},
+			},
+			{
+				Device: hardware.Device{Description: "Mystery Device"},
+				Status: matcher.StatusNFMissing,
+			},
+		},
+	}
+
+	var buf bytes.Buffer
+	pending, err := PrintJSON(&buf, result)
+	if err != nil {
+		t.Fatalf("PrintJSON() error: %v", err)
+	}
+	if len(pending) != 1 || pending[0].Description != "Widget Controller" {
+		t.Errorf("PrintJSON() pending = %+v, want exactly the Widget Controller candidate", pending)
+	}
+
+	var rep JSONReport
+	if err := json.Unmarshal(buf.Bytes(), &rep); err != nil {
+		t.Fatalf("PrintJSON() output isn't valid JSON: %v\noutput:\n%s", err, buf.String())
+	}
+	if rep.Matched != 1 || rep.Missing != 1 || len(rep.Devices) != 2 {
+		t.Errorf("PrintJSON() report = %+v, want 1 matched, 1 missing, 2 devices", rep)
+	}
+	if rep.Devices[0].DriverPack != "DP_Test_SDIO01_1.7z" {
+		t.Errorf("PrintJSON() matched device = %+v, want driver pack DP_Test_SDIO01_1.7z", rep.Devices[0])
+	}
+	if rep.Devices[1].Reason == "" {
+		t.Errorf("PrintJSON() missing device = %+v, want a non-empty Reason", rep.Devices[1])
 	}
 }
 

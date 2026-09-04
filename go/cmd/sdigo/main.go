@@ -25,6 +25,7 @@ import (
 	"sdio/internal/collection"
 	"sdio/internal/common"
 	"sdio/internal/hardware"
+	"sdio/internal/install"
 	"sdio/internal/installflow"
 	"sdio/internal/matcher"
 	"sdio/internal/report"
@@ -273,6 +274,13 @@ type model struct {
 
 	usbDrives     []usbdrive.Drive
 	usbDriveIndex int
+
+	// relaunchInstanceIDs is set by updateConfirmInstall when install
+	// is confirmed without an elevated token, instead of installing
+	// directly - sdiGo checks it once p.Run() returns and, if set,
+	// hands off to an elevated relaunch carrying this selection (see
+	// relaunchElevated/writeResumeFile).
+	relaunchInstanceIDs []string
 }
 
 // refreshTable recomputes the visible device list and the table's
@@ -309,7 +317,12 @@ func (m *model) currentDevice() *scan.DeviceResult {
 	return &m.rows[i]
 }
 
-func newModel(result scan.Result, s *settings.Settings) model {
+// newModel builds the initial TUI state. resumeSelected, when
+// non-empty, restores a device selection confirmed just before an
+// elevation relaunch (see sdiGo/relaunchElevated) - the model starts
+// straight on the confirm-install screen instead of the table, so the
+// user's "y" isn't silently dropped by the elevation round trip.
+func newModel(result scan.Result, s *settings.Settings, resumeSelected map[string]bool) model {
 	matched, missing := 0, 0
 	for _, dr := range result.Devices {
 		if dr.Best() != nil {
@@ -333,6 +346,10 @@ func newModel(result scan.Result, s *settings.Settings) model {
 	}
 	if result.FirstRun {
 		m.screen = screenWelcome
+	}
+	if len(resumeSelected) > 0 {
+		m.selected = resumeSelected
+		m.screen = screenConfirmInstall
 	}
 	m.refreshTable()
 	return m
@@ -584,6 +601,10 @@ func (m model) updateDetail(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 func (m model) updateConfirmInstall(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	switch msg.String() {
 	case "y", "enter":
+		if !install.IsElevated() {
+			m.relaunchInstanceIDs = selectedInstanceIDs(m.selected)
+			return m, tea.Quit
+		}
 		pending := m.pendingSelected()
 		m.screen = screenInstalling
 		return m, runInstallCmd(m.s, pending)
@@ -754,6 +775,21 @@ func (m model) pendingSelected() []installflow.Pending {
 		}
 	}
 	return out
+}
+
+// selectedInstanceIDs returns the InstanceIDs currently ticked, for
+// carrying a selection across the elevation relaunch (see
+// updateConfirmInstall/writeResumeFile) - unlike pendingSelected it
+// doesn't need a Best candidate, since sdiGo recomputes that fresh
+// after the elevated copy re-scans.
+func selectedInstanceIDs(selected map[string]bool) []string {
+	var ids []string
+	for id, on := range selected {
+		if on {
+			ids = append(ids, id)
+		}
+	}
+	return ids
 }
 
 // installDoneMsg carries installflow.Run's captured output back to
@@ -1345,10 +1381,24 @@ func sdiGo(args []string) int {
 
 	fs := s.FlagSet("sdigo")
 	doInstall := fs.Bool("install", false, "with -nogui, install matched drivers (modifies the system; without this flag, only scan and report)")
+	doJSON := fs.Bool("json", false, "with -nogui, report as JSON instead of plain text (for scripts/CI)")
+	resumeFile := fs.String("elevated-resume", "", "internal use only: set by sdigo's own elevation relaunch to restore the device selection confirmed before elevating")
 	if err := fs.Parse(args); err != nil {
 		return 2
 	}
 	s.ExpandDirs()
+
+	// The manifest requests no elevation at launch, since browsing scan
+	// results needs none - only an actual install does. resumeSelected
+	// carries a TUI selection across the elevation relaunch triggered
+	// by updateConfirmInstall (see below); the file is one-shot and
+	// consumed here regardless of whether elevation actually succeeded
+	// this time, so a failed relaunch doesn't leave it behind.
+	var resumeSelected map[string]bool
+	if *resumeFile != "" {
+		resumeSelected = readResumeFile(*resumeFile)
+		os.Remove(*resumeFile)
+	}
 
 	// Persists on exit even on an error return, so switches given on
 	// the command line and options-screen toggles both survive to the
@@ -1367,22 +1417,93 @@ func sdiGo(args []string) int {
 		return 1
 	}
 
-	// -nogui prints the same plain-text report cmd/sdi does (this
-	// binary's only public counterpart, per go/README.md - one EXE,
-	// two front ends selected by a flag) instead of launching the
-	// interactive table.
+	// -nogui prints a scan report instead of launching the interactive
+	// table - plain text by default, or JSON with -json for scripts/CI
+	// that need to parse the result without a terminal.
 	if s.Flags&settings.FlagNoGUI != 0 {
-		pending := report.Print(os.Stdout, result)
+		var pending []installflow.Pending
+		if *doJSON {
+			var err error
+			if pending, err = report.PrintJSON(os.Stdout, result); err != nil {
+				fmt.Fprintln(os.Stderr, "error:", err)
+				return 1
+			}
+		} else {
+			pending = report.Print(os.Stdout, result)
+		}
 		if *doInstall && len(pending) > 0 {
+			if !install.IsElevated() {
+				return relaunchElevated(s, cfgPath, args)
+			}
 			installflow.Run(s, pending, os.Stdout)
 		}
 		return 0
 	}
 
-	p := tea.NewProgram(newModel(result, s), tea.WithAltScreen())
-	if _, err := p.Run(); err != nil {
+	p := tea.NewProgram(newModel(result, s, resumeSelected), tea.WithAltScreen())
+	final, err := p.Run()
+	if err != nil {
 		fmt.Fprintln(os.Stderr, "error:", err)
 		return 1
 	}
+	if fm, ok := final.(model); ok && len(fm.relaunchInstanceIDs) > 0 {
+		return relaunchElevated(s, cfgPath, append(append([]string{}, args...), "-elevated-resume", writeResumeFile(fm.relaunchInstanceIDs)))
+	}
 	return 0
+}
+
+// relaunchElevated saves the current settings (so the elevated copy
+// sees any options-screen change made before confirming install, not
+// a stale on-disk file) and starts an elevated copy of this same
+// binary with relaunchArgs as its command line. The original process
+// exits right after; the two processes share no further state beyond
+// sdio.cfg and, when present, the -elevated-resume file relaunchArgs
+// points at.
+func relaunchElevated(s *settings.Settings, cfgPath string, relaunchArgs []string) int {
+	if err := s.Save(cfgPath); err != nil {
+		fmt.Fprintln(os.Stderr, "warning: saving sdio.cfg:", err)
+	}
+	if err := install.RelaunchElevated(relaunchArgs); err != nil {
+		fmt.Fprintln(os.Stderr, "error: relaunching elevated for install:", err)
+		return 1
+	}
+	return 0
+}
+
+// writeResumeFile saves ids (ticked device InstanceIDs) to a one-shot
+// temp file for -elevated-resume to read back after the elevation
+// relaunch, and returns its path. A write failure is reported to
+// stderr and yields an empty path, which -elevated-resume treats the
+// same as "no selection to restore" rather than crashing the relaunch.
+func writeResumeFile(ids []string) string {
+	f, err := os.CreateTemp("", "sdigo-resume-*.txt")
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "warning: preparing elevated relaunch:", err)
+		return ""
+	}
+	defer f.Close()
+	if _, err := f.WriteString(strings.Join(ids, "\n")); err != nil {
+		fmt.Fprintln(os.Stderr, "warning: preparing elevated relaunch:", err)
+		return ""
+	}
+	return f.Name()
+}
+
+// readResumeFile reads back what writeResumeFile wrote, as a selected
+// map keyed the same way as model.selected. A missing/unreadable file
+// (relaunch never happened, or -elevated-resume was passed by hand
+// with a bad path) yields an empty selection rather than an error -
+// this flag has no other effect, so there's nothing to fail.
+func readResumeFile(path string) map[string]bool {
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return nil
+	}
+	selected := map[string]bool{}
+	for _, id := range strings.Split(string(data), "\n") {
+		if id != "" {
+			selected[id] = true
+		}
+	}
+	return selected
 }

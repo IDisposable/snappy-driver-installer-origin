@@ -2,6 +2,7 @@ package main
 
 import (
 	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 
@@ -460,7 +461,7 @@ func TestResizeWhileDetailScreenOpenDoesNotPanic(t *testing.T) {
 		Candidates: []collection.Candidate{best},
 	}}}
 	s := settings.New()
-	m := newModel(result, s)
+	m := newModel(result, s, nil)
 
 	mm, _ := m.Update(tea.WindowSizeMsg{Width: 200, Height: 50})
 	m = mm.(model)
@@ -500,7 +501,7 @@ func TestDetailViewportScrolls(t *testing.T) {
 		InstalledScore: &collection.InstalledScore{Score: 99, Feature: 1},
 	}}}
 	s := settings.New()
-	m := newModel(result, s)
+	m := newModel(result, s, nil)
 
 	mm, _ := m.Update(tea.WindowSizeMsg{Width: 100, Height: 8}) // short enough that content overflows
 	m = mm.(model)
@@ -526,7 +527,7 @@ func TestDetailViewportScrolls(t *testing.T) {
 // the table and q/esc/? all return to it - the same "only documented
 // keys act" contract as the other popups.
 func TestAboutScreenNavigation(t *testing.T) {
-	m := newModel(scan.Result{}, settings.New())
+	m := newModel(scan.Result{}, settings.New(), nil)
 
 	mm, _ := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune("?")})
 	m = mm.(model)
@@ -560,10 +561,10 @@ func TestAboutScreenNavigation(t *testing.T) {
 // controls whether the TUI opens straight to the Welcome screen,
 // without needing an interactive keypress to get there.
 func TestNewModelOpensWelcomeOnFirstRun(t *testing.T) {
-	if m := newModel(scan.Result{FirstRun: true}, settings.New()); m.screen != screenWelcome {
+	if m := newModel(scan.Result{FirstRun: true}, settings.New(), nil); m.screen != screenWelcome {
 		t.Errorf("screen = %v with FirstRun=true, want screenWelcome", m.screen)
 	}
-	if m := newModel(scan.Result{FirstRun: false}, settings.New()); m.screen != screenTable {
+	if m := newModel(scan.Result{FirstRun: false}, settings.New(), nil); m.screen != screenTable {
 		t.Errorf("screen = %v with FirstRun=false, want screenTable", m.screen)
 	}
 }
@@ -574,7 +575,7 @@ func TestNewModelOpensWelcomeOnFirstRun(t *testing.T) {
 // was never configured.
 func TestWelcomeRequiresTorrentFile(t *testing.T) {
 	s := settings.New()
-	m := newModel(scan.Result{}, s)
+	m := newModel(scan.Result{}, s, nil)
 	m.screen = screenWelcome
 
 	mm, _ := m.Update(tea.KeyMsg{Type: tea.KeyEnter})
@@ -593,7 +594,7 @@ func TestWelcomeRequiresTorrentFile(t *testing.T) {
 func TestWelcomeAllDriverPacksNeedsConfirmation(t *testing.T) {
 	s := settings.New()
 	s.TorrentFile = "dummy.torrent" // just needs to be non-empty for this check
-	m := newModel(scan.Result{}, s)
+	m := newModel(scan.Result{}, s, nil)
 	m.screen = screenWelcome
 	m.welcomeIndex = len(welcomeItems) - 1 // "Download All Driver Packs"
 
@@ -617,7 +618,7 @@ func TestWelcomeAllDriverPacksNeedsConfirmation(t *testing.T) {
 // that error (instead of silently doing nothing) is a real,
 // mock-free proof the key is wired to the real function.
 func TestUSBDriveKeyReportsUnsupportedPlatform(t *testing.T) {
-	m := newModel(scan.Result{}, settings.New())
+	m := newModel(scan.Result{}, settings.New(), nil)
 
 	mm, _ := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'u'}})
 	m = mm.(model)
@@ -633,7 +634,7 @@ func TestUSBDriveKeyReportsUnsupportedPlatform(t *testing.T) {
 // cursor within bounds and enter opens the confirm screen without
 // starting a copy, using synthetic drives (no real hardware needed).
 func TestUpdateUSBDriveNavigationAndConfirm(t *testing.T) {
-	m := newModel(scan.Result{}, settings.New())
+	m := newModel(scan.Result{}, settings.New(), nil)
 	m.screen = screenUSBDrive
 	m.usbDrives = []usbdrive.Drive{
 		{Root: `E:\`, TotalBytes: 1000, FreeBytes: 900},
@@ -664,5 +665,67 @@ func TestUpdateUSBDriveNavigationAndConfirm(t *testing.T) {
 	m = mm.(model)
 	if m.screen != screenUSBDrive {
 		t.Fatalf("screen = %v after esc, want screenUSBDrive (cancel, not copy)", m.screen)
+	}
+}
+
+// TestUpdateConfirmInstallRelaunchesElevatedWhenNotElevated confirms
+// confirming install without an elevated token hands off to sdiGo's
+// relaunch instead of calling runInstallCmd directly.
+// install.IsElevated() is always false on this non-Windows dev
+// machine (see internal/install's !windows stub) - the same mock-free
+// trick used elsewhere in this file to prove a path is genuinely
+// reached rather than assumed.
+func TestUpdateConfirmInstallRelaunchesElevatedWhenNotElevated(t *testing.T) {
+	m := newModel(scan.Result{}, settings.New(), nil)
+	m.screen = screenConfirmInstall
+	m.selected = map[string]bool{"DEV1": true, "DEV2": false}
+
+	mm, _ := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune("y")})
+	m = mm.(model)
+
+	if len(m.relaunchInstanceIDs) != 1 || m.relaunchInstanceIDs[0] != "DEV1" {
+		t.Fatalf("relaunchInstanceIDs = %v, want exactly [DEV1]", m.relaunchInstanceIDs)
+	}
+	if m.screen == screenInstalling {
+		t.Error("screen advanced to screenInstalling, want it to stay put while sdiGo relaunches elevated")
+	}
+}
+
+// TestNewModelResumeSelectedOpensConfirmInstall confirms a selection
+// carried across the elevation relaunch restores straight to the
+// confirm-install screen, so the "y" that triggered the relaunch
+// isn't silently dropped.
+func TestNewModelResumeSelectedOpensConfirmInstall(t *testing.T) {
+	m := newModel(scan.Result{}, settings.New(), map[string]bool{"DEV1": true})
+	if m.screen != screenConfirmInstall {
+		t.Fatalf("screen = %v, want screenConfirmInstall when resumeSelected is non-empty", m.screen)
+	}
+	if !m.selected["DEV1"] {
+		t.Errorf("selected = %v, want DEV1 restored", m.selected)
+	}
+}
+
+// TestResumeFileRoundTrip confirms writeResumeFile/readResumeFile
+// agree on the on-disk format used to carry a selection across the
+// elevation relaunch.
+func TestResumeFileRoundTrip(t *testing.T) {
+	path := writeResumeFile([]string{"DEV1", "DEV2"})
+	if path == "" {
+		t.Fatal("writeResumeFile() returned an empty path")
+	}
+	defer os.Remove(path)
+
+	got := readResumeFile(path)
+	if !got["DEV1"] || !got["DEV2"] || len(got) != 2 {
+		t.Errorf("readResumeFile() = %v, want exactly DEV1 and DEV2", got)
+	}
+}
+
+// TestReadResumeFileMissingFileReturnsNil confirms a missing/bad
+// -elevated-resume path degrades to "nothing to restore" instead of
+// sdiGo failing outright over an internal-only flag.
+func TestReadResumeFileMissingFileReturnsNil(t *testing.T) {
+	if got := readResumeFile(filepath.Join(t.TempDir(), "does-not-exist.txt")); got != nil {
+		t.Errorf("readResumeFile() = %v, want nil for a missing file", got)
 	}
 }
