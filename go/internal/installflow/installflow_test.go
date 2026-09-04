@@ -1,6 +1,7 @@
-package main
+package installflow
 
 import (
+	"io"
 	"os"
 	"path/filepath"
 	"strings"
@@ -25,11 +26,11 @@ func TestMain(m *testing.M) {
 	os.Exit(m.Run())
 }
 
-// realDtPortInstall builds a real, fully-usable pendingInstall from
-// the reference installation's real dtport index/archive, for
-// exercising installOne's flag-gating branches without needing a
-// synthetic index.
-func realDtPortInstall(t *testing.T) pendingInstall {
+// realDtPortInstall builds a real, fully-usable Pending from the
+// reference installation's real dtport index/archive, for exercising
+// InstallOne's flag-gating branches without needing a synthetic
+// index.
+func realDtPortInstall(t *testing.T) Pending {
 	t.Helper()
 	const indexPath = "/mnt/d/OneDrive/Desktop/Reinstall/DriverInstaller/indexes/SDI/DP_Ports_SDIO01_26083.bin"
 	const packDir = "/mnt/d/OneDrive/Desktop/Reinstall/DriverInstaller/drivers"
@@ -53,19 +54,19 @@ func realDtPortInstall(t *testing.T) pendingInstall {
 	wantHWID := `DTBUS\COMPORT&VID_37DD&PID_6001`
 	for i := range idx.HWIDs {
 		if strings.EqualFold(drp.HWID(i), wantHWID) {
-			return pendingInstall{
-				description: "test: dtport",
-				candidate:   collection.Candidate{Driverpack: drp, HWIDIndex: i},
+			return Pending{
+				Description: "test: dtport",
+				Candidate:   collection.Candidate{Driverpack: drp, HWIDIndex: i},
 			}
 		}
 	}
 	t.Fatalf("HWID %q not found in %s", wantHWID, indexPath)
-	return pendingInstall{}
+	return Pending{}
 }
 
 // TestInstallOneExtractOnlyModeSkipsInstall confirms -extractdir's
 // documented "also switches to extract-only mode (no install)"
-// behavior (FlagExtractOnly) is actually honored: installOne extracts
+// behavior (FlagExtractOnly) is actually honored: InstallOne extracts
 // but must return nil without ever reaching install.Driver. On this
 // (non-Windows) test machine, install.Driver always returns an
 // "unsupported platform" error (see install_other.go), so reaching it
@@ -77,8 +78,8 @@ func TestInstallOneExtractOnlyModeSkipsInstall(t *testing.T) {
 	s.ExtractDir = t.TempDir()
 	s.Flags |= settings.FlagExtractOnly
 
-	if err := installOne(s, p); err != nil {
-		t.Fatalf("installOne() with FlagExtractOnly error: %v, want nil (install.Driver must not be reached)", err)
+	if err := InstallOne(s, p, io.Discard); err != nil {
+		t.Fatalf("InstallOne() with FlagExtractOnly error: %v, want nil (install.Driver must not be reached)", err)
 	}
 }
 
@@ -91,13 +92,13 @@ func TestInstallOneDisableInstallSkipsInstall(t *testing.T) {
 	s.ExtractDir = t.TempDir()
 	s.Flags |= settings.FlagDisableInstall
 
-	if err := installOne(s, p); err != nil {
-		t.Fatalf("installOne() with FlagDisableInstall error: %v, want nil", err)
+	if err := InstallOne(s, p, io.Discard); err != nil {
+		t.Fatalf("InstallOne() with FlagDisableInstall error: %v, want nil", err)
 	}
 }
 
 // TestInstallOneNormalModeReachesInstallDriver confirms that, absent
-// both skip flags, installOne actually attempts the install (and thus
+// both skip flags, InstallOne actually attempts the install (and thus
 // fails with the platform-unsupported error here, proving it got that
 // far) - a regression guard against accidentally adding another early
 // return that silently skips installing.
@@ -106,23 +107,23 @@ func TestInstallOneNormalModeReachesInstallDriver(t *testing.T) {
 	s := settings.New()
 	s.ExtractDir = t.TempDir()
 
-	err := installOne(s, p)
+	err := InstallOne(s, p, io.Discard)
 	if err == nil {
-		t.Fatal("installOne() with no skip flags returned nil, want the platform-unsupported error from install.Driver")
+		t.Fatal("InstallOne() with no skip flags returned nil, want the platform-unsupported error from install.Driver")
 	}
 }
 
 // realTorrentPath is a real cached SDIO update torrent from a
 // production installation (see internal/update's tests) - reused here
-// to validate the actual download-and-move path downloadPendingPacks
+// to validate the actual download-and-move path DownloadPending
 // implements, not just its unit pieces.
 const realTorrentPath = "/mnt/d/OneDrive/Desktop/Reinstall/DriverInstaller/torrent/SDIO_Update.torrent"
 
-// TestDownloadPendingPacksRealTorrent downloads a real driver pack
+// TestDownloadPendingRealTorrent downloads a real driver pack
 // (DP_CardReader_26072.7z, ~60MB - independently confirmed absent
 // from the reference installation's drivers folder, i.e. actually
 // pending, not already downloaded) from the real cached torrent, and
-// confirms the result lands where installOne expects it and is a
+// confirms the result lands where InstallOne expects it and is a
 // valid, openable .7z archive - not just "some bytes arrived".
 //
 // Skipped unless SDIO_TEST_REAL_TORRENT=1: real BitTorrent networking
@@ -136,7 +137,7 @@ const realTorrentPath = "/mnt/d/OneDrive/Desktop/Reinstall/DriverInstaller/torre
 // statement with no framework code after it to hang in. Not resolved;
 // gated instead of fixed so routine `go test ./...` runs don't pay a
 // ~60s tax for one real-network test.
-func TestDownloadPendingPacksRealTorrent(t *testing.T) {
+func TestDownloadPendingRealTorrent(t *testing.T) {
 	if os.Getenv("SDIO_TEST_REAL_TORRENT") != "1" {
 		t.Skip("set SDIO_TEST_REAL_TORRENT=1 to run (real network download; see doc comment)")
 	}
@@ -154,9 +155,9 @@ func TestDownloadPendingPacksRealTorrent(t *testing.T) {
 	s := settings.New()
 	s.TorrentFile = realTorrentPath
 
-	pending := []pendingInstall{{
-		description: "test: " + packFilename,
-		candidate: collection.Candidate{
+	pending := []Pending{{
+		Description: "test: " + packFilename,
+		Candidate: collection.Candidate{
 			Driverpack: &indexing.Driverpack{
 				Path:     destDir,
 				Filename: packFilename,
@@ -165,11 +166,11 @@ func TestDownloadPendingPacksRealTorrent(t *testing.T) {
 		},
 	}}
 
-	if err := downloadPendingPacks(s, pending); err != nil {
-		t.Fatalf("downloadPendingPacks() error: %v", err)
+	if err := DownloadPending(s, pending, io.Discard); err != nil {
+		t.Fatalf("DownloadPending() error: %v", err)
 	}
 
-	if pending[0].candidate.Driverpack.Pending {
+	if pending[0].Candidate.Driverpack.Pending {
 		t.Error("Driverpack.Pending should be cleared after a successful download")
 	}
 
