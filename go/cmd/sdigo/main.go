@@ -214,7 +214,14 @@ func deviceRow(dr scan.DeviceResult, selected, showInstalled bool) table.Row {
 		}
 		row = table.Row{sel, scan.MatchLabel(nil), description, reason, ""}
 	} else {
-		row = table.Row{sel, scan.MatchLabel(best), description, best.Driverpack.Filename, best.Result.DriverVersion.String()}
+		packName := best.Driverpack.Filename
+		if best.Driverpack.Pending {
+			// Its index was fetched ahead of its .7z data (see
+			// collection.LoadOnlineIndexes) - installing it means a
+			// download first, worth knowing before ticking it.
+			packName += " [needs download]"
+		}
+		row = table.Row{sel, scan.MatchLabel(best), description, packName, best.Result.DriverVersion.String()}
 	}
 	if showInstalled {
 		installedVersion := "not installed"

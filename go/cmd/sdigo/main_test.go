@@ -446,6 +446,25 @@ func TestDeviceRowFlagsMicrosoftDriver(t *testing.T) {
 	}
 }
 
+// TestDeviceRowFlagsPendingDownload confirms a matched candidate whose
+// .7z hasn't been downloaded yet (index-only, via
+// collection.LoadOnlineIndexes) says so in the Best match cell, so
+// ticking it doesn't come as a surprise once install tries to fetch it
+// first.
+func TestDeviceRowFlagsPendingDownload(t *testing.T) {
+	dr := scan.DeviceResult{
+		Device: hardware.Device{Description: "Widget"},
+		Candidates: []collection.Candidate{{
+			Driverpack: &indexing.Driverpack{Filename: "DP_Test_SDIO01_1.7z", Pending: true},
+			Result:     matcher.Result{AltSectScore: 2, DecorScore: 1, Status: matcher.StatusBetter},
+		}},
+	}
+	got := deviceRow(dr, false, false)[3]
+	if got != "DP_Test_SDIO01_1.7z [needs download]" {
+		t.Errorf("best match cell = %q, want the filename suffixed with [needs download]", got)
+	}
+}
+
 // TestResizeWhileDetailScreenOpenDoesNotPanic reproduces a real crash:
 // bubbles/table.SetColumns re-renders immediately against whatever
 // rows are already loaded, and if showInstalled flips (changing the
