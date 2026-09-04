@@ -66,10 +66,9 @@ const (
 )
 
 // deviceStatus computes a DeviceStatus from raw CM_Get_DevNode_Status
-// output, ported from Device::print_status(). notPresent should be set
-// when CM_Get_DevNode_Status failed with CR_NO_SUCH_DEVINST or
-// CR_NO_SUCH_VALUE (a "phantom" device - no longer plugged in, but
-// still listed).
+// output. notPresent should be set when CM_Get_DevNode_Status failed
+// with CR_NO_SUCH_DEVINST or CR_NO_SUCH_VALUE (a "phantom" device - no
+// longer plugged in, but still listed).
 func deviceStatus(notPresent bool, statusFlags, problem uint32) DeviceStatus {
 	if notPresent {
 		return DeviceNotPresent
@@ -89,11 +88,11 @@ func deviceStatus(notPresent bool, statusFlags, problem uint32) DeviceStatus {
 	return DeviceStopped
 }
 
-// Device describes one enumerated Plug and Play device: the parts of
-// the original Device class independent of driver-pack indexing.
-// Currently-installed-driver introspection (the original's Driver
-// class: a registry lookup plus .inf scanning against a Driverpack) is
-// deferred until the indexing package it depends on is ported.
+// Device describes one enumerated Plug and Play device. Deliberately
+// excludes currently-installed-driver details: that's a separate
+// registry lookup (OpenInstalledDriver, keyed by DriverKeyName) rather
+// than a field here, since not every caller needs it and it requires
+// a second registry round trip per device.
 type Device struct {
 	InstanceID    string
 	Description   string

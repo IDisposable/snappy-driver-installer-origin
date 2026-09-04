@@ -1,14 +1,14 @@
-// Package indexing reads (and will eventually write) SDIO's compiled
-// driver-pack index cache: the decompressed payload produced by
-// internal/sdwfile.Decode. Ported from the data model in indexing.h/
-// indexing.cpp (Driverpack, Collection, and the data_*_t record types),
-// not the .inf-parsing/indexing pipeline itself (Parser, genindex,
-// driverpack_indexinf_async, etc.), which comes later.
+// Package indexing reads SDIO's compiled driver-pack index cache (the
+// decompressed payload produced by internal/sdwfile.Decode) and parses
+// .inf files into the same shape a compiled index holds, for scoring
+// an installed driver the same way a driver-pack candidate is scored
+// (see ScanInstalledInf). Building a new index from scratch - genindex's
+// write-side orchestration - isn't part of this package.
 //
 // All record types here use explicit int32/uint32 fields, never Go's
 // platform-sized int, because their field order and 4-byte-per-field
-// layout must match the original C++ structs exactly for
-// encoding/binary to parse them correctly.
+// layout must match the on-disk format exactly for encoding/binary to
+// parse them correctly.
 package indexing
 
 // ofst is a byte offset into a Txt string blob, matching the `ofst`

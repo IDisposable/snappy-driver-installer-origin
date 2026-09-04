@@ -18,12 +18,9 @@ func (f DriverpackFile) Path() string {
 	return filepath.Join(f.Dir, f.Filename)
 }
 
-// ScanDriverpackFolder recursively finds every .7z file under root,
-// ported from the packed-driver-pack case of Collection::scanfolder in
-// indexing.cpp (using filepath.WalkDir instead of manual
-// FindFirstFile/FindNextFile recursion). The "unpacked" mode - scanning
-// loose .inf/.cat files directly, used only when a driver pack has
-// already been extracted via -PATH - isn't ported; see go/README.md.
+// ScanDriverpackFolder recursively finds every .7z file under root.
+// Scanning loose, already-extracted .inf/.cat files directly (rather
+// than a packed .7z) isn't supported.
 func ScanDriverpackFolder(root string) ([]DriverpackFile, error) {
 	var found []DriverpackFile
 	err := filepath.WalkDir(root, func(path string, d fs.DirEntry, err error) error {
@@ -45,8 +42,7 @@ func ScanDriverpackFolder(root string) ([]DriverpackFile, error) {
 }
 
 // CountDriverpacksNeedingIndex counts how many of files need a fresh
-// index, ported from Collection::scanfolder_count. If forceReindex is
-// set (COLLECTION_FORCE_REINDEXING), every file counts; otherwise
+// index. If forceReindex is set, every file counts; otherwise
 // hasValidIndex is consulted per file (e.g. checking
 // sdwfile.PeekVersion on that driver pack's indexes/<name>.bin).
 func CountDriverpacksNeedingIndex(files []DriverpackFile, forceReindex bool, hasValidIndex func(DriverpackFile) bool) int {

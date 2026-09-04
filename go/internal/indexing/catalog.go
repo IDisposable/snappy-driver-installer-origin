@@ -13,8 +13,8 @@ import (
 var osAttrMarker = []byte{'O', 0, 'S', 0, 'A', 0, 't', 0, 't', 0}
 
 // FindOSAttr scans a .cat file's raw bytes for its embedded OS
-// compatibility attribute, ported from findosattr in indexing.cpp. It
-// is a byte-pattern scan, not a real ASN.1 parse: every occurrence of
+// compatibility attribute. It is a byte-pattern scan, not a real
+// ASN.1 parse: every occurrence of
 // the marker is followed by a length byte and then a UTF-16LE string
 // such as "2:6.1,2:10.0" ("<ProductType>:<major>.<minor>" pairs), but
 // two byte-alignment variants exist depending on the signing tool -
@@ -58,10 +58,9 @@ func readUTF16LEZ(data []byte, start int) string {
 
 // IsValidCat reports whether a catalog file's OS-attribute string (as
 // returned by FindOSAttr) covers the given Windows major/minor
-// version, ported from the identical logic in Driver::isvalidcat
-// (enum.cpp) and Hwidmatch::isvalidcat (matcher.cpp). Windows 11
-// reports major version 11 but signs catalogs as "2:10.x", matching
-// the original's major==11 -> 10 normalization.
+// version. Windows 11 reports major version 11 but signs catalogs as
+// "2:10.x", so major==11 is normalized to 10 before comparing -
+// without that, every catalog file would look outdated on Windows 11.
 func IsValidCat(catAttr string, major, minor int) bool {
 	if catAttr == "" {
 		return false

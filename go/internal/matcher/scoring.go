@@ -3,9 +3,9 @@ package matcher
 import "strings"
 
 // SectionDecorationIndex finds which OSDecorations entry the ".nt..."
-// suffix of a decorated section name corresponds to, ported from
-// calc_secttype in matcher.cpp. name is expected to contain ".nt"
-// somewhere (case-insensitive) - e.g. "root.ntamd64.10.0" - and only
+// suffix of a decorated section name corresponds to. name is expected
+// to contain ".nt" somewhere (case-insensitive) - e.g.
+// "root.ntamd64.10.0" - and only
 // the Architecture/OSMajorVersion/OSMinorVersion/BuildNumber fields of
 // the decoration are considered (ProductType and SuiteMask, if
 // present, are ignored), matching the DDK's decorated-section-name
@@ -60,13 +60,16 @@ func SectionDecorationIndex(name string) int {
 	if len(target) < 3 {
 		return -1
 	}
-	target = target[3:] // strip the leading ".nt", matching the original's buf+3
+	target = target[3:] // ".ntamd64.10.0" -> "amd64.10.0"
 
 	for i, dec := range OSDecorations {
 		if len(dec) < 2 {
 			continue
 		}
-		if strings.EqualFold(target, dec[2:]) { // strip "nt", matching the original's nts[i]+2
+		// dec entries start "nt..." (no leading dot) - stripping 2
+		// instead of 3 chars lands on the same "amd64.10.0" form target
+		// was normalized to above, so the two are comparable.
+		if strings.EqualFold(target, dec[2:]) {
 			return i
 		}
 	}
@@ -74,15 +77,15 @@ func SectionDecorationIndex(name string) int {
 }
 
 // DecorationScore computes the score a decorated section contributes
-// toward a driver's match ranking against the running system, ported
-// from Hwidmatch::calc_decorscore. id is an index into OSDecorations
-// (e.g. from SectionDecorationIndex); id<0 (no decoration to check)
-// always scores 1, meaning "not disqualified, no extra confidence
-// either." major/minor/build describe the running Windows version
-// (major*10+minor convention, matching hardware.WindowsVersionInfo).
-// arch is 1=x86, 2=amd64, 3=ia64, 4=arm, 5=arm64 - one more than
-// hardware's 0-based architecture index, matching the original's
-// `arch=state->getArchitecture()+1`.
+// toward a driver's match ranking against the running system. id is
+// an index into OSDecorations (e.g. from SectionDecorationIndex);
+// id<0 (no decoration to check) always scores 1, meaning "not
+// disqualified, no extra confidence either." major/minor/build
+// describe the running Windows version (major*10+minor convention,
+// matching hardware.WindowsVersionInfo). arch is 1=x86, 2=amd64,
+// 3=ia64, 4=arm, 5=arm64 - one more than hardware's 0-based
+// architecture index (see MarkerScore's doc comment for why the two
+// don't share a convention).
 func DecorationScore(id, major, minor, build, arch int) int {
 	if id < 0 {
 		return 1
@@ -116,12 +119,12 @@ func DecorationScore(id, major, minor, build, arch int) int {
 // MarkerScore scores a driver-pack file path against a small set of
 // "marker" substrings that imply an OS version and architecture
 // (vendor-specific naming conventions, e.g. "78x86" meaning "Windows 7
-// or 8, x86"), ported from Hwidmatch::calc_markerscore. major/minor
-// describe the running Windows version. arch is 0-based (0=x86,
-// 1=amd64, 2=ia64, 3=arm, 4=arm64) - unlike DecorationScore's 1-based
-// convention, matching the original's differing conventions between
-// the two functions exactly (calc_markerscore uses
-// state->getArchitecture() directly, calc_decorscore adds 1).
+// or 8, x86"). major/minor describe the running Windows version. arch
+// is 0-based (0=x86, 1=amd64, 2=ia64, 3=arm, 4=arm64) - DecorationScore
+// takes a 1-based arch instead; the two conventions genuinely differ
+// (not a typo to "fix") and passing one function's arch value to the
+// other silently zeroes every decoration score, a real bug caught
+// while testing this rewrite against real hardware.
 //
 // Returned bits: 1 = at least one marker matched, 2 = the OS version
 // allows (matches or exceeds a matched marker, or no version marker
@@ -172,12 +175,12 @@ func MarkerScore(path string, major, minor, arch int) int {
 }
 
 // NotebookOEMMarker identifies the OEM brand implied by a system's
-// motherboard manufacturer string (e.g. "Dell Inc." -> "Dell_nb"),
-// ported from State::genmarker. Returns "OEM_nb" if manuf doesn't
-// match any known brand, or manuf is empty. If manuf matches more than
-// one brand's filters, the last-matching brand (in oemFilters' order)
-// wins, matching the original's unconditional overwrite in its loop
-// (it never breaks early).
+// motherboard manufacturer string (e.g. "Dell Inc." -> "Dell_nb").
+// Returns "OEM_nb" if manuf doesn't match any known brand, or manuf is
+// empty. If manuf matches more than one brand's filters, the
+// last-matching brand (in oemFilters' order) wins rather than the
+// first - not short-circuited, so this must keep scanning the whole
+// table even after a match.
 func NotebookOEMMarker(manuf string) string {
 	marker := "OEM_nb"
 	if manuf == "" {

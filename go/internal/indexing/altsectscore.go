@@ -8,8 +8,7 @@ import (
 )
 
 // MatchContext bundles the running system's state needed by
-// CalcAltSectScore, ported from the subset of State (enum.cpp/
-// matcher.cpp) that function reads.
+// CalcAltSectScore.
 type MatchContext struct {
 	Major, Minor, Build int
 	IsAMD64             bool // state->getArchitecture()==1
@@ -39,9 +38,7 @@ func (ctx MatchContext) ArchForMarker() int {
 // packVersionNumber extracts a driver pack's numeric release suffix
 // from its filename (e.g. "..._16074.7z" -> 16074: the first
 // underscore followed by a digit, parsed with atoi's leading-digits
-// convention), ported from the packname-scanning block in
-// Hwidmatch::calc_altsectscore. Returns 0 if no such suffix is found,
-// matching the original's v==0 default.
+// convention). Returns 0 if no such suffix is found.
 func packVersionNumber(filename string) int {
 	for i := 0; i+1 < len(filename); i++ {
 		if filename[i] == '_' && filename[i+1] >= '0' && filename[i+1] <= '9' {
@@ -53,12 +50,11 @@ func packVersionNumber(filename string) int {
 
 // PickCat returns which catalog-file field slot (see the Field*
 // constants) holds the OS-attribute string to validate this HWID
-// entry's driver against, ported from Hwidmatch::pickcat. The
-// fallback-to-FieldCatalogFile return when nothing is found matches
-// the original's return value collision (pickcat returns 0 both for
-// "found CatalogFile" and "found nothing"); harmless there because the
-// caller only acts on whether the resulting field is empty, which
-// IsValidCatForDriver also does.
+// entry's driver against. The fallback return of FieldCatalogFile when
+// nothing else matches is indistinguishable from "FieldCatalogFile
+// itself is the right slot" - harmless, since every caller
+// (IsValidCatForDriver included) only checks whether the resulting
+// field is empty, not which slot was picked.
 func (d *Driverpack) PickCat(hwidIndex int, isAMD64 bool) int {
 	if isAMD64 && d.Cat(hwidIndex, FieldCatalogFileNTAMD64) != "" {
 		return FieldCatalogFileNTAMD64
@@ -74,27 +70,25 @@ func (d *Driverpack) PickCat(hwidIndex int, isAMD64 bool) int {
 
 // IsValidCatForDriver reports whether this HWID entry's driver has a
 // catalog file whose signed OS-attribute string covers the running
-// Windows version, ported from Hwidmatch::isvalidcat (combined with
-// pickcat).
+// Windows version.
 func (d *Driverpack) IsValidCatForDriver(hwidIndex, major, minor int, isAMD64 bool) bool {
 	n := d.PickCat(hwidIndex, isAMD64)
 	return IsValidCat(d.Cat(hwidIndex, n), major, minor)
 }
 
 // CalcAltSectScore reports whether a candidate driver survives every
-// OS-decoration and vendor-specific validity check, ported from
-// Hwidmatch::calc_altsectscore. curScore is the candidate's own
-// DecorScore (matcher.DecorationScore) computed for the section it was
-// actually found under; if any of the SAME manufacturer's other
-// declared section variants would score higher against the running
-// system, this candidate loses to that variant (returns 0).
-// deviceHardwareID is the plug-and-play hardware ID of the device
-// being matched (needed by the USB3 hub and Realtek blacklist checks).
-// The return value is not a boolean: 0 means rejected, 1 means valid,
-// 2 means valid with a confirmed catalog-file signature (or
-// FilterSP-restricted matching, which trusts catalog-signed packs
-// implicitly) - callers compare it numerically, matching the
-// original's use as a tri-state score component.
+// OS-decoration and vendor-specific validity check. curScore is the
+// candidate's own DecorScore (matcher.DecorationScore) computed for
+// the section it was actually found under; if any of the SAME
+// manufacturer's other declared section variants would score higher
+// against the running system, this candidate loses to that variant
+// (returns 0). deviceHardwareID is the plug-and-play hardware ID of
+// the device being matched (needed by the USB3 hub and Realtek
+// blacklist checks). The return value is not a boolean: 0 means
+// rejected, 1 means valid, 2 means valid with a confirmed
+// catalog-file signature (or FilterSP-restricted matching, which
+// trusts catalog-signed packs implicitly) - callers compare it
+// numerically rather than treating it as a plain bool.
 func (d *Driverpack) CalcAltSectScore(hwidIndex, curScore int, ctx MatchContext, deviceHardwareID string) int {
 	e := d.resolve(hwidIndex)
 	manuf := d.Index.Manufacturers[e.manufIndex]
@@ -167,12 +161,11 @@ func (d *Driverpack) CalcAltSectScore(hwidIndex, curScore int, ctx MatchContext,
 
 // CalcStatus combines a candidate driver's comparison against the
 // currently installed driver into a status bitmask (see the Status*
-// constants in internal/matcher), ported from the
-// installed-driver-exists branch of Hwidmatch::calc_status.
-// devicematch->isMissing and the STATUS_MISSING short-circuit aren't
-// covered here - they need the not-yet-ported Devicematch/Driver
-// types; callers should check that first and only call CalcStatus once
-// they know whether an installed driver exists to compare against.
+// constants in internal/matcher). The STATUS_MISSING case isn't
+// covered here - that's collection.isMissing's job, checked
+// separately before calling this, since it only makes sense to
+// compare scores once the caller knows an installed driver actually
+// exists to compare against.
 // installedVersion/installedScore are the installed driver's date and
 // calc_score_h result; candidateVersion/candidateScore are this
 // entry's. infPathHasFeaturePrefix is whether this candidate's .inf

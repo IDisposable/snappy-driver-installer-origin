@@ -7,16 +7,15 @@ import (
 )
 
 // Hashtable is an open-chaining hash table mapping int32 keys to int32
-// values, ported from Hashtable in common.h/common.cpp. Size is the
-// bucket count; Items holds both the buckets (indices 0..Size-1) and
-// any overflow chain entries appended after them.
+// values. Size is the bucket count; Items holds both the buckets
+// (indices 0..Size-1) and any overflow chain entries appended after
+// them.
 //
 // Keys are typically themselves a hash of some other value (e.g. a
 // hardware ID string's APHash) - Find/AddItem re-hash the raw bytes of
 // the int32 key a second time to pick a bucket, so that similar string
 // hashes don't cluster into the same bucket. findNextIdx/findKey hold
-// FindNext's cursor between calls, matching the original's
-// findnext_v/findstr instance fields.
+// FindNext's cursor between calls.
 type Hashtable struct {
 	Size  int32
 	Items []HashItem
@@ -144,11 +143,11 @@ func encodeHashtable(w *bytes.Buffer, h Hashtable) error {
 	return writeBlock(w, h.Items)
 }
 
-// APHash is the hash function Hashtable uses (Partow's AP hash),
-// ported from Hashtable::APHash in common.cpp. The original reads
-// through a (platform-default, likely signed) `char *`; b is sign-
-// extended as an int8 to match that, which only matters for non-ASCII
-// bytes (hardware ID strings are ASCII in practice).
+// APHash is the hash function Hashtable uses (Partow's AP hash). Must
+// produce byte-identical output to every other SDIO client reading the
+// same on-disk index: b is sign-extended as an int8 (matching a
+// platform-default, likely signed `char *` read), which only matters
+// for non-ASCII bytes (hardware ID strings are ASCII in practice).
 func APHash(s []byte) uint32 {
 	hash := uint32(0xAAAAAAAA)
 	for i, raw := range s {

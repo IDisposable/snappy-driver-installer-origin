@@ -15,16 +15,15 @@ import (
 	"sdio/internal/settings"
 )
 
-// System summarizes the machine scan.cpp/enum.cpp gathers, the parts a
-// front end needs to display and to build a MatchContext from.
+// System summarizes the machine, the parts a front end needs to
+// display and to build a MatchContext from.
 type System struct {
 	BaseBoard hardware.BaseBoard
 	SysInfo   hardware.SysInfo
 	IsLaptop  bool
 }
 
-// DeviceResult is one enumerated device plus its match outcome, ported
-// from what a Devicematch (matcher.cpp) exposes to the UI.
+// DeviceResult is one enumerated device plus its match outcome.
 type DeviceResult struct {
 	Device     hardware.Device
 	Status     int // matcher.Status* bits
@@ -41,9 +40,9 @@ type DeviceResult struct {
 	// InstalledScore is the installed driver's own computed score
 	// (see scoreInstalledDriver), or nil if Installed is nil or its
 	// .inf couldn't be read - kept alongside Installed so a front end
-	// can reproduce the original's per-field installed-vs-candidate
-	// comparison (Manager::draw_hint's cm_score) without recomputing
-	// it from scratch.
+	// can render a per-field installed-vs-candidate comparison (see
+	// cmd/sdigo's compareInstalledVsCandidate) without recomputing it
+	// from scratch.
 	InstalledScore *collection.InstalledScore
 }
 
@@ -69,16 +68,14 @@ func (r DeviceResult) Best() *collection.Candidate {
 	return &r.Candidates[0]
 }
 
-// Visible reports whether this device should be shown under filters,
-// ported from the per-status-bit OR logic in Manager::filter
-// (`options&statustnl[k].filter && status&statustnl[k].status`),
-// adapted to this rewrite's single-best-candidate-per-device model
-// (FILTER_SHOW_ONE is always effectively active in the original too -
-// its own flag read is dead code, unconditionally overwritten with 1).
-// Unlike Best, which always applies the original's default filter set
-// regardless of the caller's actual Settings.Filters, Visible lets a
-// front end honor the user's configured filters (see cmd/sdigo's
-// options screen).
+// Visible reports whether this device should be shown under filters -
+// this rewrite always keeps one best candidate per device (there's no
+// "show all candidates" toggle to honor; the original's own
+// equivalent flag read was dead code, unconditionally overwritten
+// before use). Unlike Best, which always applies the fixed default
+// filter set regardless of the caller's actual Settings.Filters,
+// Visible lets a front end honor the user's configured filters (see
+// cmd/sdigo's options screen).
 func (r DeviceResult) Visible(filters settings.FilterShow) bool {
 	if len(r.Candidates) == 0 {
 		switch r.Status {
@@ -143,11 +140,7 @@ type Result struct {
 }
 
 // Run performs the full pipeline: hardware detection, driver-pack
-// collection loading, and per-device matching, ported from the
-// combination of State::getsysinfo_fast/Device enumeration
-// (enum.cpp), Collection::scanfolder (indexing.cpp), and
-// MatcherImp::populate (matcher.cpp) that a full SDIO run performs
-// before showing its device list.
+// collection loading, and per-device matching.
 func Run(s *settings.Settings) (Result, error) {
 	var res Result
 
@@ -196,9 +189,8 @@ func Run(s *settings.Settings) (Result, error) {
 		return res, fmt.Errorf("creating %s: %w", s.IndexDir, err)
 	}
 
-	// Bootstrap/refresh the index catalog from the configured torrent,
-	// ported from Updater_t::WelcomeDownloadIndexes (see
-	// collection.BootstrapIndexes). Always attempted when the index
+	// Bootstrap/refresh the index catalog from the configured torrent
+	// (see collection.BootstrapIndexes). Always attempted when the index
 	// directory is empty, since otherwise a machine with no local
 	// catalog at all can never do anything; also attempted on request
 	// via -checkupdates, matching that flag's documented purpose
@@ -258,14 +250,14 @@ func indexDirNeedsBootstrap(indexDir string) bool {
 }
 
 // scoreInstalledDriver computes the currently-installed driver's own
-// score by parsing its own .inf file, ported from Driver::scaninf
-// (which recovers the feature/catalog-file/HWID-position data)
-// combined with calc_score_h (which turns that into the same kind of
-// score matcher.Score gives a candidate). Returns nil if installed is
-// nil or its .inf file can't be read (e.g. already removed, or a
-// permission issue) - Match treats a nil InstalledScore as "no
-// installed driver to compare against", matching the original's
-// "STATUS_BETTER unconditionally" fallback for that case.
+// score by parsing its own .inf file (indexing.ScanInstalledInf) into
+// the same kind of score matcher.Score gives a candidate. Returns nil
+// if installed is nil or its .inf file can't be read (e.g. already
+// removed, or a permission issue) - collection.Match treats a nil
+// InstalledScore as "no installed driver to compare against" and
+// reports every candidate as StatusBetter unconditionally
+// (indexing.CalcStatus's hasInstalledDriver=false branch), rather than
+// failing the whole comparison.
 func scoreInstalledDriver(si hardware.SysInfo, installed *hardware.InstalledDriver) *collection.InstalledScore {
 	if installed == nil {
 		return nil
@@ -286,18 +278,15 @@ func scoreInstalledDriver(si hardware.SysInfo, installed *hardware.InstalledDriv
 	}
 }
 
-// MatchLabel renders a short label for a device's best candidate,
-// ported from the STATUS_BETTER_NEW/_CUR/_OLD branches of
-// itembar_t::str_status (the other six BETTER/SAME/WORSE combinations
-// don't apply here: best is nil unless StatusBetter is already set,
-// per DeviceResult.Best). New/Old/Current is the date-vs-installed
-// axis, independent of the Better/Worse/Same score axis a plain
-// "Found" collapses - the original shows a full sentence per case
-// ("More optimal driver available, though it's older"); this returns
-// a short word instead, sized for a table column rather than a
-// sentence. A device with no installed driver to compare dates
-// against at all (first-time install) has neither bit set, so falls
-// through to "Found".
+// MatchLabel renders a short label for a device's best candidate. Only
+// the New/Old/Current bits are checked here - the other six BETTER/
+// SAME/WORSE combinations don't apply, since best is nil unless
+// StatusBetter is already set (see DeviceResult.Best). New/Old/Current
+// is the date-vs-installed axis, independent of the score axis a
+// plain "Found" collapses - sized for a table column, not a sentence.
+// A device with no installed driver to compare dates against at all
+// (first-time install) has neither bit set, so falls through to
+// "Found".
 func MatchLabel(best *collection.Candidate) string {
 	if best == nil {
 		return "Missing"

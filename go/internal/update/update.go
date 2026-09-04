@@ -1,7 +1,6 @@
-// Package update downloads driver packs via BitTorrent, ported from
-// the torrent-handling parts of update.cpp/update.h, using
-// github.com/anacrolix/torrent instead of porting the bundled
-// libtorrent glue (see go/README.md).
+// Package update downloads driver packs via BitTorrent, using
+// github.com/anacrolix/torrent instead of the original's bundled
+// libtorrent glue.
 //
 // update.h declares Updater_t::torrent_url/torrent2_url (the .torrent
 // metadata SDIO fetches to learn what's available) but never defines
@@ -11,12 +10,12 @@
 // metadata-fetch URL: callers supply a torrent source (a local
 // .torrent file or a magnet URI) via AddFromFile/AddFromMagnet.
 //
-// The core behavior this package exists to preserve is
-// StartInstallDownload/EndInstallDownload's selective download model:
-// SDIO's drivers, indexes, app binaries, and docs are all one shared
-// multi-file torrent, and a normal run downloads only the specific
-// driver-pack files a device match actually needs (Torrent.SelectFiles),
-// not the whole multi-gigabyte collection. Confirmed against a real
+// The core behavior this package exists to preserve is the selective
+// download model: SDIO's drivers, indexes, app binaries, and docs are
+// all one shared multi-file torrent, and a normal run downloads only
+// the specific driver-pack files a device match actually needs
+// (Torrent.SelectFiles), not the whole multi-gigabyte collection.
+// Confirmed against a real
 // cached torrent/SDIO_Update.torrent from a production installation:
 // a single-tracker-announce, multi-tracker-announce-list, HTTP-webseed
 // multi-file torrent containing drivers/*.7z, indexes/**/*.bin, the
@@ -35,11 +34,9 @@ import (
 	"golang.org/x/time/rate"
 )
 
-// Config configures the torrent client, ported from Updater_t's
-// static settings (torrentport, downlimit, uplimit) in update.h.
-// outgoingport_min/outgoingport_max and connections aren't
-// represented - anacrolix/torrent manages outgoing ports and
-// per-torrent connection limits internally.
+// Config configures the torrent client. Outgoing port range and
+// per-torrent connection limits aren't represented - anacrolix/torrent
+// manages both internally.
 type Config struct {
 	DataDir      string // where downloaded file data lands (torrent_save_path's role)
 	ListenPort   int    // 0 lets anacrolix/torrent pick a default
@@ -163,11 +160,10 @@ func (t *Torrent) Files() []FileInfo {
 }
 
 // SelectFiles marks exactly the files whose Path is in names for
-// download and explicitly skips every other file, ported from
-// StartInstallDownload(filenames): SDIO downloads only the specific
-// driver-pack files a device match actually needs from the one shared
-// torrent, not the whole collection. Returns the FileInfo values
-// selected, in torrent file order, for progress tracking.
+// download and explicitly skips every other file - the selective
+// download model this package exists to preserve (see the package doc
+// comment). Returns the FileInfo values selected, in torrent file
+// order, for progress tracking.
 func (t *Torrent) SelectFiles(names []string) []FileInfo {
 	want := make(map[string]bool, len(names))
 	for _, n := range names {
@@ -206,9 +202,8 @@ func (f FileProgress) Percent() int {
 	return int(f.Completed * 100 / f.Total)
 }
 
-// Progress sums BytesCompleted/Length across files, matching the
-// percent-complete calculation ShowProgress displays in update.cpp.
-// Label identifies what's being downloaded (e.g. a driver-pack
+// Progress sums BytesCompleted/Length across files. Label identifies
+// what's being downloaded (e.g. a driver-pack
 // filename), set by WaitDownload's caller - it carries no meaning on
 // its own. Files carries the same breakdown per individual file, in
 // the same order as the files argument Progress/WaitDownload were

@@ -11,19 +11,17 @@ import (
 // been isolated to one section (e.g. everything between a
 // "[Manufacturer]" line and the next "[...]" line), extracting
 // "key = field,field,field" style lines with %string% substitution.
-// Ported from Parser in indexing.cpp.
 //
-// Unlike the original, which keeps strBeg/strEnd as pointers that get
-// redirected into different buffers by substitution (the source
-// buffer, a separate string table, or a scratch buffer for
-// multi-substitution tokens), ParseItem/ParseField here return the
-// final, already-substituted token as a plain Go string: Go strings
-// are immutable values, so there's no need to track "which buffer does
+// ParseItem/ParseField return the final, already-substituted token as
+// a plain Go string rather than a pointer into whichever buffer
+// currently holds it (the source buffer, a separate string table, or
+// a scratch buffer for multi-substitution tokens) - Go strings are
+// immutable values, so there's no need to track "which buffer does
 // this token currently point into."
 //
 // stringList holds %name%->value substitutions (from a driver pack's
-// [Strings] section), with lowercased keys, matching the original's
-// case-insensitive lookup.
+// [Strings] section), with lowercased keys for case-insensitive
+// lookups.
 type InfParser struct {
 	data               []byte
 	stringList         map[string]string
@@ -85,12 +83,11 @@ func (p *InfParser) finalizeToken(beg, end int) (string, bool) {
 }
 
 // substitute performs %name% replacement on tok. A token that is
-// exactly "%name%" (or "%name" missing
-// its closing '%') is looked up directly; otherwise, every "%name%"
-// found anywhere in tok is replaced piecewise, and unmatched '%'
-// characters are left as-is. A token with no successful substitution
-// anywhere is returned unchanged, matching the original leaving
-// strBeg/strEnd untouched when its "flag" stays 0.
+// exactly "%name%" (or "%name" missing its closing '%') is looked up
+// directly; otherwise, every "%name%" found anywhere in tok is
+// replaced piecewise, and unmatched '%' characters are left as-is. A
+// token with no successful substitution anywhere is returned
+// unchanged.
 func (p *InfParser) substitute(tok []byte) string {
 	if len(p.stringList) == 0 || len(tok) == 0 {
 		return string(tok)
@@ -272,10 +269,10 @@ func ParseNumber(s string) (n int, rest string) {
 	return n, s[i:]
 }
 
-// ParseDate decomposes a field value into a month/day/year date,
-// ported from Parser::readDate. The .inf DriverVer convention is
-// mm/dd/yyyy, hence the month-day-year read order despite
-// common.Version.SetDate taking (day, month, year).
+// ParseDate decomposes a field value into a month/day/year date. The
+// .inf DriverVer convention is mm/dd/yyyy, hence the month-day-year
+// read order despite common.Version.SetDate taking (day, month,
+// year).
 func ParseDate(s string) common.Version {
 	i := 0
 	for i < len(s) && !(s[i] >= '0' && s[i] <= '9') {

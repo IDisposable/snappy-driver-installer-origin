@@ -29,9 +29,10 @@ type Result struct {
 	NeedsReboot bool
 }
 
-// RestorePointDescription is the fixed description SDIO gives the
-// restore point it creates before installing drivers, ported from the
-// literal string in Manager::thread_install.
+// RestorePointDescription is the description shown for the restore
+// point created before installing drivers - kept as the original
+// tool's exact wording, since it's user-facing text with no reason to
+// change now.
 const RestorePointDescription = "Installed drivers"
 
 // RemoveExtraInfs deletes every .inf file (any case) in infPath's

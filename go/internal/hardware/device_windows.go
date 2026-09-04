@@ -9,10 +9,9 @@ import (
 	"golang.org/x/sys/windows"
 )
 
-// ScanDevices enumerates all present Plug and Play devices, ported
-// from the device-enumeration half of State::scanDevices (the
-// currently-installed-driver half - the original's Driver class - is
-// deferred, see Device's doc comment).
+// ScanDevices enumerates all present Plug and Play devices. See
+// Device's doc comment for why currently-installed-driver details
+// aren't included here.
 func ScanDevices() ([]Device, error) {
 	set, err := windows.SetupDiGetClassDevsEx(nil, "", 0, windows.DIGCF_PRESENT|windows.DIGCF_ALLCLASSES, 0, "")
 	if err != nil {

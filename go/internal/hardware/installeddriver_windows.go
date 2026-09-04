@@ -12,10 +12,9 @@ import (
 
 // OpenInstalledDriver opens driverKeyName under
 // SYSTEM\CurrentControlSet\Control\Class and reads the currently-
-// installed driver info from it, ported from the RegOpenKeyEx call in
-// State::scanDevices plus the Driver constructor it feeds. device
-// should be the Device this driver is installed for (its
-// DriverKeyName field gives driverKeyName).
+// installed driver info from it. device should be the Device this
+// driver is installed for (its DriverKeyName field gives
+// driverKeyName).
 func OpenInstalledDriver(driverKeyName string, device Device) (InstalledDriver, error) {
 	key, err := registry.OpenKey(registry.LOCAL_MACHINE, `SYSTEM\CurrentControlSet\Control\Class\`+driverKeyName, registry.QUERY_VALUE)
 	if err != nil {

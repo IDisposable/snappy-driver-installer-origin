@@ -9,11 +9,11 @@ import (
 // Driverpack is one indexed driver pack: its on-disk path plus the
 // decoded index built from its indexes/**/*.bin file. It wraps Index
 // with the "join" navigation (HWID -> Desc -> Manufacturer -> InfFile)
-// that Hwidmatch's getdrp_* getters perform in matcher.cpp, so scoring
-// code can be written against hardware-ID-index inputs the way the
-// original does, without needing the full Driverpack/Collection
-// object graph (which also owns indexing/genindex orchestration, not
-// ported here).
+// scoring code needs to go from a hardware-ID index straight to the
+// strings/version/manufacturer it resolves to, without every caller
+// re-deriving that chain itself. Building a new index from scratch
+// (genindex's write-side orchestration) isn't part of this type or
+// ported anywhere else - see docs/PORTING_NOTES.md.
 type Driverpack struct {
 	Path     string
 	Filename string
@@ -25,7 +25,7 @@ type Driverpack struct {
 	// Hwidmatch::getdrp_packontorrent). A device can still be matched
 	// against a pending pack (its index is fully loaded), but
 	// installing it needs to download Filename first - see
-	// go/README.md's update.cpp entry.
+	// docs/PORTING_NOTES.md's update.cpp entry.
 	Pending bool
 }
 
@@ -59,8 +59,7 @@ func (d *Driverpack) SectionAtPos(manufIndex, pos int) string {
 }
 
 // readOffsets reads n consecutive little-endian uint32 text-blob
-// offsets starting at start, matching the original's
-// reinterpret_cast<const int *> over a memcpy'd ofst array.
+// offsets starting at start.
 func readOffsets(data []byte, start ofst, n int) []ofst {
 	out := make([]ofst, n)
 	for i := 0; i < n; i++ {

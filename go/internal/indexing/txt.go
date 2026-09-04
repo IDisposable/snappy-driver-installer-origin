@@ -2,13 +2,11 @@ package indexing
 
 import "unicode/utf16"
 
-// Txt is a driver-pack index's interned string blob, ported from Txt
-// in common.h/common.cpp. Strings are stored null-terminated, either
-// as narrow (ANSI/UTF-8-ish 8-bit) or as UTF-16LE, depending on which
-// original method (strcpy vs strcpyw) wrote them; which encoding
-// applies to which field is a property of the higher-level record that
-// holds the offset; determined when indexing.cpp's .inf-parsing/
-// field-population logic is ported.
+// Txt is a driver-pack index's interned string blob. Strings are
+// stored null-terminated, either as narrow (ANSI/UTF-8-ish 8-bit, read
+// by GetString) or as UTF-16LE (read by GetW) - which encoding applies
+// is a property of the higher-level record that holds the offset, not
+// of Txt itself.
 type Txt struct {
 	Data []byte
 }
@@ -27,9 +25,11 @@ func (t Txt) Get(offset ofst) []byte {
 	return t.Data[i:end]
 }
 
-// GetString is Get decoded as a string (the original's ANSI codepage
-// vs. UTF-8 handling isn't replicated - see the package doc comment on
-// why decoding narrow strings needs more context than this type has).
+// GetString is Get decoded as a string, without any ANSI-codepage
+// translation - verified against real driver-pack data as correct for
+// every field this rewrite currently reads (hardware IDs, paths,
+// manufacturer/description text); a field that turns out to need real
+// codepage handling would need its own decoding, not a Txt change.
 func (t Txt) GetString(offset ofst) string {
 	return string(t.Get(offset))
 }

@@ -20,14 +20,12 @@ type SectionRange struct {
 // the file (legal but unusual in real .inf files).
 type InfSections map[string][]SectionRange
 
-// DiscoverSections scans data for "[Name]" section headers, ported
-// from the first ("Populate sections") pass of
-// Driverpack::indexinf_ansi. It also returns a simple additive
-// checksum of the file's content bytes - the bytes inside "[...]"
-// brackets plus every non-blank, non-comment line's content, excluding
-// the brackets and line endings themselves - ported from the same
-// pass's infcrc accumulation (used elsewhere to detect unchanged .inf
-// content across driver-pack versions).
+// DiscoverSections scans data for "[Name]" section headers. It also
+// returns a simple additive checksum of the file's content bytes - the
+// bytes inside "[...]" brackets plus every non-blank, non-comment
+// line's content, excluding the brackets and line endings themselves -
+// used elsewhere to detect unchanged .inf content across driver-pack
+// versions.
 func DiscoverSections(data []byte) (InfSections, int32) {
 	sections := InfSections{}
 	var crc int32
@@ -80,11 +78,9 @@ func DiscoverSections(data []byte) (InfSections, int32) {
 }
 
 // ParseStrings extracts %name%->value substitutions from a driver
-// pack's [Strings] section(s), ported from the "Find [strings]" pass
-// in Driverpack::indexinf_ansi. Multiple [Strings] sections (unusual
-// but legal) are merged into one map. The map is used as its own
-// substitution source while parsing (matching the original passing the
-// same, growing string_list to the Parser it uses here), so a later
+// pack's [Strings] section(s). Multiple [Strings] sections (unusual
+// but legal) are merged into one map. The map being built is also fed
+// back in as the substitution source while parsing it, so a later
 // [Strings] entry may reference an earlier one via %name%.
 func ParseStrings(data []byte, sections InfSections) map[string]string {
 	result := map[string]string{}
@@ -103,8 +99,9 @@ func ParseStrings(data []byte, sections InfSections) map[string]string {
 	return result
 }
 
-// verFieldNames mirrors table_version in indexing.cpp, in NumVerNames
-// (Field* constant) order.
+// verFieldNames gives each Field* constant its [Version]-section key
+// name, in NumVerNames order - index i here corresponds to Field
+// constant i.
 var verFieldNames = [NumVerNames]string{
 	"classguid", "class", "provider",
 	"catalogfile", "catalogfile.nt", "catalogfile.ntx86", "catalogfile.ntia64", "catalogfile.ntamd64",
@@ -124,10 +121,11 @@ type InfVersionInfo struct {
 	Version common.Version
 }
 
-// ParseVersionSection extracts an .inf file's [Version] section,
-// ported from the "Find [version]" pass in Driverpack::indexinf_ansi.
-// DriverVer is special-cased into a date+version pair rather than
-// stored as raw text, matching the original.
+// ParseVersionSection extracts an .inf file's [Version] section.
+// DriverVer is special-cased into a date+version pair (see
+// InfVersionInfo.Version) rather than stored as raw text like every
+// other field, since date/version comparison is exactly what driver
+// ranking needs it for.
 func ParseVersionSection(data []byte, sections InfSections, stringList map[string]string) InfVersionInfo {
 	var info InfVersionInfo
 	info.Version.SetInvalid()
@@ -187,27 +185,21 @@ type ManufacturerEntry struct {
 	// "microsoft"), used to find that manufacturer's model sections
 	// (e.g. "[Microsoft.NTamd64]").
 	SectionRoot string
-	// Sections lists every candidate section name to try, in the order
-	// the original tries them: the bare root first (in case the file
+	// Sections lists every candidate section name to try, in a fixed
+	// order that matters: the bare root first (in case the file
 	// declares an undecorated "[SectionRoot]" section), then
 	// "root.decoration" for each OS decoration listed on the line.
 	Sections []string
 }
 
 // ParseManufacturers enumerates a driver pack's [Manufacturer]
-// section(s), ported from the "Find [manufacturer]" pass's outer loop
-// and its compound-section-name construction (the "secttry" logic) in
-// Driverpack::indexinf_ansi.
-//
-// NOT ported here: resolving each candidate section to find the actual
-// per-device install section (with its "featurescore" hex flag) and
-// building the resulting Desc/HWID records. That resolution tries a
-// chain of NUM_DECS=336 OS-decoration suffixes from matcher.cpp's
-// nts[] table, which hasn't been ported yet - see go/README.md. This
-// function only gets as far as listing which section names to look up
-// in an InfSections; the caller must
+// section(s) and the candidate section names each one implies -
+// resolving those candidates against the file's actual sections to
+// find the real per-device install section (with its "featurescore"
+// hex flag) and building the resulting Desc/HWID records is
+// resolveInstallSection's job, not this function's: the caller must
 // resolve InfSections["<one of entry.Sections>"] and drive an
-// InfParser over the matched section itself to get descriptions/HWIDs.
+// InfParser over the matched section itself.
 func ParseManufacturers(data []byte, sections InfSections, stringList map[string]string) []ManufacturerEntry {
 	var result []ManufacturerEntry
 

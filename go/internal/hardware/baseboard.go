@@ -6,9 +6,9 @@
 package hardware
 
 // BaseBoard holds identifying information about the system's
-// motherboard, overall computer system, and chassis, ported from
-// State::getbaseboard in baseboard.cpp (Win32_BaseBoard,
-// Win32_ComputerSystem, Win32_SystemEnclosure).
+// motherboard, overall computer system, and chassis, from the
+// Win32_BaseBoard, Win32_ComputerSystem, and Win32_SystemEnclosure WMI
+// classes respectively.
 type BaseBoard struct {
 	Manufacturer string
 	Model        string

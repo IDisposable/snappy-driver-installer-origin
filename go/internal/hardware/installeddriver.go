@@ -8,14 +8,13 @@ import (
 
 // InstalledDriver describes a currently-installed driver, read from
 // its registry key under
-// SYSTEM\CurrentControlSet\Control\Class\<ClassGUID>\<Index>. Ported
-// from Driver in enum.cpp - the parts independent of
-// Driverpack::scaninf's .inf-cache lookup (Feature, CatalogFileBits,
-// Cat, and a corrected InfPos), which isn't ported yet: it needs the
-// Driverpack/inf-cache orchestration from indexing.cpp's genindex,
-// which this rewrite hasn't built (see go/README.md).
-// Without it, DevPos reflects only the device-ID match
-// (Driver::calc_dev_pos), not scaninf's refinement of InfPos.
+// SYSTEM\CurrentControlSet\Control\Class\<ClassGUID>\<Index>. Feature,
+// CatalogFileBits, and an NT-section flag aren't fields here: getting
+// them needs parsing the driver's own .inf file, which this package
+// avoids (it only reads the registry) - see
+// indexing.ScanInstalledInf and collection.InstalledScore, which scan
+// package callers combine with this type's DevPos/IsHardwareID for
+// the full picture.
 type InstalledDriver struct {
 	Desc             string
 	ProviderName     string
@@ -26,8 +25,10 @@ type InstalledDriver struct {
 	Version          common.Version // from the DriverDate + DriverVersion registry strings
 
 	// DevPos/IsHardwareID describe how MatchingDeviceID matched the
-	// device's own hardware/compatible ID list, ported from
-	// Driver::calc_dev_pos. DevPos is -1 if no match was found.
+	// device's own hardware/compatible ID list. DevPos is -1 if no
+	// match was found; combined with indexing.ScanInstalledInf's own
+	// InfPos by matcher.IdentifierScore for the full identifier score
+	// (see internal/scan).
 	DevPos       int
 	IsHardwareID bool
 }

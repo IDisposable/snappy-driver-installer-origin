@@ -7,10 +7,10 @@ import (
 	"io"
 )
 
-// readBlock reads one loadable_vector<T>-shaped block: a 4-byte
-// byte-count, a 4-byte element count, then that many fixed-size T
-// records - ported from vector_load in common.h. T must be a struct of
-// only fixed-size numeric fields (int32/uint32/[N]int32/...), since
+// readBlock reads one block shaped like this on-disk format's
+// serialized vectors: a 4-byte byte-count, a 4-byte element count,
+// then that many fixed-size T records. T must be a struct of only
+// fixed-size numeric fields (int32/uint32/[N]int32/...), since
 // encoding/binary reads it field by field.
 func readBlock[T any](r *bytes.Reader) ([]T, error) {
 	var usedBytes, count int32

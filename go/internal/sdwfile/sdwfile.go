@@ -1,6 +1,5 @@
 // Package sdwfile reads and writes the "SDW" container format used by
-// SDIO's driver-pack index cache (indexes/**/*.bin), ported from
-// Driverpack::loadindex/saveindex/checkindex in indexing.cpp.
+// SDIO's driver-pack index cache (indexes/**/*.bin).
 //
 // Layout: a 3-byte magic "SDW", a 4-byte little-endian format version,
 // then a payload that is either raw bytes or - in the default
@@ -17,7 +16,7 @@
 //
 // This container format is also used by logs/*.snp state snapshots,
 // but byte-compatibility for those is explicitly not required (see
-// go/README.md) - only indexes/**/*.bin needs to round-trip.
+// docs/COMPATIBILITY.md) - only indexes/**/*.bin needs to round-trip.
 package sdwfile
 
 import (
@@ -41,10 +40,9 @@ const (
 )
 
 // PeekVersion reads just the SDW header (magic + version), without
-// touching the LZMA payload, ported from Driverpack::checkindex - a
-// cheap "is this a valid, current-format index file" check used when
-// deciding whether a driver pack needs reindexing, without paying for
-// a full decompression.
+// touching the LZMA payload - a cheap "is this a valid, current-format
+// index file" check used when deciding whether a driver pack needs
+// reindexing, without paying for a full decompression.
 func PeekVersion(r io.Reader) (version int32, ok bool) {
 	var header [headerLen]byte
 	if _, err := io.ReadFull(r, header[:]); err != nil {

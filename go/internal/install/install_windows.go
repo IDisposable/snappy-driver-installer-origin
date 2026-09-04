@@ -53,10 +53,9 @@ func CheckAvailable() error {
 	return nil
 }
 
-// Driver installs infPath as the driver for hardwareID, ported from
-// the UpdateDriverForPlugAndPlayDevices call at the heart of
-// driver_install (install.cpp) - see the package doc comment for what
-// isn't ported (the WOW64 helper/Autoclicker).
+// Driver installs infPath as the driver for hardwareID via
+// UpdateDriverForPlugAndPlayDevicesW - see the package doc comment for
+// what isn't ported (the WOW64 helper/Autoclicker).
 func Driver(hwndParent uintptr, hardwareID, infPath string) (Result, error) {
 	hwidPtr, err := windows.UTF16PtrFromString(hardwareID)
 	if err != nil {
@@ -97,13 +96,12 @@ type stateMgrStatus struct {
 	sequenceNumber int64
 }
 
-// CreateRestorePoint creates a Windows System Restore point, ported
-// from the SRSetRestorePointW call in Manager::thread_install
-// (install.cpp), always with the original's fixed event/type
-// (BEGIN_SYSTEM_CHANGE, DEVICE_DRIVER_INSTALL) and description
-// (RestorePointDescription). Returns an error if SrClient.dll isn't
-// present (System Restore is disabled or unavailable on this system)
-// or the call itself fails.
+// CreateRestorePoint creates a Windows System Restore point of a fixed
+// event/type (BEGIN_SYSTEM_CHANGE, DEVICE_DRIVER_INSTALL - not
+// configurable, since every caller creates the same kind of restore
+// point) with the given description. Returns an error if SrClient.dll
+// isn't present (System Restore is disabled or unavailable on this
+// system) or the call itself fails.
 func CreateRestorePoint(description string) error {
 	descPtr, err := windows.UTF16FromString(description)
 	if err != nil {

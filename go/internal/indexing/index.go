@@ -20,8 +20,8 @@ type Index struct {
 }
 
 // DecodeIndex parses a decompressed .bin index payload into structured
-// driver-pack index data, ported from the exact read sequence in
-// Driverpack::loadindex: inf files, manufacturers, descriptions,
+// driver-pack index data. The read order is fixed by the on-disk
+// format and must not change: inf files, manufacturers, descriptions,
 // hardware IDs, the text blob, then the hash table.
 func DecodeIndex(payload []byte) (*Index, error) {
 	r := bytes.NewReader(payload)

@@ -29,10 +29,7 @@ type sectionResolution struct {
 }
 
 // resolveInstallSection finds the .inf section that documents how to
-// install a device whose [Manufacturer]-section line names rawInstall,
-// ported from the install-section-resolution chain in
-// Driverpack::indexinf_ansi (the "installsection"/"secttry" logic
-// between building each data_desc_t and reading its HWIDs).
+// install a device whose [Manufacturer]-section line names rawInstall.
 //
 // The chain, tried in order, stopping at the first match:
 //  1. "<rawInstall>.nt"
@@ -92,11 +89,11 @@ func resolveInstallSection(sections InfSections, rawInstall, lastDecoration stri
 }
 
 // findFeatureScore searches resolution's matched section(s) for a
-// "featurescore" key, ported from the got3/parse_info3 loop in
-// Driverpack::indexinf_ansi. callerSection is the manufacturer model
-// section currently being walked (e.g. "root.ntamd64"); if it equals
-// the resolved section's own display name, the lookup is skipped
-// (self-reference guard, matching the original's identical check).
+// "featurescore" key. callerSection is the manufacturer model section
+// currently being walked (e.g. "root.ntamd64"); if resolution resolved
+// right back to that same section, the lookup is skipped rather than
+// re-parsing the section ResolveManufacturerSection is already
+// mid-walk of.
 func findFeatureScore(data []byte, resolution sectionResolution, callerSection string, stringList map[string]string) int {
 	if resolution.DisplayName == callerSection {
 		return defaultFeature

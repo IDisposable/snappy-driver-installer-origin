@@ -34,12 +34,11 @@ type BatteryStatus struct {
 	FullLifeTimeSeconds int
 }
 
-// WindowsVersionInfo describes the running Windows release, ported from
-// the fields State::getsysinfo_fast populates (originally via
-// GetVersionEx plus a registry-based Windows 11 correction; this
-// rewrite reads the registry directly instead, since GetVersionEx lies
-// about the version unless the calling process has an app manifest
-// declaring support for the current Windows release).
+// WindowsVersionInfo describes the running Windows release, read from
+// the registry rather than GetVersionEx: GetVersionEx lies about the
+// version to any process whose app manifest doesn't declare explicit
+// support for it, so relying on it would require keeping the manifest
+// in sync with every future Windows release.
 type WindowsVersionInfo struct {
 	Major, Minor, Build int
 	// ProductType is 1 for a workstation, 3 for a server (the

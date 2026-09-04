@@ -24,10 +24,11 @@ type win32SystemEnclosure struct {
 }
 
 // GetBaseBoard queries WMI for motherboard, computer system, and
-// chassis identification, ported from State::getbaseboard. As in the
-// original, a failed query aborts the rest rather than leaving that
-// section zero-valued; wmi.Query owns the underlying COM lifecycle, so
-// there's no manual Release() bookkeeping here.
+// chassis identification. A failed query aborts the rest rather than
+// leaving that section zero-valued, so a caller never mistakes an
+// unqueried section for a real "unknown" answer; wmi.Query owns the
+// underlying COM lifecycle, so there's no manual Release() bookkeeping
+// here.
 func GetBaseBoard() (BaseBoard, error) {
 	var info BaseBoard
 

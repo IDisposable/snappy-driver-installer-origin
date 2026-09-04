@@ -4,8 +4,6 @@ package matcher
 // internal/indexing (kept as local constants rather than importing
 // that package, since internal/indexing already imports
 // internal/matcher for OSDecorations - importing back would cycle).
-// Ported from the CatalogFile.. range used in calc_signature/
-// Hwidmatch::calc_catalogfile in enum.cpp/matcher.cpp.
 const (
 	CatalogFileBit        = 1 << 3 // indexing.FieldCatalogFile
 	CatalogFileNTBit      = 1 << 4 // indexing.FieldCatalogFileNT
@@ -15,12 +13,13 @@ const (
 )
 
 // SignatureScore computes the catalog-signature component of a
-// driver's overall Score, ported from calc_signature in enum.cpp.
-// is64Bit is the running system's architecture; isNTSection reports
-// whether the driver's chosen install section is ".nt"-decorated
-// (checked via strings.Contains on InfSection/InfSectionExt in the
-// original - that check itself isn't ported here, since it needs the
-// not-yet-ported Driver type; callers compute isNTSection themselves).
+// driver's overall Score. is64Bit is the running system's
+// architecture; isNTSection reports whether the driver's chosen
+// install section is ".nt"-decorated - computed by the caller
+// (indexing.ScanInstalledInf for an installed driver,
+// collection.buildCandidate for a driver-pack candidate) rather than
+// here, since those two sides get their section name from unrelated
+// types with no common interface.
 func SignatureScore(catalogFileBits int, is64Bit bool, isNTSection bool) int {
 	if is64Bit {
 		if catalogFileBits&(CatalogFileBit|CatalogFileNTBit|CatalogFileNTAMD64Bit|CatalogFileNTIA64Bit) != 0 {
@@ -37,8 +36,8 @@ func SignatureScore(catalogFileBits int, is64Bit bool, isNTSection bool) int {
 	return 0xC000
 }
 
-// Score computes a driver candidate's overall match score, ported from
-// calc_score in enum.cpp. feature is the "featurescore" value from the
+// Score computes a driver candidate's overall match score. feature is
+// the "featurescore" value from the
 // resolved install section (see indexing.ResolvedDevice.Feature, or
 // indexing.defaultFeature if none); identifierScore comes from
 // IdentifierScore; major is the running Windows major version (10 and
@@ -53,9 +52,9 @@ func Score(catalogFileBits, feature, identifierScore, major int, is64Bit, isNTSe
 }
 
 // IdentifierScore ranks how directly a device's hardware/compatible ID
-// matched an .inf file's hardware/compatible ID list, ported from
-// calc_identifierscore in enum.cpp. Lower is better: an exact
-// hardware-ID-to-hardware-ID match at position 0 scores 0x0000, up to
+// matched an .inf file's hardware/compatible ID list. Lower is
+// better: an exact hardware-ID-to-hardware-ID match at position 0
+// scores 0x0000, up to
 // a compatible-ID-to-compatible-ID match scoring 0x3000 or higher.
 // devPos is the matched ID's position in the .inf file's HWID list;
 // deviceIsHardwareID reports whether the match came from the device's

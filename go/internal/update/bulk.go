@@ -16,15 +16,12 @@ import (
 // category.
 type DriverPackFilter func(filename string) bool
 
-// AllDriverPacks matches every driver-pack file, ported from the
-// driver-pack half of UpdaterImp::WelcomeDownloadAll (the index half
-// is collection.BootstrapIndexes).
+// AllDriverPacks matches every driver-pack file (the index half of a
+// full download is collection.BootstrapIndexes).
 func AllDriverPacks(string) bool { return true }
 
-// NetworkDriverPacks matches Net/LAN/WLAN/WWAN driver-pack filenames,
-// ported from UpdaterImp::WelcomeDownloadNetwork's substring checks -
-// the "get this PC online quickly" category from the original's
-// Welcome dialog.
+// NetworkDriverPacks matches Net/LAN/WLAN/WWAN driver-pack filenames -
+// the "get this PC online quickly" category on the Welcome screen.
 func NetworkDriverPacks(filename string) bool {
 	fn := strings.ToLower(filename)
 	for _, sub := range []string{"_net_", "_lan_", "_wlan-wifi_", "_wwan-4g_", "_wwan_"} {
@@ -36,9 +33,8 @@ func NetworkDriverPacks(filename string) bool {
 }
 
 // DownloadDriverPacks downloads every .7z driver-pack file in
-// torrentFile matching filter and not already present in drpDir,
-// ported from the driver-pack half of UpdaterImp::WelcomeDownloadAll/
-// WelcomeDownloadNetwork. Progress and warnings are written to out.
+// torrentFile matching filter and not already present in drpDir.
+// Progress and warnings are written to out.
 // updatesDir (Settings.UpdatesDir) is a persistent staging directory
 // for in-progress file data - not a temp directory, so an interrupted
 // download resumes instead of restarting from zero next run.

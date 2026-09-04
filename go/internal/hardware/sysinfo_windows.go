@@ -198,9 +198,9 @@ func getMonitorSizes() []MonitorSize {
 }
 
 // monitorSizeFromEDID reads the physical size (in cm) out of a
-// monitor's EDID, ported from GetMonitorSizeFromEDID in enum.cpp.
-// deviceID looks like "MONITOR\ACI27E2\{4d36e96e-...}\0001"; the
-// segment after "MONITOR\" is both the monitor model used to verify a
+// monitor's EDID. deviceID looks like
+// "MONITOR\ACI27E2\{4d36e96e-...}\0001"; the segment after "MONITOR\"
+// is both the monitor model used to verify a
 // registry EDID match, and (combined with the remainder) the path to
 // find it under SYSTEM\CurrentControlSet\Enum\DISPLAY.
 func monitorSizeFromEDID(deviceID string) (MonitorSize, bool) {

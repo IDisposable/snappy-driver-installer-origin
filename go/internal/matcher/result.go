@@ -2,12 +2,10 @@ package matcher
 
 import "sdio/internal/common"
 
-// Status bit values, ported verbatim from the STATUS_* enum in
-// matcher.h. calc_status (Hwidmatch::calc_status), which combines
-// these from a candidate driver's comparison against the currently
-// installed one, is not yet ported - it needs the not-yet-built
-// Devicematch/Driver object graph - but the bits themselves are
-// needed by Result.Cmp below.
+// Status bit values. The comparison that combines these from a
+// candidate driver's comparison against the currently installed one
+// lives in indexing.CalcStatus, not here - these bits are also needed
+// by Result.Cmp below, which has no reason to import indexing.
 const (
 	StatusBetter     = 0x001
 	StatusSame       = 0x002
@@ -25,9 +23,11 @@ const (
 )
 
 // Result holds one candidate driver's computed match scores and
-// identifying fields - the ranking half of Hwidmatch (matcher.cpp),
-// decoupled from the not-yet-ported Driverpack/Devicematch object
-// graph that computes these fields in the original.
+// identifying fields, independent of the indexing/collection types
+// that compute them (collection.Candidate wraps one per driver-pack
+// match) - matcher can't import those packages back without cycling
+// (see the CatalogFileBit consts' doc comment in score.go), so this
+// has to be a plain data type.
 type Result struct {
 	AltSectScore  int
 	Score         uint32

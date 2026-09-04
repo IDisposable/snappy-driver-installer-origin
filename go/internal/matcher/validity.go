@@ -1,17 +1,14 @@
-// Package matcher: driver-candidate validity checks, ported from the
-// vendor-specific and OS-version-specific guards in
-// Hwidmatch::calc_altsectscore (matcher.cpp). These are the small,
-// self-contained pieces of that function; the orchestration itself
-// needs the not-yet-ported Driverpack/Devicematch object graph (see
-// go/README.md) and is not ported here.
+// This file holds vendor-specific and OS-version-specific driver-
+// candidate validity checks; indexing.CalcAltSectScore is the
+// orchestration that calls them together with the scoring functions
+// in score.go/scoring.go.
 package matcher
 
 import "strings"
 
-// CmpUnsigned is a three-way compare, ported from cmpunsigned. Driver
-// scores are computed as bit-packed unsigned values (see Score) where
-// plain subtraction would overflow/wrap, so callers must use this
-// instead of a-b.
+// CmpUnsigned is a three-way compare. Driver scores are computed as
+// bit-packed unsigned values (see Score) where plain subtraction would
+// overflow/wrap, so callers must use this instead of a-b.
 func CmpUnsigned(a, b uint32) int {
 	switch {
 	case a > b:
@@ -25,10 +22,10 @@ func CmpUnsigned(a, b uint32) int {
 
 // IsValidVer reports whether a driver's declared version (its first
 // version component, e.g. 5, 6, or the "106" sentinel meaning 6.0) is
-// compatible with the running Windows version, ported from
-// Hwidmatch::isvalid_ver. This is a coarse convention some driver
-// packs use to hand-restrict a section to specific NT major versions
-// beyond what the section's own ".ntNNN" decoration already encodes.
+// compatible with the running Windows version. This is a coarse
+// convention some driver packs use to hand-restrict a section to
+// specific NT major versions beyond what the section's own ".ntNNN"
+// decoration already encodes.
 func IsValidVer(driverVersionV1, major, minor int) bool {
 	switch driverVersionV1 {
 	case 5:
@@ -44,9 +41,9 @@ func IsValidVer(driverVersionV1, major, minor int) bool {
 
 // IsBlacklisted reports whether a candidate driver should be rejected
 // because it matches a known-bad (hardware ID substring, section name
-// substring) pair, ported from Hwidmatch::isblacklisted. All matches
-// are case-insensitive substring checks, matching the original's
-// StrStrIW/StrStrIA use.
+// substring) pair. Both checks are case-insensitive substring
+// matches, not exact matches - a known-bad ID could appear as a
+// substring of a longer hardware ID string.
 func IsBlacklisted(hardwareID, section, blacklistHWID, blacklistSection string) bool {
 	if !strings.Contains(strings.ToLower(hardwareID), strings.ToLower(blacklistHWID)) {
 		return false
@@ -64,12 +61,10 @@ const (
 )
 
 // IsValidUSB3Hub reports whether hardwareID matches one of pids (each
-// a full hardware ID such as "IUSB3\ROOT_HUB30&VID_8086&PID_1E31"),
-// ported from Hwidmatch::isvalid_usb30hub applied over an allow-list.
-// calc_altsectscore uses this to restrict Intel USB 3.0 xHCI driver
-// packs to the specific root-hub PIDs they are known to support -
-// installing them against an unsupported hub can leave USB ports
-// non-functional.
+// a full hardware ID such as "IUSB3\ROOT_HUB30&VID_8086&PID_1E31").
+// Used to restrict Intel USB 3.0 xHCI driver packs to the specific
+// root-hub PIDs they are known to support - installing them against
+// an unsupported hub can leave USB ports non-functional.
 func IsValidUSB3Hub(hardwareID string, pids []string) bool {
 	lower := strings.ToLower(hardwareID)
 	for _, pid := range pids {
@@ -114,20 +109,18 @@ var (
 // IntelPathUsesSDIPrefix reports whether a driver pack's numeric
 // suffix (e.g. "intel_usb3_16074" -> 16074) is recent enough to use
 // the "intel_sdi_2nd\"/"intel_sdi_4th\" path prefixes instead of
-// "intel_2nd\"/"intel_4th\", ported from the packname-number-parsing
-// block in Hwidmatch::calc_altsectscore. packVersion is the first
+// "intel_2nd\"/"intel_4th\". packVersion is the first
 // underscore-followed-by-digits run found in the pack's filename; pass
-// 0 if none was found (the plain prefixes then apply, matching the
-// original's v==0 case).
+// 0 if none was found, so the plain (non-SDI) prefixes apply.
 func IntelPathUsesSDIPrefix(packVersion int) bool {
 	return packVersion > 16073
 }
 
 // CalcNotebookValid reports whether a laptop-only driver-pack section
-// is allowed to match the running system, ported from
-// Hwidmatch::calc_notebook. infPath is the driver pack's on-disk path
-// to its .inf file; marker is the running system's notebook OEM
-// marker (see NotebookOEMMarker), empty if none/not a laptop.
+// is allowed to match the running system. infPath is the driver
+// pack's on-disk path to its .inf file; marker is the running
+// system's notebook OEM marker (see NotebookOEMMarker), empty if
+// none/not a laptop.
 func CalcNotebookValid(infPath string, isLaptop bool, marker string) bool {
 	lower := strings.ToLower(infPath)
 	if !strings.Contains(lower, `_nb\`) && !strings.Contains(lower, `touchpad_mouse\`) {
