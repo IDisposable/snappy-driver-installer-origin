@@ -10,7 +10,7 @@ import (
 )
 
 // TestMain forces an explicit os.Exit after tests complete, matching
-// the pattern in cmd/sdi's and internal/update's test files - a real
+// the pattern in cmd/sdigo's and internal/update's test files - a real
 // torrent download otherwise leaves the test process hanging well
 // past when the test itself reports PASS (see
 // TestBootstrapIndexesRealTorrent's doc comment).
@@ -45,7 +45,7 @@ func TestBootstrapIndexesNoTorrentConfigured(t *testing.T) {
 // KB to ~1MB), so downloading the whole catalog (~200 files) is fast
 // despite the file count.
 //
-// Skipped unless SDIO_TEST_REAL_TORRENT=1: see cmd/sdi's
+// Skipped unless SDIO_TEST_REAL_TORRENT=1: see cmd/sdigo's
 // TestDownloadPendingPacksRealTorrent for why real torrent tests are
 // gated (a go-test-harness-specific shutdown hang, not a production
 // issue).

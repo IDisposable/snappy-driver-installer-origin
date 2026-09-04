@@ -1,8 +1,6 @@
 // Package scan runs the full "detect hardware, load a driver-pack
-// collection, match every device" pipeline that both cmd/sdi's
-// plain-text report and any future TUI front end need, so that
-// orchestration lives in one place rather than being duplicated across
-// front ends.
+// collection, match every device" pipeline cmd/sdigo's report and TUI
+// both need, so this orchestration lives in one place.
 package scan
 
 import (

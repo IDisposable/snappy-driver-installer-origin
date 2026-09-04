@@ -20,7 +20,7 @@ import (
 // same class of shutdown quirk noted in internal/update's test file,
 // but this time not resolved by it (this file only ever creates one
 // client for one test, so it isn't the "multiple clients" cause
-// suspected there). Production cmd/sdi is unaffected either way: its
+// suspected there). Production cmd/sdigo is unaffected either way: its
 // real main() already calls os.Exit(mainErr()) unconditionally.
 func TestMain(m *testing.M) {
 	os.Exit(m.Run())
@@ -133,7 +133,7 @@ const realTorrentPath = "/mnt/d/OneDrive/Desktop/Reinstall/DriverInstaller/torre
 // go-test-harness-specific interaction with anacrolix/torrent's
 // shutdown path (real `go run`/binary invocations of cmd/torrenttest
 // earlier did not exhibit this), not a production issue, since real
-// cmd/sdi's main() calls os.Exit(mainErr()) as its literal last
+// cmd/sdigo's main() calls os.Exit(mainErr()) as its literal last
 // statement with no framework code after it to hang in. Not resolved;
 // gated instead of fixed so routine `go test ./...` runs don't pay a
 // ~60s tax for one real-network test.
