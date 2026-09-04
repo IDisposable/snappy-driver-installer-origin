@@ -1,10 +1,10 @@
-// Command sditui is the TUI front end for the Go rewrite, replacing
-// gui.cpp/draw.cpp/theme*.cpp's device-list screen (see
-// go/README.md). It runs the same scan (internal/scan) as cmd/sdi,
-// then shows the results in a scrollable table with an options screen
-// (all engine flags and display filters), a per-device detail screen,
-// and per-row selection wired to the real install path
-// (internal/installflow) - the same one cmd/sdi's -install uses.
+// Command sditui is the single-EXE entry point for the Go rewrite: an
+// interactive TUI by default (replacing gui.cpp/draw.cpp/theme*.cpp's
+// device-list screen - see go/README.md), or the same plain-text
+// report cmd/sdi prints when -nogui is set. It shows a scrollable
+// table with an options screen (all engine flags and display
+// filters), a per-device detail screen, and per-row selection wired
+// to the real install path (internal/installflow).
 package main
 
 import (
@@ -21,6 +21,7 @@ import (
 	"sdio/internal/common"
 	"sdio/internal/installflow"
 	"sdio/internal/matcher"
+	"sdio/internal/report"
 	"sdio/internal/scan"
 	"sdio/internal/settings"
 )
@@ -837,9 +838,13 @@ func mainErr() int {
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "warning: loading sdio.cfg:", err)
 	}
-	if err := s.Parse(os.Args[1:]); err != nil {
+
+	fs := s.FlagSet("sditui")
+	doInstall := fs.Bool("install", false, "with -nogui, install matched drivers (modifies the system; without this flag, only scan and report)")
+	if err := fs.Parse(os.Args[1:]); err != nil {
 		return 2
 	}
+	s.ExpandDirs()
 
 	// Persists on exit even on an error return, so switches given on
 	// the command line and options-screen toggles both survive to the
@@ -856,6 +861,18 @@ func mainErr() int {
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "error:", err)
 		return 1
+	}
+
+	// -nogui prints the same plain-text report cmd/sdi does (this
+	// binary's only public counterpart, per go/README.md - one EXE,
+	// two front ends selected by a flag) instead of launching the
+	// interactive table.
+	if s.Flags&settings.FlagNoGUI != 0 {
+		pending := report.Print(os.Stdout, result)
+		if *doInstall && len(pending) > 0 {
+			installflow.Run(s, pending, os.Stdout)
+		}
+		return 0
 	}
 
 	p := tea.NewProgram(newModel(result, s), tea.WithAltScreen())
