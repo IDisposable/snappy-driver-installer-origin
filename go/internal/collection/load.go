@@ -42,16 +42,19 @@ func indexFilename(packFilename string) string {
 
 // LoadCollection scans driverpackDir for .7z driver packs (see
 // indexing.ScanDriverpackFolder) and loads each one's compiled index
-// from indexDir, building a fresh one from the pack's own .7z contents
-// (see BuildIndexFromArchive/SaveIndex) whenever the existing index is
-// missing/corrupt or reindex is set - ported from Collection::
-// scanfolder's genindex fallback. writeHumanReadable additionally
-// writes a text dump (-index-hr) alongside any index actually (re)
-// built this call; it has no effect on a pack whose existing index was
-// already valid and reindex wasn't set, matching COLLECTION_PRINT_
-// INDEX's original scope (a side effect of genindex, not a standalone
-// action). It also loads any pending (not-yet-downloaded) packs found
-// via LoadOnlineIndexes, appended to LoadResult.Packs with Pending set.
+// from indexDir. Building a fresh index from the pack's own .7z
+// contents (see BuildIndexFromArchive/SaveIndex) only ever happens
+// under explicit reindex - a driver pack's .7z can be gigabytes, and
+// scanning a whole collection is normal, frequent, unattended work
+// (every TUI launch): a missing/corrupt index reports as Skipped
+// instead, the same as before this rewrite could build one at all,
+// rather than risking an unbounded rebuild nobody asked for on an
+// ordinary scan. writeHumanReadable additionally writes a text dump
+// (-index-hr) alongside any index actually rebuilt this call, matching
+// COLLECTION_PRINT_INDEX's original scope (a side effect of genindex,
+// not a standalone action) - it has no effect without reindex. It also
+// loads any pending (not-yet-downloaded) packs found via
+// LoadOnlineIndexes, appended to LoadResult.Packs with Pending set.
 func LoadCollection(driverpackDir, indexDir string, reindex, writeHumanReadable bool) (LoadResult, error) {
 	files, err := indexing.ScanDriverpackFolder(driverpackDir)
 	if err != nil {
@@ -64,6 +67,10 @@ func LoadCollection(driverpackDir, indexDir string, reindex, writeHumanReadable 
 		idx, err := loadIndex(indexPath)
 		if err == nil && !reindex {
 			result.Packs = append(result.Packs, &indexing.Driverpack{Path: f.Dir, Filename: f.Filename, Index: idx})
+			continue
+		}
+		if err != nil && !reindex {
+			result.Skipped = append(result.Skipped, SkippedPack{Filename: f.Filename, Err: err})
 			continue
 		}
 
