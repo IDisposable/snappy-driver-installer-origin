@@ -1,2 +1,7 @@
 
 .vscode/
+
+go/drivers/
+go/indexes/
+go/updates/
+go/logs/
