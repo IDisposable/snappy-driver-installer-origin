@@ -137,3 +137,25 @@ go/scripts/run-windows.sh sdi -drp-dir=D:\drivers -index-dir=D:\indexes
 ```bat
 scripts\run-windows.cmd sdi -drp-dir=D:\drivers -index-dir=D:\indexes
 ```
+
+## Building a release
+
+`cmd/sditui` is the single binary intended for release. Its Windows
+app manifest (`cmd/sditui/winres/winres.json`) sets
+`requireAdministrator`, since driver installation needs admin rights;
+building it requires an extra step `go build` alone doesn't do:
+
+```sh
+go install github.com/tc-hib/go-winres@latest
+cd go/cmd/sditui && go-winres make --arch amd64 --out rsrc
+cd .. && GOOS=windows GOARCH=amd64 go build -o sditui.exe ./cmd/sditui
+```
+
+The generated `rsrc_windows_amd64.syso` is gitignored, not committed:
+embedding it makes the resulting exe require elevation to even start,
+which breaks the WSL PE interop technique this README's development
+verification relies on (a manifest-elevated exe can't be launched that
+way - confirmed directly: it fails immediately with "Invalid
+argument"). Regular `go build ./...` during development therefore
+produces an unelevated binary; only a release build goes through the
+step above.

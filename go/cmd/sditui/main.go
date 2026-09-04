@@ -321,12 +321,13 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, nil // ignore input while the install command is running
 		case screenInstallLog:
 			switch msg.String() {
-			case "q", "ctrl+c":
+			case "ctrl+c":
 				return m, tea.Quit
-			default:
+			case "q", "esc", "enter":
 				m.screen = screenTable
 				return m, nil
 			}
+			return m, nil
 		}
 		return m.updateTable(msg)
 	}
@@ -414,25 +415,45 @@ func (m model) updateOptions(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 }
 
 // updateDetail handles key input on the per-device detail screen.
+// updateDetail handles key input on the per-device detail screen.
+// Only the keys the footer documents do anything - an unrecognized
+// key is ignored rather than closing the screen, so a stray keypress
+// can't dismiss it by accident.
 func (m model) updateDetail(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
+	dr := m.currentDevice()
+	setSelected := func(v bool) {
+		if dr == nil || dr.Best() == nil {
+			return
+		}
+		if v {
+			m.selected[dr.Device.InstanceID] = true
+		} else {
+			delete(m.selected, dr.Device.InstanceID)
+		}
+		m.table.SetRows(tableRows(m.rows, m.selected, m.showInstalledCol))
+	}
+
 	switch msg.String() {
-	case "q", "ctrl+c":
+	case "ctrl+c":
 		return m, tea.Quit
 	case " ":
-		if dr := m.currentDevice(); dr != nil && dr.Best() != nil {
-			id := dr.Device.InstanceID
-			if m.selected[id] {
-				delete(m.selected, id)
-			} else {
-				m.selected[id] = true
-			}
-			m.table.SetRows(tableRows(m.rows, m.selected, m.showInstalledCol))
+		if dr != nil && dr.Best() != nil {
+			setSelected(!m.selected[dr.Device.InstanceID])
 		}
 		return m, nil
-	default:
+	case "y":
+		setSelected(true)
+		m.screen = screenTable
+		return m, nil
+	case "n":
+		setSelected(false)
+		m.screen = screenTable
+		return m, nil
+	case "q", "esc":
 		m.screen = screenTable
 		return m, nil
 	}
+	return m, nil
 }
 
 // updateConfirmInstall handles the yes/no prompt shown before
@@ -440,19 +461,22 @@ func (m model) updateDetail(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 // (extracts and calls UpdateDriverForPlugAndPlayDevicesW), so it gets
 // one more explicit confirmation beyond the space-bar tick, even
 // though the original GUI's single "Install (N)" button click is
-// arguably the same amount of intent.
+// arguably the same amount of intent. Only y/enter/n/esc/q do
+// anything - an unrecognized key is ignored, not treated as either
+// answer.
 func (m model) updateConfirmInstall(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	switch msg.String() {
 	case "y", "enter":
 		pending := m.pendingSelected()
 		m.screen = screenInstalling
 		return m, runInstallCmd(m.s, pending)
-	case "q", "ctrl+c":
+	case "ctrl+c":
 		return m, tea.Quit
-	default:
+	case "n", "q", "esc":
 		m.screen = screenTable
 		return m, nil
 	}
+	return m, nil
 }
 
 // pendingSelected builds the installflow.Pending list for every
@@ -725,7 +749,7 @@ const scoreExplainer = "Score is a packed ranking number, not a percentage - low
 // under the table's cursor.
 func (m model) detailView(dr scan.DeviceResult) string {
 	var b strings.Builder
-	b.WriteString("Device detail - space: toggle install, any other key: back, q: quit\n\n")
+	b.WriteString("Device detail - space: toggle install, y: mark and back, n: unmark and back, q/esc: back\n\n")
 
 	fmt.Fprintf(&b, "Device\n")
 	fmt.Fprintf(&b, "  Description    %s\n", dr.Device.Description)
@@ -815,13 +839,13 @@ func (m model) confirmInstallView() string {
 	for _, p := range pending {
 		fmt.Fprintf(&b, "  %s -> %s\n", p.Description, p.Candidate.Driverpack.Filename)
 	}
-	b.WriteString("\ny/enter: install, any other key: cancel, q: quit\n")
+	b.WriteString("\ny/enter: install, n/esc/q: cancel\n")
 	return b.String()
 }
 
 func (m model) installLogView() string {
 	var b strings.Builder
-	b.WriteString("Install log - any key: back to device list, q: quit\n\n")
+	b.WriteString("Install log - enter/esc/q: back to device list\n\n")
 	for _, line := range m.installLog {
 		fmt.Fprintf(&b, "%s\n", line)
 	}
