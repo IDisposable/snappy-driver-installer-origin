@@ -1,0 +1,53 @@
+name: Release
+
+# Builds sdigo.exe and attaches it to a GitHub Release whenever a tag
+# matching v*.*.* is pushed (e.g. v0.1.0). The manifest embedded in
+# the exe (requireAdministrator) is generated here, not committed -
+# see go/README.md's "Building a release" section for why a locally
+# built dev exe deliberately doesn't have it.
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # go-winres's git-tag version resolution needs tag history
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go/go.mod
+
+      - name: Test
+        working-directory: go
+        run: go test ./...
+
+      - name: Install go-winres
+        run: |
+          go install github.com/tc-hib/go-winres@latest
+          echo "$(go env GOPATH)/bin" >> "$GITHUB_PATH"
+
+      - name: Generate Windows app manifest/version resource
+        working-directory: go/cmd/sdigo
+        run: go-winres make --arch amd64 --out rsrc --product-version git-tag --file-version git-tag
+
+      - name: Build sdigo.exe
+        working-directory: go
+        env:
+          GOOS: windows
+          GOARCH: amd64
+        run: go build -o sdigo.exe ./cmd/sdigo
+
+      - name: Create release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: go/sdigo.exe
+          generate_release_notes: true

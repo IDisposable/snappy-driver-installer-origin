@@ -159,3 +159,7 @@ way - confirmed directly: it fails immediately with "Invalid
 argument"). Regular `go build ./...` during development therefore
 produces an unelevated binary; only a release build goes through the
 step above.
+
+`.github/workflows/release.yml` runs this same sequence on a
+`v*.*.*` tag push and attaches the resulting `sdigo.exe` to a GitHub
+Release. Not yet run for real - review before pushing the first tag.
