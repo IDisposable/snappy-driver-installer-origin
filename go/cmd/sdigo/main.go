@@ -21,6 +21,7 @@ import (
 
 	"sdio/internal/collection"
 	"sdio/internal/common"
+	"sdio/internal/hardware"
 	"sdio/internal/installflow"
 	"sdio/internal/matcher"
 	"sdio/internal/report"
@@ -174,6 +175,16 @@ func deviceRow(dr scan.DeviceResult, selected, showInstalled bool) table.Row {
 		}
 	}
 
+	description := dr.Device.Description
+	if best != nil && isMicrosoftDriver(dr.Installed) {
+		// Prepended, not appended, so a long description's ellipsis
+		// truncation can't hide this flag - replacing a Microsoft-
+		// provided driver is often unnecessary and riskier than
+		// keeping it, worth surfacing even under column-width
+		// pressure.
+		description = "[MS] " + description
+	}
+
 	var row table.Row
 	if best == nil {
 		reason := "no valid candidate found"
@@ -183,9 +194,9 @@ func deviceRow(dr scan.DeviceResult, selected, showInstalled bool) table.Row {
 		case dr.Candidates[0].Result.AltSectScore != 0:
 			reason = "already has an equal or better driver installed"
 		}
-		row = table.Row{sel, "MISSING", dr.Device.Description, reason, ""}
+		row = table.Row{sel, "MISSING", description, reason, ""}
 	} else {
-		row = table.Row{sel, scan.MatchLabel(best), dr.Device.Description, best.Driverpack.Filename, best.Result.DriverVersion.String()}
+		row = table.Row{sel, scan.MatchLabel(best), description, best.Driverpack.Filename, best.Result.DriverVersion.String()}
 	}
 	if showInstalled {
 		installedVersion := "not installed"
@@ -589,10 +600,12 @@ func (m model) optionsView() string {
 // comparison, ported from Manager::draw_hint's cb/POPUP_CMP_INVALID_
 // COLOR text colors - the original highlights whichever side of a
 // per-field comparison wins in green, and flags a bad signature or
-// OS/arch mismatch in red.
+// OS/arch mismatch in red. cautionStyle has no original equivalent -
+// it flags the Microsoft-inbox-driver note below.
 var (
 	betterStyle  = lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("2"))
 	invalidStyle = lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("1"))
+	cautionStyle = lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("3"))
 )
 
 // comparison holds the per-field installed-vs-candidate outcome,
@@ -671,6 +684,16 @@ func hwidMatchBits(entry, installedID, candidateID string) int {
 		pp |= 2
 	}
 	return pp
+}
+
+// isMicrosoftDriver reports whether the installed driver's provider
+// is Microsoft - almost always an inbox/generic Windows driver rather
+// than a vendor one, which replacing is often unnecessary and can be
+// riskier than leaving alone (Windows itself keeps it updated via
+// Windows Update, and a vendor "upgrade" can be a worse fit than the
+// inbox driver Microsoft ships for exactly this hardware class).
+func isMicrosoftDriver(inst *hardware.InstalledDriver) bool {
+	return inst != nil && strings.EqualFold(strings.TrimSpace(inst.ProviderName), "Microsoft")
 }
 
 // styleIf applies betterStyle when winner matches side (1=installed,
@@ -770,7 +793,7 @@ func scoreDifferences(dr scan.DeviceResult, best *collection.Candidate, is64Bit 
 
 	candFeature := drp.Feature(best.HWIDIndex)
 	if inst.Feature != candFeature {
-		lines = append(lines, fmt.Sprintf("Feature number: installed=%d, candidate=%d (%s wins - lower ranks higher)",
+		lines = append(lines, fmt.Sprintf("Driver pack's own priority hint: installed=%d, candidate=%d, 255=default/unset (%s wins - lower is preferred)",
 			inst.Feature, candFeature, side(inst.Feature < candFeature)))
 	}
 
@@ -846,6 +869,9 @@ func (m model) detailView(dr scan.DeviceResult) string {
 		fmt.Fprintf(&b, "  Section        %s%s\n", inst.InfSection, inst.InfSectionExt)
 		if dr.InstalledScore != nil {
 			fmt.Fprintf(&b, "  Score          %s\n", styleIf(fmt.Sprintf("%08X", dr.InstalledScore.Score), cmp.score, 1))
+		}
+		if isMicrosoftDriver(inst) {
+			fmt.Fprintf(&b, "  %s\n", cautionStyle.Render("Microsoft-provided driver - replacing it is often unnecessary and can be riskier than keeping it"))
 		}
 		b.WriteString("\n")
 	}

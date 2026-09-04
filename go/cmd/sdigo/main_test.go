@@ -374,7 +374,7 @@ func TestScoreDifferencesEnumeratesEachFactor(t *testing.T) {
 	joined := strings.Join(diffs, "\n")
 	for _, want := range []string{
 		"Catalog signature: candidate is properly signed",
-		"Feature number: installed=100, candidate=255 (installed wins",
+		"Driver pack's own priority hint: installed=100, candidate=255, 255=default/unset (installed wins",
 		"Hardware ID match: candidate matched a more specific ID",
 		"Release date: candidate is dated more recently",
 		"Overall rank: candidate wins (00000014 vs 0000000A",
@@ -394,5 +394,49 @@ func TestScoreDifferencesOmitsTiedFactors(t *testing.T) {
 
 	if diffs := scoreDifferences(dr, &best, true); diffs != nil {
 		t.Errorf("scoreDifferences() with no installed driver = %v, want nil", diffs)
+	}
+}
+
+func TestIsMicrosoftDriver(t *testing.T) {
+	cases := []struct {
+		inst *hardware.InstalledDriver
+		want bool
+	}{
+		{nil, false},
+		{&hardware.InstalledDriver{ProviderName: "Microsoft"}, true},
+		{&hardware.InstalledDriver{ProviderName: "  microsoft  "}, true},
+		{&hardware.InstalledDriver{ProviderName: "Realtek"}, false},
+		{&hardware.InstalledDriver{ProviderName: ""}, false},
+	}
+	for _, c := range cases {
+		if got := isMicrosoftDriver(c.inst); got != c.want {
+			t.Errorf("isMicrosoftDriver(%+v) = %v, want %v", c.inst, got, c.want)
+		}
+	}
+}
+
+// TestDeviceRowFlagsMicrosoftDriver confirms the [MS] flag is
+// prepended (not appended) to the device description, so a long
+// description's ellipsis truncation can't hide it, and that it only
+// appears for actionable (Best()!=nil) rows.
+func TestDeviceRowFlagsMicrosoftDriver(t *testing.T) {
+	drp := &indexing.Driverpack{Filename: "DP_Test_SDIO01_1.7z"}
+	msInstalled := scan.DeviceResult{
+		Device:    hardware.Device{Description: "Widget"},
+		Installed: &hardware.InstalledDriver{ProviderName: "Microsoft"},
+		Candidates: []collection.Candidate{{
+			Driverpack: drp,
+			Result:     matcher.Result{AltSectScore: 2, DecorScore: 1, Status: matcher.StatusBetter},
+		}},
+	}
+	row := deviceRow(msInstalled, false, false)
+	if got := row[2]; got != "[MS] Widget" {
+		t.Errorf("device cell = %q, want %q", got, "[MS] Widget")
+	}
+
+	nonMS := msInstalled
+	nonMS.Installed = &hardware.InstalledDriver{ProviderName: "Realtek"}
+	if got := deviceRow(nonMS, false, false)[2]; got != "Widget" {
+		t.Errorf("device cell = %q, want %q (no MS flag for a non-Microsoft installed driver)", got, "Widget")
 	}
 }
