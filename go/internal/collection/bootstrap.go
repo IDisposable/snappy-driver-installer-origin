@@ -37,23 +37,23 @@ func placeholderIndexFilename(properBinName string) string {
 // Returns the number of index files downloaded. torrentFile is a
 // local .torrent path or magnet URI (Settings.TorrentFile); an empty
 // value is an error, matching the original's "Updates not
-// initialised" guard on the equivalent scripted commands. onProgress,
-// if non-nil, is called with live byte-level progress.
-func BootstrapIndexes(torrentFile, indexDir string, onProgress update.ProgressFunc) (int, error) {
+// initialised" guard on the equivalent scripted commands. updatesDir
+// (Settings.UpdatesDir) is a persistent staging directory for
+// in-progress file data - not a temp directory, so an interrupted
+// download resumes instead of restarting from zero next run.
+// onProgress, if non-nil, is called with live byte-level progress.
+func BootstrapIndexes(torrentFile, indexDir, updatesDir string, onProgress update.ProgressFunc) (int, error) {
 	if torrentFile == "" {
 		return 0, fmt.Errorf("no torrent source configured")
 	}
 	if err := os.MkdirAll(indexDir, 0o755); err != nil {
 		return 0, fmt.Errorf("creating %s: %w", indexDir, err)
 	}
-
-	dataDir, err := os.MkdirTemp("", "sdio-bootstrap-")
-	if err != nil {
-		return 0, err
+	if err := os.MkdirAll(updatesDir, 0o755); err != nil {
+		return 0, fmt.Errorf("creating %s: %w", updatesDir, err)
 	}
-	defer os.RemoveAll(dataDir)
 
-	c, err := update.NewClient(update.Config{DataDir: dataDir})
+	c, err := update.NewClient(update.Config{DataDir: updatesDir})
 	if err != nil {
 		return 0, fmt.Errorf("starting torrent client: %w", err)
 	}
@@ -114,7 +114,7 @@ func BootstrapIndexes(torrentFile, indexDir string, onProgress update.ProgressFu
 		if !ok {
 			continue
 		}
-		src := filepath.Join(dataDir, filepath.FromSlash(fi.Path))
+		src := filepath.Join(updatesDir, filepath.FromSlash(fi.Path))
 		dest := filepath.Join(indexDir, placeholder)
 		if err := update.SaveFile(src, dest); err != nil {
 			continue // best-effort: one bad file shouldn't fail the whole bootstrap

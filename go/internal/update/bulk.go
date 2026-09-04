@@ -39,21 +39,21 @@ func NetworkDriverPacks(filename string) bool {
 // torrentFile matching filter and not already present in drpDir,
 // ported from the driver-pack half of UpdaterImp::WelcomeDownloadAll/
 // WelcomeDownloadNetwork. Progress and warnings are written to out.
+// updatesDir (Settings.UpdatesDir) is a persistent staging directory
+// for in-progress file data - not a temp directory, so an interrupted
+// download resumes instead of restarting from zero next run.
 // onProgress, if non-nil, is called with live byte-level progress
 // across every selected file - see ProgressFunc. Returns how many
 // files were newly downloaded.
-func DownloadDriverPacks(torrentFile, drpDir string, filter DriverPackFilter, out io.Writer, timeout time.Duration, onProgress ProgressFunc) (int, error) {
+func DownloadDriverPacks(torrentFile, drpDir, updatesDir string, filter DriverPackFilter, out io.Writer, timeout time.Duration, onProgress ProgressFunc) (int, error) {
 	if err := os.MkdirAll(drpDir, 0o755); err != nil {
 		return 0, err
 	}
-
-	dataDir, err := os.MkdirTemp("", "sdio-torrent-")
-	if err != nil {
+	if err := os.MkdirAll(updatesDir, 0o755); err != nil {
 		return 0, err
 	}
-	defer os.RemoveAll(dataDir)
 
-	c, err := NewClient(Config{DataDir: dataDir})
+	c, err := NewClient(Config{DataDir: updatesDir})
 	if err != nil {
 		return 0, fmt.Errorf("starting torrent client: %w", err)
 	}
@@ -103,7 +103,7 @@ func DownloadDriverPacks(torrentFile, drpDir string, filter DriverPackFilter, ou
 	downloaded := 0
 	for _, f := range selected {
 		base := path.Base(filepath.ToSlash(f.Path))
-		src := filepath.Join(dataDir, filepath.FromSlash(f.Path))
+		src := filepath.Join(updatesDir, filepath.FromSlash(f.Path))
 		if _, err := os.Stat(src); err != nil {
 			continue // never completed
 		}

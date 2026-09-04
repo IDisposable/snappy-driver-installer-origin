@@ -5,7 +5,8 @@ import (
 	"path/filepath"
 )
 
-// ResolveDataDirs picks where DrpDir/IndexDir/OutputDir/LogDirRaw and
+// ResolveDataDirs picks where DrpDir/IndexDir/OutputDir/LogDirRaw/
+// UpdatesDir and
 // sdio.cfg itself live, and returns the sdio.cfg path a caller should
 // pass to LoadFile/Save. Three layouts, checked in order:
 //
@@ -52,6 +53,7 @@ func (s *Settings) ResolveDataDirs() string {
 	s.IndexDir = filepath.Join(base, "indexes")
 	s.OutputDir = filepath.Join(base, "indexes", "txt")
 	s.LogDirRaw = filepath.Join(base, "logs")
+	s.UpdatesDir = filepath.Join(base, "updates")
 	return filepath.Join(base, DefaultCfgFilename)
 }
 

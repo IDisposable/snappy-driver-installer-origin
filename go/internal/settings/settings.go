@@ -24,11 +24,20 @@ const (
 // Settings holds the engine's configuration, normally populated by
 // New() defaults, then Load or Parse.
 type Settings struct {
-	DrpDir        string
-	IndexDir      string
-	OutputDir     string
-	DrpExtDir     string
-	DataDir       string
+	DrpDir    string
+	IndexDir  string
+	OutputDir string
+	DrpExtDir string
+	DataDir   string
+	// UpdatesDir is where a torrent download's file data lands while
+	// in progress, before a completed file is moved into DrpDir/
+	// IndexDir - the original engine used a dedicated "updates"
+	// staging directory the same way, rather than a throwaway temp
+	// directory, so an interrupted download resumes instead of
+	// restarting from zero next run (the torrent client verifies
+	// already-written pieces against the torrent's own metainfo,
+	// which a fresh directory can never have).
+	UpdatesDir    string
 	LogDirRaw     string // as configured, may contain %VAR% references
 	LogDir        string // LogDirRaw with environment variables expanded
 	ExtractDirRaw string // as configured, may contain %VAR% references
@@ -76,6 +85,7 @@ func New() *Settings {
 		IndexDir:      "indexes",
 		OutputDir:     filepath.Join("indexes", "txt"),
 		DataDir:       filepath.Join("tools", "SDIO"),
+		UpdatesDir:    "updates",
 		LogDirRaw:     "logs",
 		ExtractDirRaw: `%TEMP%\SDIO`,
 		StateFile:     "untitled.snp",
@@ -92,6 +102,7 @@ func (s *Settings) MarshalZerologObject(e *zerolog.Event) {
 		Str("index_dir", s.IndexDir).
 		Str("output_dir", s.OutputDir).
 		Str("data_dir", s.DataDir).
+		Str("updates_dir", s.UpdatesDir).
 		Str("log_dir", s.LogDir).
 		Uint64("filters", uint64(s.Filters)).
 		Uint64("flags", uint64(s.Flags))

@@ -99,13 +99,16 @@ func DownloadPending(s *settings.Settings, pending []Pending, out io.Writer, onP
 		return fmt.Errorf("%d driver pack(s) need downloading but no torrent source is configured (-torrent-file)", len(need))
 	}
 
-	dataDir, err := os.MkdirTemp("", "sdio-torrent-")
-	if err != nil {
+	// UpdatesDir persists across runs (unlike a temp directory that
+	// would be removed here) so a download interrupted mid-file
+	// resumes instead of restarting from zero next time - the torrent
+	// client verifies already-written pieces against the torrent's own
+	// metainfo, which a fresh directory can never have.
+	if err := os.MkdirAll(s.UpdatesDir, 0o755); err != nil {
 		return err
 	}
-	defer os.RemoveAll(dataDir)
 
-	c, err := update.NewClient(update.Config{DataDir: dataDir})
+	c, err := update.NewClient(update.Config{DataDir: s.UpdatesDir})
 	if err != nil {
 		return fmt.Errorf("starting torrent client: %w", err)
 	}
@@ -147,7 +150,7 @@ func DownloadPending(s *settings.Settings, pending []Pending, out io.Writer, onP
 		}
 
 		dest := filepath.Join(drp.Path, drp.Filename)
-		if err := update.SaveFile(filepath.Join(dataDir, filepath.FromSlash(tf.Path)), dest); err != nil {
+		if err := update.SaveFile(filepath.Join(s.UpdatesDir, filepath.FromSlash(tf.Path)), dest); err != nil {
 			fmt.Fprintf(out, "warning: saving %s: %v\n", drp.Filename, err)
 			continue
 		}

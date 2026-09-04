@@ -90,6 +90,7 @@ func (s *Settings) Save(filename string) error {
 	writeStr("index-dir", s.IndexDir)
 	writeStr("output-dir", s.OutputDir)
 	writeStr("data-dir", s.DataDir)
+	writeStr("updates-dir", s.UpdatesDir)
 	writeStr("log-dir", s.LogDirRaw)
 	sb.WriteByte('\n')
 
