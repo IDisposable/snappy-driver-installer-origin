@@ -3,7 +3,10 @@ package main
 import (
 	"testing"
 
+	"github.com/charmbracelet/bubbles/table"
+
 	"sdio/internal/collection"
+	"sdio/internal/common"
 	"sdio/internal/hardware"
 	"sdio/internal/indexing"
 	"sdio/internal/matcher"
@@ -96,17 +99,17 @@ func TestVisibleDevicesHonorsFilters(t *testing.T) {
 	}
 }
 
-// TestLayoutColumnsAddsInstalledColumnWhenWide confirms the fifth
+// TestLayoutColumnsAddsInstalledColumnWhenWide confirms the sixth
 // "Installed" column only appears once the terminal is wide enough to
-// give Device/Best match reasonable room, and that column widths never
-// go negative/zero on a narrow terminal.
+// fit it alongside the fixed-width columns, and that column widths
+// never go negative/zero on a narrow terminal.
 func TestLayoutColumnsAddsInstalledColumnWhenWide(t *testing.T) {
-	narrow, showNarrow := layoutColumns(80)
+	narrow, showNarrow := layoutColumns(80, nil)
 	if showNarrow {
-		t.Error("layoutColumns(80): showInstalled = true, want false")
+		t.Error("layoutColumns(80, nil): showInstalled = true, want false")
 	}
 	if len(narrow) != 5 {
-		t.Fatalf("layoutColumns(80) = %d columns, want 5", len(narrow))
+		t.Fatalf("layoutColumns(80, nil) = %d columns, want 5", len(narrow))
 	}
 	for _, c := range narrow {
 		if c.Width <= 0 {
@@ -114,13 +117,71 @@ func TestLayoutColumnsAddsInstalledColumnWhenWide(t *testing.T) {
 		}
 	}
 
-	wide, showWide := layoutColumns(160)
+	wide, showWide := layoutColumns(200, nil)
 	if !showWide {
-		t.Error("layoutColumns(160): showInstalled = false, want true")
+		t.Error("layoutColumns(200, nil): showInstalled = false, want true")
 	}
 	if len(wide) != 6 {
-		t.Fatalf("layoutColumns(160) = %d columns, want 6", len(wide))
+		t.Fatalf("layoutColumns(200, nil) = %d columns, want 6", len(wide))
 	}
+}
+
+// TestLayoutColumnsKeepsDeviceAndBestMatchFixed confirms Device and
+// Best match don't grow with the terminal - a real device description
+// or driver-pack filename is never longer than a fixed, modest bound,
+// so stretching these columns on a wide terminal only wastes space on
+// trailing blank padding (the user's exact complaint about the first
+// resize-aware layout).
+func TestLayoutColumnsKeepsDeviceAndBestMatchFixed(t *testing.T) {
+	narrow, _ := layoutColumns(90, nil)
+	wide, _ := layoutColumns(250, nil)
+	for _, title := range []string{"Device", "Best match"} {
+		n := columnWidth(t, narrow, title)
+		w := columnWidth(t, wide, title)
+		if n != w {
+			t.Errorf("%s width changed with terminal width: %d (90 cols) vs %d (250 cols), want fixed", title, n, w)
+		}
+	}
+}
+
+// TestLayoutColumnsSizesVersionColumnsToContent confirms Version/
+// Installed are sized to fit the actual longest value present rather
+// than a guessed constant - too narrow clips (the original complaint
+// about "1.8.0.1"-sized columns), too wide wastes space.
+func TestLayoutColumnsSizesVersionColumnsToContent(t *testing.T) {
+	candidateVersion := common.Version{V1: 10, V2: 0, V3: 22000, V4: 10003}
+	installedVersion := common.Version{V1: 10, V2: 0, V3: 26100, V4: 4405}
+	drp := &indexing.Driverpack{Filename: "DP_Test_SDIO01_1.7z"}
+	devices := []scan.DeviceResult{{
+		Device: hardware.Device{InstanceID: "d1"},
+		Candidates: []collection.Candidate{{
+			Driverpack: drp,
+			Result:     matcher.Result{AltSectScore: 2, DecorScore: 1, Status: matcher.StatusBetter, DriverVersion: candidateVersion},
+		}},
+		Installed: &hardware.InstalledDriver{Version: installedVersion},
+	}}
+
+	cols, showInstalled := layoutColumns(1000, devices)
+	if !showInstalled {
+		t.Fatal("layoutColumns(1000, ...): showInstalled = false, want true")
+	}
+	if got, want := columnWidth(t, cols, "Version"), len(candidateVersion.String()); got != want {
+		t.Errorf("Version width = %d, want %d (len(%q))", got, want, candidateVersion.String())
+	}
+	if got, want := columnWidth(t, cols, "Installed"), len(installedVersion.String()); got != want {
+		t.Errorf("Installed width = %d, want %d (len(%q))", got, want, installedVersion.String())
+	}
+}
+
+func columnWidth(t *testing.T, cols []table.Column, title string) int {
+	t.Helper()
+	for _, c := range cols {
+		if c.Title == title {
+			return c.Width
+		}
+	}
+	t.Fatalf("no column titled %q", title)
+	return 0
 }
 
 // TestDeviceRowIncludesInstalledColumnOnlyWhenRequested confirms

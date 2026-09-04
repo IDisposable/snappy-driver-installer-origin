@@ -85,54 +85,72 @@ func buildOptionItems() []optionItem {
 	return items
 }
 
-// minTableWidth is the narrowest terminal width this layout tries to
-// support before columns start clipping content rather than shrinking
-// gracefully.
-const minTableWidth = 70
+// deviceColumnWidth and bestMatchColumnWidth are fixed, not sized off
+// the terminal width: device descriptions and driver-pack filenames
+// both have a bounded realistic length (the longest real device
+// description/filename seen against the reference machine's 371
+// devices/124 packs is under 45 characters), so growing these columns
+// with the terminal just wastes space on trailing blank padding
+// without ever showing more real content. Long outliers still clip
+// with an ellipsis rather than distorting the whole layout.
+const (
+	deviceColumnWidth    = 48
+	bestMatchColumnWidth = 32
+)
 
-// wideInstalledColumnWidth is the terminal width at and above which
-// there's room to add a fifth "Installed" column without squeezing
-// Device/Best match down to unreadable widths.
-const wideInstalledColumnWidth = 130
+// versionColumnWidth measures the widest cell a version-like column
+// actually needs to show, so it's sized to exactly fit real content
+// instead of a guessed constant that either clips (too narrow, the
+// original complaint) or wastes space (too wide). header is included
+// so the column is never narrower than its own title.
+func versionColumnWidth(header string, devices []scan.DeviceResult, cell func(scan.DeviceResult) string) int {
+	w := len(header)
+	for _, dr := range devices {
+		if l := len(cell(dr)); l > w {
+			w = l
+		}
+	}
+	return w
+}
 
 // layoutColumns sizes the table's columns for the given terminal
-// width, ported from no original equivalent - the original GUI used a
-// fixed-layout window with its own resize handling in draw.cpp; this
-// is this rewrite's own design for a terminal that can be any width.
-// Status, Sel, and Version get fixed widths since their content is
-// bounded; Device and Best match share whatever's left at a roughly
-// 3:2 ratio (matching the original 45:30 MVP column proportions), so
-// growing the terminal mostly benefits the two free-text columns
-// rather than making numbers/labels needlessly wide. Returns whether
-// there was enough room to add the "Installed" (currently-installed
-// driver version) column.
-func layoutColumns(width int) ([]table.Column, bool) {
-	if width < minTableWidth {
-		width = minTableWidth
-	}
-	showInstalled := width >= wideInstalledColumnWidth
+// width and the devices actually being shown, ported from no original
+// equivalent - the original GUI used a fixed-layout window with its
+// own resize handling in draw.cpp; this is this rewrite's own design
+// for a terminal that can be any width. Only the version-like columns
+// grow/shrink with content (see versionColumnWidth); Device and Best
+// match stay fixed since a wider terminal doesn't make device names or
+// driver-pack filenames any longer. Returns whether there was enough
+// room to add the "Installed" (currently-installed driver version)
+// column - shown whenever it fits, since unlike Device/Best match it's
+// genuinely useful extra information rather than wasted padding.
+func layoutColumns(width int, devices []scan.DeviceResult) ([]table.Column, bool) {
+	const selWidth, statusWidth = 4, 8
+	versionWidth := versionColumnWidth("Version", devices, func(dr scan.DeviceResult) string {
+		if best := dr.Best(); best != nil {
+			return best.Result.DriverVersion.String()
+		}
+		return ""
+	})
+	installedWidth := versionColumnWidth("Installed", devices, func(dr scan.DeviceResult) string {
+		if dr.Installed != nil {
+			return dr.Installed.Version.String()
+		}
+		return "not installed"
+	})
 
-	const selWidth, statusWidth, versionWidth = 4, 8, 14
-	fixed := selWidth + statusWidth + versionWidth
-	if showInstalled {
-		fixed += versionWidth
-	}
-	flex := width - fixed - 4 // 4: rough per-row border/padding budget
-	if flex < 30 {
-		flex = 30
-	}
-	deviceWidth := flex * 3 / 5
-	bestWidth := flex - deviceWidth
+	base := selWidth + statusWidth + deviceColumnWidth + bestMatchColumnWidth + versionWidth
+	showInstalled := width <= 0 || base+installedWidth <= width
 
 	cols := []table.Column{
 		{Title: "Sel", Width: selWidth},
 		{Title: "Status", Width: statusWidth},
-		{Title: "Device", Width: deviceWidth},
-		{Title: "Best match", Width: bestWidth},
+		{Title: "Device", Width: deviceColumnWidth},
+		{Title: "Best match", Width: bestMatchColumnWidth},
 		{Title: "Version", Width: versionWidth},
 	}
 	if showInstalled {
-		cols = append(cols, table.Column{Title: "Installed", Width: versionWidth})
+		cols = append(cols, table.Column{Title: "Installed", Width: installedWidth})
 	}
 	return cols, showInstalled
 }
@@ -220,10 +238,10 @@ type model struct {
 // which rows are shown (filters) can each change independently but
 // both require rebuilding rows in lockstep to stay aligned.
 func (m *model) refreshTable() {
-	cols, showInstalled := layoutColumns(m.width)
+	m.rows = visibleDevices(m.result.Devices, m.s.Filters)
+	cols, showInstalled := layoutColumns(m.width, m.rows)
 	m.showInstalledCol = showInstalled
 	m.table.SetColumns(cols)
-	m.rows = visibleDevices(m.result.Devices, m.s.Filters)
 	m.table.SetRows(tableRows(m.rows, m.selected, showInstalled))
 }
 
