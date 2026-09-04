@@ -4,6 +4,8 @@ import (
 	"testing"
 
 	"sdio/internal/collection"
+	"sdio/internal/hardware"
+	"sdio/internal/indexing"
 	"sdio/internal/matcher"
 	"sdio/internal/settings"
 )
@@ -122,5 +124,92 @@ func TestMatchLabel(t *testing.T) {
 		if got := MatchLabel(best); got != c.want {
 			t.Errorf("MatchLabel(status=%#x) = %q, want %q", c.status, got, c.want)
 		}
+	}
+}
+
+func withPack(filename string) []collection.Candidate {
+	return []collection.Candidate{{Driverpack: &indexing.Driverpack{Filename: filename}}}
+}
+
+// TestSortDevicesOrdersByPackNameWithinATier confirms devices tie
+// (deviceSortsFirst equal on both) sort by their best candidate's
+// driver-pack filename, ascending - Hwidmatch::cmpnames.
+func TestSortDevicesOrdersByPackNameWithinATier(t *testing.T) {
+	devices := []DeviceResult{
+		{Device: hardware.Device{Description: "Z"}, Candidates: withPack("DP_Zebra.7z")},
+		{Device: hardware.Device{Description: "A"}, Candidates: withPack("DP_Apple.7z")},
+		{Device: hardware.Device{Description: "M"}, Candidates: withPack("DP_Mango.7z")},
+	}
+	sortDevices(devices)
+	got := []string{devices[0].Device.Description, devices[1].Device.Description, devices[2].Device.Description}
+	want := []string{"A", "M", "Z"}
+	for i := range want {
+		if got[i] != want[i] {
+			t.Errorf("sortDevices() order = %v, want %v", got, want)
+			break
+		}
+	}
+}
+
+// TestSortDevicesPutsNoCandidateDevicesAfterMatchedOnesInATier
+// confirms a device with no candidate at all sorts after every device
+// that has one, within the same deviceSortsFirst tier - the original
+// swaps a device with no Hwidmatch to after one that has any.
+func TestSortDevicesPutsNoCandidateDevicesAfterMatchedOnesInATier(t *testing.T) {
+	devices := []DeviceResult{
+		{Device: hardware.Device{Description: "NoMatch"}},
+		{Device: hardware.Device{Description: "HasMatch"}, Candidates: withPack("DP_Zebra.7z")},
+	}
+	sortDevices(devices)
+	if devices[0].Device.Description != "HasMatch" || devices[1].Device.Description != "NoMatch" {
+		t.Errorf("sortDevices() = %v, want HasMatch before NoMatch", devices)
+	}
+}
+
+// TestSortDevicesPutsProblemDevicesFirst confirms deviceSortsFirst
+// wins over pack-name ordering entirely - a device with a problem
+// code sorts before one without, regardless of driver-pack name.
+func TestSortDevicesPutsProblemDevicesFirst(t *testing.T) {
+	devices := []DeviceResult{
+		{Device: hardware.Device{Description: "Normal", HardwareIDs: []string{"PCI\\VEN_1"}}, Candidates: withPack("DP_Apple.7z")},
+		{
+			Device:     hardware.Device{Description: "HasProblem", HardwareIDs: []string{"PCI\\VEN_2"}, Problem: 1},
+			Candidates: withPack("DP_Zebra.7z"),
+		},
+	}
+	sortDevices(devices)
+	if devices[0].Device.Description != "HasProblem" {
+		t.Errorf("sortDevices() = %v, want the problem device first regardless of pack name", devices)
+	}
+}
+
+func TestDeviceSortsFirstDisabledDeviceIsNotSpecialCased(t *testing.T) {
+	dr := DeviceResult{Device: hardware.Device{
+		HardwareIDs: []string{"PCI\\VEN_1"}, Problem: 1, RawStatusFlags: 0x400,
+	}}
+	// Problem 0x16 (CM_PROB_DISABLED) with the has-problem status flag
+	// set is exactly Device.Status()==DeviceDisabled - Devicematch::
+	// isMissing explicitly excludes this case despite the device having
+	// a nonzero problem code.
+	dr.Device.Problem = 0x16
+	if deviceSortsFirst(dr) {
+		t.Error("deviceSortsFirst(disabled device) = true, want false (CM_PROB_DISABLED is excluded)")
+	}
+}
+
+func TestDeviceSortsFirstNoDriverPrintClassDevice(t *testing.T) {
+	dr := DeviceResult{Device: hardware.Device{HardwareIDs: []string{"USBPRINT\\VID_1"}}}
+	if !deviceSortsFirst(dr) {
+		t.Error("deviceSortsFirst(USBPRINT device with no installed driver) = false, want true")
+	}
+}
+
+func TestDeviceSortsFirstPCI0300Placeholder(t *testing.T) {
+	dr := DeviceResult{
+		Device:    hardware.Device{HardwareIDs: []string{"PCI\\VEN_1"}},
+		Installed: &hardware.InstalledDriver{MatchingDeviceID: `PCI\CC_0300`},
+	}
+	if !deviceSortsFirst(dr) {
+		t.Error("deviceSortsFirst(installed PCI\\CC_0300 placeholder) = false, want true")
 	}
 }

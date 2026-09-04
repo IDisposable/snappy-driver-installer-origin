@@ -6,6 +6,7 @@ package scan
 import (
 	"fmt"
 	"os"
+	"sort"
 	"strings"
 
 	"sdio/internal/collection"
@@ -234,8 +235,76 @@ func Run(s *settings.Settings) (Result, error) {
 			Installed: installed, InstalledScore: installedScore,
 		})
 	}
+	sortDevices(res.Devices)
 
 	return res, nil
+}
+
+// sortDevices orders res.Devices the same way every front end (TUI
+// table, -nogui report, -json report) should show them, ported from
+// MatcherImp::sorta: a narrow set of device classes always sort
+// first regardless of match status (deviceSortsFirst), then ties are
+// broken by the best candidate's driver-pack filename
+// (Hwidmatch::cmpnames - the original's other branch, comparing .inf
+// paths for a pack literally named "unpacked.7z", doesn't apply here
+// since this rewrite only loads real archived .7z packs). Devices
+// with no candidate at all sort after every device that has one,
+// within the same tier - stable otherwise, matching the original
+// leaving same-tier no-candidate devices in their enumeration order.
+func sortDevices(devices []DeviceResult) {
+	sort.SliceStable(devices, func(i, j int) bool {
+		fi, fj := deviceSortsFirst(devices[i]), deviceSortsFirst(devices[j])
+		if fi != fj {
+			return fi
+		}
+		pi, hasI := bestPackName(devices[i])
+		pj, hasJ := bestPackName(devices[j])
+		if hasI != hasJ {
+			return hasI
+		}
+		if !hasI {
+			return false
+		}
+		return pi < pj
+	})
+}
+
+// deviceSortsFirst mirrors Devicematch::isMissing(state) - despite the
+// name, not "no driver found" (that's Status/Best), but a fixed set of
+// display-ordering exceptions: a device with any problem code except
+// CM_PROB_DISABLED, a USB/Dot4/Bluetooth print-class device with no
+// driver object read at all, or an installed driver whose matching ID
+// is the "PCI\CC_0300" placeholder class.
+func deviceSortsFirst(dr DeviceResult) bool {
+	if dr.Device.Status() == hardware.DeviceDisabled {
+		return false
+	}
+	if dr.Device.Problem != 0 && len(dr.Device.HardwareIDs) > 0 {
+		return true
+	}
+	if dr.Installed == nil {
+		hwid0 := ""
+		if len(dr.Device.HardwareIDs) > 0 {
+			hwid0 = strings.ToUpper(dr.Device.HardwareIDs[0])
+		}
+		for _, cls := range [...]string{"USBPRINT", "DOT4PRT", "BTHENUM"} {
+			if strings.Contains(hwid0, cls) {
+				return true
+			}
+		}
+		return false
+	}
+	return strings.EqualFold(dr.Installed.MatchingDeviceID, `PCI\CC_0300`)
+}
+
+// bestPackName returns the driver-pack filename of dr's top-ranked
+// candidate (which cmpnames compares two devices by, breaking a
+// deviceSortsFirst tie), and whether dr has one at all.
+func bestPackName(dr DeviceResult) (name string, ok bool) {
+	if len(dr.Candidates) == 0 {
+		return "", false
+	}
+	return dr.Candidates[0].Driverpack.Filename, true
 }
 
 // indexDirNeedsBootstrap reports whether indexDir doesn't exist, isn't
