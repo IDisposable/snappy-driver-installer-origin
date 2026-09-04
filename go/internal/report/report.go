@@ -1,5 +1,5 @@
 // Package report prints a plain-text scan report, shared by cmd/sdi
-// and cmd/sditui's -nogui mode so there is one implementation of the
+// and cmd/sdigo's -nogui mode so there is one implementation of the
 // "print what was found" output rather than two that can drift apart.
 package report
 

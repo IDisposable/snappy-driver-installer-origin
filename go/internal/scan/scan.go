@@ -37,7 +37,7 @@ type DeviceResult struct {
 	// nil if the device has no driver key or it couldn't be read - the
 	// same *hardware.InstalledDriver Run() already computes a score
 	// from, kept around for a front end that wants to display it (see
-	// cmd/sditui's detail screen and wide-terminal "Installed" column).
+	// cmd/sdigo's detail screen and wide-terminal "Installed" column).
 	Installed *hardware.InstalledDriver
 
 	// InstalledScore is the installed driver's own computed score
@@ -79,7 +79,7 @@ func (r DeviceResult) Best() *collection.Candidate {
 // its own flag read is dead code, unconditionally overwritten with 1).
 // Unlike Best, which always applies the original's default filter set
 // regardless of the caller's actual Settings.Filters, Visible lets a
-// front end honor the user's configured filters (see cmd/sditui's
+// front end honor the user's configured filters (see cmd/sdigo's
 // options screen).
 func (r DeviceResult) Visible(filters settings.FilterShow) bool {
 	if len(r.Candidates) == 0 {

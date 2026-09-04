@@ -249,7 +249,7 @@ func TestDeviceRowIncludesInstalledColumnOnlyWhenRequested(t *testing.T) {
 
 // TestDeviceRowSelectionMarker confirms only an actionable (has a
 // Best candidate) row can show a tick, and that the tick reflects the
-// selected argument - the Sel column cmd/sditui's space-bar toggle
+// selected argument - the Sel column cmd/sdigo's space-bar toggle
 // depends on rendering correctly.
 func TestDeviceRowSelectionMarker(t *testing.T) {
 	drp := &indexing.Driverpack{Filename: "DP_Test_SDIO01_1.bin"}

@@ -6,17 +6,18 @@
 # with real arguments, not just dump diagnostics.
 #
 # Usage: go/scripts/run-windows.sh [target] [-- ] [args...]
-#   target   one of: sdi (default), sditui, hwdump, torrenttest
+#   target   one of: sdigo (default), sdi, hwdump, torrenttest
 #   args     forwarded to the built executable as-is
 #
 # Examples:
 #   go/scripts/run-windows.sh
 #   go/scripts/run-windows.sh sdi -drp-dir='D:\drivers' -index-dir='D:\indexes'
-#   go/scripts/run-windows.sh sditui -torrent-file='D:\SDIO_Update.torrent'
+#   go/scripts/run-windows.sh sdigo -torrent-file='D:\SDIO_Update.torrent'
 #
-# cmd/sditui is a full-screen interactive TUI: run this script directly
-# in a real WSL terminal (not through a non-interactive wrapper/pipe)
-# so it gets a real TTY for keyboard input.
+# cmd/sdigo is a full-screen interactive TUI by default (-nogui for a
+# plain report): run this script directly in a real WSL terminal (not
+# through a non-interactive wrapper/pipe) so it gets a real TTY for
+# keyboard input.
 
 set -euo pipefail
 
@@ -28,7 +29,7 @@ if ! grep -qi microsoft /proc/version 2>/dev/null; then
 	exit 1
 fi
 
-target="sdi"
+target="sdigo"
 if [[ $# -gt 0 && $1 != -* ]]; then
 	target="$1"
 	shift
@@ -38,9 +39,9 @@ if [[ $# -gt 0 && $1 == "--" ]]; then
 fi
 
 case "$target" in
-sdi | sditui | hwdump | torrenttest) ;;
+sdigo | sdi | hwdump | torrenttest) ;;
 *)
-	echo "run-windows.sh: unknown target '$target' (want sdi, sditui, hwdump, or torrenttest)" >&2
+	echo "run-windows.sh: unknown target '$target' (want sdigo, sdi, hwdump, or torrenttest)" >&2
 	exit 1
 	;;
 esac

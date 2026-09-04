@@ -1,4 +1,6 @@
-// Command sditui is the single-EXE entry point for the Go rewrite: an
+// Command sdigo is Snappy Driver Installer: Go Forth, the single-EXE
+// entry point for this Go rewrite of Snappy Driver Installer Origin:
+// an
 // interactive TUI by default (replacing gui.cpp/draw.cpp/theme*.cpp's
 // device-list screen - see go/README.md), or the same plain-text
 // report cmd/sdi prints when -nogui is set. It shows a scrollable
@@ -196,7 +198,7 @@ func deviceRow(dr scan.DeviceResult, selected, showInstalled bool) table.Row {
 }
 
 // visibleDevices filters devices to those Visible under filters,
-// preserving scan order - the slice cmd/sditui's table is built from,
+// preserving scan order - the slice cmd/sdigo's table is built from,
 // kept alongside the table.Model itself (bubbles/table rows carry no
 // back-reference) so a selected table row can be mapped back to its
 // scan.DeviceResult via the table's cursor index.
@@ -506,7 +508,7 @@ type installDoneMsg struct{ log []string }
 // responsive instead of blocking the whole program for however long
 // downloads/extraction/install take. Output that installflow.Run
 // would otherwise print straight to a terminal is captured into a
-// buffer instead, since cmd/sditui owns the whole screen via bubbletea
+// buffer instead, since cmd/sdigo owns the whole screen via bubbletea
 // alternate-screen mode - writing to os.Stdout underneath that would
 // corrupt the display.
 func runInstallCmd(s *settings.Settings, pending []installflow.Pending) tea.Cmd {
@@ -911,7 +913,7 @@ func mainErr() int {
 		fmt.Fprintln(os.Stderr, "warning: loading sdio.cfg:", err)
 	}
 
-	fs := s.FlagSet("sditui")
+	fs := s.FlagSet("sdigo")
 	doInstall := fs.Bool("install", false, "with -nogui, install matched drivers (modifies the system; without this flag, only scan and report)")
 	if err := fs.Parse(os.Args[1:]); err != nil {
 		return 2

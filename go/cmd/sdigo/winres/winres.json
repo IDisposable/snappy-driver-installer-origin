@@ -3,10 +3,10 @@
     "#1": {
       "0409": {
         "identity": {
-          "name": "IDisposable.SDIO",
+          "name": "IDisposable.SDIGo",
           "version": "0.1.0.0"
         },
-        "description": "Snappy Driver Installer Origin",
+        "description": "Snappy Driver Installer: Go Forth",
         "minimum-os": "win10",
         "execution-level": "requireAdministrator",
         "ui-access": false,
@@ -34,11 +34,11 @@
         "info": {
           "0409": {
             "CompanyName": "IDisposable",
-            "FileDescription": "Snappy Driver Installer Origin",
+            "FileDescription": "Snappy Driver Installer: Go Forth",
             "FileVersion": "0.1.0.0",
-            "InternalName": "sditui",
-            "OriginalFilename": "sditui.exe",
-            "ProductName": "SDIO",
+            "InternalName": "sdigo",
+            "OriginalFilename": "sdigo.exe",
+            "ProductName": "Snappy Driver Installer: Go Forth",
             "ProductVersion": "0.1.0.0"
           }
         }

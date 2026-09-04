@@ -1,7 +1,7 @@
 // Command sdi is the CLI entry point for the Go rewrite: scans the
 // current hardware, loads a driver-pack collection, matches every
 // device to the best available driver, and prints a plain-text
-// report (internal/report - shared with cmd/sditui's -nogui mode).
+// report (internal/report - shared with cmd/sdigo's -nogui mode).
 //
 // By default this only scans and reports - nothing on the system is
 // changed. Pass -install to actually extract and install matched

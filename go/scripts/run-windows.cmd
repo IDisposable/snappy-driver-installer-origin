@@ -6,19 +6,19 @@ rem run-windows.sh for the WSL/PE-interop equivalent used during
 rem development, which cross-compiles instead.
 rem
 rem Usage: scripts\run-windows.cmd [target] [args...]
-rem   target   one of: sdi (default), sditui, hwdump, torrenttest
+rem   target   one of: sdigo (default), sdi, hwdump, torrenttest
 rem   args     forwarded to the built executable as-is
 rem
 rem Examples:
 rem   scripts\run-windows.cmd
 rem   scripts\run-windows.cmd sdi -drp-dir=D:\drivers -index-dir=D:\indexes
-rem   scripts\run-windows.cmd sditui -torrent-file=D:\SDIO_Update.torrent
+rem   scripts\run-windows.cmd sdigo -torrent-file=D:\SDIO_Update.torrent
 
 setlocal enabledelayedexpansion
 
 cd /d "%~dp0.."
 
-set "TARGET=sdi"
+set "TARGET=sdigo"
 set "FIRST=%~1"
 if not "%FIRST%"=="" (
 	set "FIRSTCHAR=%FIRST:~0,1%"
@@ -28,11 +28,11 @@ if not "%FIRST%"=="" (
 	)
 )
 
+if /i "%TARGET%"=="sdigo" goto validtarget
 if /i "%TARGET%"=="sdi" goto validtarget
-if /i "%TARGET%"=="sditui" goto validtarget
 if /i "%TARGET%"=="hwdump" goto validtarget
 if /i "%TARGET%"=="torrenttest" goto validtarget
-echo run-windows.cmd: unknown target "%TARGET%" (want sdi, sditui, hwdump, or torrenttest) 1>&2
+echo run-windows.cmd: unknown target "%TARGET%" (want sdigo, sdi, hwdump, or torrenttest) 1>&2
 exit /b 1
 :validtarget
 

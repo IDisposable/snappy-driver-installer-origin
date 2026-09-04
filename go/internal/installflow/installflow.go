@@ -1,6 +1,6 @@
 // Package installflow extracts and installs matched driver packs,
 // ported from the per-device loop in Manager::thread_install. It is
-// shared by cmd/sdi's -install flag and cmd/sditui's install screen so
+// shared by cmd/sdi's -install flag and cmd/sdigo's install screen so
 // the one real system-modifying action in this rewrite has exactly
 // one implementation, not two that can quietly drift apart.
 package installflow
