@@ -6,8 +6,9 @@
 // scrollable table with an options screen (all engine flags and
 // display filters), a per-device detail screen, and per-row selection
 // wired to the real install path (internal/installflow). "sdigo
-// hwdump"/"sdigo torrenttest" are dev/diagnostic subcommands with no
-// end-user purpose of their own.
+// cleandrivers" removes superseded driver-pack files (replacing
+// del_old_driverpacks.bat); "sdigo hwdump"/"sdigo torrenttest" are
+// dev/diagnostic subcommands with no end-user purpose of their own.
 package main
 
 import (
@@ -1512,13 +1513,12 @@ func main() {
 	os.Exit(mainErr())
 }
 
-// mainErr dispatches "sdigo hwdump"/"sdigo torrenttest" as dev/
-// diagnostic subcommands (real hardware/torrent access with no scan
-// or install side effects) before falling through to the normal scan/
-// TUI/-nogui path, so this is the only executable a release needs to
-// build - hwdump and torrenttest never had end-user value on their
-// own, only as tools for verifying this rewrite against a real
-// machine.
+// mainErr dispatches "sdigo hwdump"/"sdigo torrenttest"/"sdigo
+// cleandrivers" as subcommands before falling through to the normal
+// scan/TUI/-nogui path, so this is the only executable a release
+// needs to build. hwdump and torrenttest are dev/diagnostic tools
+// with no end-user purpose of their own; cleandrivers replaces the
+// original's del_old_driverpacks.bat.
 func mainErr() int {
 	if len(os.Args) > 1 {
 		switch os.Args[1] {
@@ -1526,6 +1526,8 @@ func mainErr() int {
 			return hwDump()
 		case "torrenttest":
 			return torrentTest(os.Args[2:])
+		case "cleandrivers":
+			return cleanDrivers(os.Args[2:])
 		}
 	}
 	return sdiGo(os.Args[1:])
