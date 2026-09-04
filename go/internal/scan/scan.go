@@ -173,25 +173,32 @@ func Run(s *settings.Settings) (Result, error) {
 	}
 	res.System = System{BaseBoard: bb, SysInfo: si, IsLaptop: isLaptop}
 
+	// LoadCollection's directory scan errors out entirely on a missing
+	// directory rather than treating it as "0 packs found" - a real
+	// possibility on a fresh install (no drivers/indexes yet, no
+	// -torrent-file configured to create them). Creating both
+	// unconditionally keeps a brand new data directory usable.
+	if err := os.MkdirAll(s.DrpDir, 0o755); err != nil {
+		return res, fmt.Errorf("creating %s: %w", s.DrpDir, err)
+	}
+	if err := os.MkdirAll(s.IndexDir, 0o755); err != nil {
+		return res, fmt.Errorf("creating %s: %w", s.IndexDir, err)
+	}
+
 	// Bootstrap/refresh the index catalog from the configured torrent,
 	// ported from Updater_t::WelcomeDownloadIndexes (see
 	// collection.BootstrapIndexes). Always attempted when the index
-	// directory is missing or empty, since otherwise a machine with no
-	// local catalog at all can never do anything; also attempted on
-	// request via -checkupdates, matching that flag's documented
-	// purpose ("check for driver pack updates") - re-running the same
+	// directory is empty, since otherwise a machine with no local
+	// catalog at all can never do anything; also attempted on request
+	// via -checkupdates, matching that flag's documented purpose
+	// ("check for driver pack updates") - re-running the same
 	// bootstrap picks up any index the torrent has that isn't already
 	// present locally, including newly-added pack revisions (which get
 	// their own distinct filename, so are never mistaken for an
 	// already-known one). A failure here is not fatal: Run proceeds
 	// with whatever collection is already present locally.
-	if s.TorrentFile != "" {
-		if err := os.MkdirAll(s.DrpDir, 0o755); err != nil {
-			return res, fmt.Errorf("creating %s: %w", s.DrpDir, err)
-		}
-		if indexDirNeedsBootstrap(s.IndexDir) || s.Flags&settings.FlagCheckUpdates != 0 {
-			res.IndexesDownloaded, res.BootstrapError = collection.BootstrapIndexes(s.TorrentFile, s.IndexDir)
-		}
+	if s.TorrentFile != "" && (indexDirNeedsBootstrap(s.IndexDir) || s.Flags&settings.FlagCheckUpdates != 0) {
+		res.IndexesDownloaded, res.BootstrapError = collection.BootstrapIndexes(s.TorrentFile, s.IndexDir)
 	}
 
 	res.Collection, err = collection.LoadCollection(s.DrpDir, s.IndexDir)

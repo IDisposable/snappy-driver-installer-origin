@@ -1,6 +1,7 @@
 package main
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/charmbracelet/bubbles/table"
@@ -282,5 +283,27 @@ func TestCompareInstalledVsCandidate(t *testing.T) {
 	}
 	if got := compareInstalledVsCandidate(dr, nil); got != (comparison{}) {
 		t.Errorf("compareInstalledVsCandidate() with no candidate = %+v, want zero value", got)
+	}
+}
+
+// TestVerdictSummaryAlwaysStatesRecommended confirms every case where
+// the table would show a non-MISSING status label produces a sentence
+// starting with "Recommended" - the table's short label alone (esp.
+// OLDER) can otherwise read as a plain negative for a driver that is,
+// in fact, still the recommended pick.
+func TestVerdictSummaryAlwaysStatesRecommended(t *testing.T) {
+	if got := verdictSummary(nil); strings.HasPrefix(got, "Recommended") {
+		t.Errorf("verdictSummary(nil) = %q, should not claim a recommendation exists", got)
+	}
+	for _, status := range []int{
+		matcher.StatusBetter | matcher.StatusNew,
+		matcher.StatusBetter | matcher.StatusOld,
+		matcher.StatusBetter | matcher.StatusCurrent,
+		matcher.StatusBetter,
+	} {
+		best := &collection.Candidate{Result: matcher.Result{Status: status}}
+		if got := verdictSummary(best); !strings.HasPrefix(got, "Recommended") {
+			t.Errorf("verdictSummary(status=%#x) = %q, want it to start with \"Recommended\"", status, got)
+		}
 	}
 }

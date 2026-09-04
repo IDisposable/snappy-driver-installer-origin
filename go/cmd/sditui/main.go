@@ -524,6 +524,8 @@ func (m model) tableView() string {
 		bootstrap, bb.SystemManufacturer, bb.SystemModel, si.Windows.Major, si.Windows.Minor, si.Windows.Build,
 		len(m.result.Devices), len(m.result.Collection.Packs))
 	footer := fmt.Sprintf("\n%d matched, %d missing/no better driver, %d selected for install\n"+
+		"NEWER/OLDER/BETTER all outrank the installed driver - NEWER/OLDER also means\n"+
+		"its own release date is newer/older (enter for the full comparison)\n"+
 		"space: tick, a: select all, n: select none, enter: details, i: install, o: options, q: quit\n",
 		m.matched, m.missing, len(m.pendingSelected()))
 	return header + m.table.View() + footer
@@ -685,6 +687,38 @@ func signatureLabel(altSectScore int) string {
 	}
 }
 
+// verdictSummary states in one sentence why a candidate is (or isn't)
+// recommended, ported from the STR_STATUS_BETTER_NEW/_CUR/_OLD
+// sentences itembar_t::str_status builds - the Status column only has
+// room for a short word (scan.MatchLabel), which can otherwise read
+// as a plain negative ("OLDER") for a driver that's still the
+// recommended pick overall.
+func verdictSummary(best *collection.Candidate) string {
+	if best == nil {
+		return "Not recommended: no candidate outranks the installed driver."
+	}
+	switch {
+	case best.Result.Status&matcher.StatusNew != 0:
+		return "Recommended: outranks the installed driver, and is dated more recently."
+	case best.Result.Status&matcher.StatusOld != 0:
+		return "Recommended: outranks the installed driver overall, even though it's dated older - see Score below for why."
+	case best.Result.Status&matcher.StatusCurrent != 0:
+		return "Recommended: outranks the installed driver (same release date)."
+	default:
+		return "Recommended: no driver is currently installed for this device."
+	}
+}
+
+// scoreExplainer describes what the hex Score value actually is
+// (matcher.Score), for a field that would otherwise be an opaque hex
+// number.
+const scoreExplainer = "Score is a packed ranking number, not a percentage - lower is\n" +
+	"better. It orders candidates by catalog-signature validity for\n" +
+	"this OS/architecture first, then the driver's declared feature\n" +
+	"number, then how directly the hardware ID matched (an exact\n" +
+	"hardware-ID match ranks above a compatible-ID match). Only\n" +
+	"meaningful compared between two candidates for the same device.\n"
+
 // detailView renders the full comparison the original's hover
 // tooltip shows (installed vs. available driver), for the device
 // under the table's cursor.
@@ -704,6 +738,8 @@ func (m model) detailView(dr scan.DeviceResult) string {
 	fmt.Fprintf(&b, "  Install        %s\n\n", tick)
 
 	best := dr.Best()
+	fmt.Fprintf(&b, "%s\n\n", verdictSummary(best))
+
 	cmp := compareInstalledVsCandidate(dr, best)
 	installedID, candidateID := "", ""
 	if dr.Installed != nil {
@@ -766,6 +802,7 @@ func (m model) detailView(dr scan.DeviceResult) string {
 		if drp.Pending {
 			b.WriteString("  (driver pack data not yet downloaded - needs the configured torrent)\n")
 		}
+		b.WriteString("\n" + scoreExplainer)
 	}
 	return b.String()
 }
@@ -796,19 +833,21 @@ func main() {
 
 func mainErr() int {
 	s := settings.New()
-	if err := s.LoadDefaultCfg(); err != nil {
+	cfgPath, err := s.LoadDefaultCfgResolved()
+	if err != nil {
 		fmt.Fprintln(os.Stderr, "warning: loading sdio.cfg:", err)
 	}
 	if err := s.Parse(os.Args[1:]); err != nil {
 		return 2
 	}
 
-	// Ported from main()'s unconditional Settings.save() after a run
-	// completes; deferred so it still runs even on an error return. This
-	// is also how options-screen toggles persist, since the TUI has no
-	// separate "save" action.
+	// Persists on exit even on an error return, so switches given on
+	// the command line and options-screen toggles both survive to the
+	// next run - the TUI has no separate "save" action. cfgPath is
+	// wherever LoadDefaultCfgResolved decided sdio.cfg lives (exe-
+	// adjacent for a portable install, %LOCALAPPDATA%\SDIO otherwise).
 	defer func() {
-		if err := s.Save(settings.DefaultCfgFilename); err != nil {
+		if err := s.Save(cfgPath); err != nil {
 			fmt.Fprintln(os.Stderr, "warning: saving sdio.cfg:", err)
 		}
 	}()

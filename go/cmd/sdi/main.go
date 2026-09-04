@@ -24,7 +24,8 @@ func main() {
 
 func mainErr() int {
 	s := settings.New()
-	if err := s.LoadDefaultCfg(); err != nil {
+	cfgPath, err := s.LoadDefaultCfgResolved()
+	if err != nil {
 		fmt.Fprintln(os.Stderr, "warning: loading sdio.cfg:", err)
 	}
 
@@ -35,14 +36,15 @@ func mainErr() int {
 	}
 	s.ExpandDirs()
 
-	// Ported from main()'s unconditional Settings.save() after a run
-	// completes, so switches given on the command line persist into
-	// sdio.cfg for next time (Settings.Save itself honors
-	// -preservecfg and only ever writes the persistent subset of
-	// fields - never GUI-only state, which this rewrite doesn't have).
-	// Deferred so it still runs even if run() below returns an error.
+	// Persists on exit so switches given on the command line survive
+	// to the next run (Settings.Save honors -preservecfg and only ever
+	// writes the persistent subset of fields - never GUI-only state,
+	// which this rewrite doesn't have). Deferred so it still runs even
+	// if run() below returns an error. cfgPath is wherever
+	// LoadDefaultCfgResolved decided sdio.cfg lives (exe-adjacent for
+	// a portable install, %LOCALAPPDATA%\SDIO otherwise).
 	defer func() {
-		if err := s.Save(settings.DefaultCfgFilename); err != nil {
+		if err := s.Save(cfgPath); err != nil {
 			fmt.Fprintln(os.Stderr, "warning: saving sdio.cfg:", err)
 		}
 	}()
