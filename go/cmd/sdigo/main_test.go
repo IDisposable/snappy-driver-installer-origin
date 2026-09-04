@@ -16,6 +16,7 @@ import (
 	"sdio/internal/scan"
 	"sdio/internal/sdwfile"
 	"sdio/internal/settings"
+	"sdio/internal/usbdrive"
 )
 
 // realDtPortCandidate builds a real candidate.Candidate for the
@@ -606,5 +607,62 @@ func TestWelcomeAllDriverPacksNeedsConfirmation(t *testing.T) {
 	m = mm.(model)
 	if m.screen != screenWelcome {
 		t.Fatalf("screen = %v after esc, want screenWelcome (cancel, not download)", m.screen)
+	}
+}
+
+// TestUSBDriveKeyReportsUnsupportedPlatform exploits the same trick
+// TestInstallOneNormalModeReachesInstallDriver (internal/installflow)
+// uses: usbdrive.ListRemovable returns a real "unsupported platform"
+// error on this non-Windows dev machine, so pressing "u" reaching
+// that error (instead of silently doing nothing) is a real,
+// mock-free proof the key is wired to the real function.
+func TestUSBDriveKeyReportsUnsupportedPlatform(t *testing.T) {
+	m := newModel(scan.Result{}, settings.New())
+
+	mm, _ := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'u'}})
+	m = mm.(model)
+	if m.screen != screenInstallLog {
+		t.Fatalf("screen = %v, want screenInstallLog (the unsupported-platform message)", m.screen)
+	}
+	if len(m.opLog) == 0 || !strings.Contains(m.opLog[0], "removable drives") {
+		t.Errorf("opLog = %v, want a message about listing removable drives", m.opLog)
+	}
+}
+
+// TestUpdateUSBDriveNavigationAndConfirm confirms up/down move the
+// cursor within bounds and enter opens the confirm screen without
+// starting a copy, using synthetic drives (no real hardware needed).
+func TestUpdateUSBDriveNavigationAndConfirm(t *testing.T) {
+	m := newModel(scan.Result{}, settings.New())
+	m.screen = screenUSBDrive
+	m.usbDrives = []usbdrive.Drive{
+		{Root: `E:\`, TotalBytes: 1000, FreeBytes: 900},
+		{Root: `F:\`, TotalBytes: 2000, FreeBytes: 500},
+	}
+
+	mm, _ := m.Update(tea.KeyMsg{Type: tea.KeyDown})
+	m = mm.(model)
+	if m.usbDriveIndex != 1 {
+		t.Fatalf("usbDriveIndex = %d after down, want 1", m.usbDriveIndex)
+	}
+	mm, _ = m.Update(tea.KeyMsg{Type: tea.KeyDown})
+	m = mm.(model)
+	if m.usbDriveIndex != 1 {
+		t.Fatalf("usbDriveIndex = %d after a second down, want 1 (clamped at the end)", m.usbDriveIndex)
+	}
+
+	mm, _ = m.Update(tea.KeyMsg{Type: tea.KeyEnter})
+	m = mm.(model)
+	if m.screen != screenUSBDriveConfirm {
+		t.Fatalf("screen = %v after enter, want screenUSBDriveConfirm", m.screen)
+	}
+	if !strings.Contains(m.usbDriveConfirmView(), `F:\`) {
+		t.Errorf("confirm view doesn't mention the selected drive F:\\: %s", m.usbDriveConfirmView())
+	}
+
+	mm, _ = m.Update(tea.KeyMsg{Type: tea.KeyEsc})
+	m = mm.(model)
+	if m.screen != screenUSBDrive {
+		t.Fatalf("screen = %v after esc, want screenUSBDrive (cancel, not copy)", m.screen)
 	}
 }

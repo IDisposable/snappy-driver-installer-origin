@@ -31,6 +31,7 @@ import (
 	"sdio/internal/scan"
 	"sdio/internal/settings"
 	"sdio/internal/update"
+	"sdio/internal/usbdrive"
 )
 
 // screen selects which of the TUI's views is active.
@@ -47,6 +48,9 @@ const (
 	screenWelcome
 	screenWelcomeConfirmAll
 	screenWelcomeDownloading
+	screenUSBDrive
+	screenUSBDriveConfirm
+	screenUSBDriveCopying
 )
 
 // optionItem is one toggleable entry in the options screen, wrapping
@@ -266,6 +270,9 @@ type model struct {
 	opLog []string
 
 	welcomeIndex int
+
+	usbDrives     []usbdrive.Drive
+	usbDriveIndex int
 }
 
 // refreshTable recomputes the visible device list and the table's
@@ -402,6 +409,12 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m.updateWelcomeConfirmAll(msg)
 		case screenWelcomeDownloading:
 			return m, nil // ignore input while the download command is running
+		case screenUSBDrive:
+			return m.updateUSBDrive(msg)
+		case screenUSBDriveConfirm:
+			return m.updateUSBDriveConfirm(msg)
+		case screenUSBDriveCopying:
+			return m, nil // ignore input while the copy command is running
 		}
 		return m.updateTable(msg)
 	}
@@ -425,6 +438,21 @@ func (m model) updateTable(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	case "w":
 		m.screen = screenWelcome
 		m.welcomeIndex = 0
+		return m, nil
+	case "u":
+		drives, err := usbdrive.ListRemovable()
+		if err != nil || len(drives) == 0 {
+			msg := "No removable drives found."
+			if err != nil {
+				msg = fmt.Sprintf("Could not list removable drives: %v", err)
+			}
+			m.opLog = []string{msg}
+			m.screen = screenInstallLog
+			return m, nil
+		}
+		m.usbDrives = drives
+		m.usbDriveIndex = 0
+		m.screen = screenUSBDrive
 		return m, nil
 	case "enter":
 		if dr := m.currentDevice(); dr != nil {
@@ -634,6 +662,83 @@ func (m model) updateWelcomeConfirmAll(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	return m, nil
 }
 
+// updateUSBDrive handles key input on the drive-selection screen
+// opened by "u", ported from USBWizard's target-drive dropdown.
+func (m model) updateUSBDrive(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
+	switch msg.String() {
+	case "ctrl+c":
+		return m, tea.Quit
+	case "q", "esc", "u":
+		m.screen = screenTable
+		return m, nil
+	case "up", "k":
+		if m.usbDriveIndex > 0 {
+			m.usbDriveIndex--
+		}
+	case "down", "j":
+		if m.usbDriveIndex < len(m.usbDrives)-1 {
+			m.usbDriveIndex++
+		}
+	case "enter", " ":
+		m.screen = screenUSBDriveConfirm
+		return m, nil
+	}
+	return m, nil
+}
+
+// updateUSBDriveConfirm confirms before copying - a real disk write,
+// even though (unlike format/delete) it can't destroy anything
+// already on the drive.
+func (m model) updateUSBDriveConfirm(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
+	switch msg.String() {
+	case "y", "enter":
+		m.screen = screenUSBDriveCopying
+		return m, runUSBCopyCmd(m.s, m.usbDrives[m.usbDriveIndex].Root)
+	case "ctrl+c":
+		return m, tea.Quit
+	case "n", "q", "esc":
+		m.screen = screenUSBDrive
+		return m, nil
+	}
+	return m, nil
+}
+
+// usbPortablePaths lists what "Create a USB Drive" copies: the
+// running executable plus the configured driver-pack and index
+// directories. sdio.cfg itself isn't included - a copy started fresh
+// on the destination drive already gets its own portable-layout
+// defaults the first time it runs there (see
+// Settings.ResolveDataDirs), which is simpler than trying to carry
+// the source machine's own paths over to a different drive letter.
+func usbPortablePaths(s *settings.Settings) ([]string, error) {
+	exe, err := os.Executable()
+	if err != nil {
+		return nil, fmt.Errorf("finding the running executable: %w", err)
+	}
+	return []string{exe, s.DrpDir, s.IndexDir}, nil
+}
+
+// runUSBCopyCmd copies usbPortablePaths onto destRoot in the
+// background, matching the async pattern every other real
+// system-modifying action in this TUI uses (installflow.Run, Welcome
+// downloads) so the UI stays responsive.
+func runUSBCopyCmd(s *settings.Settings, destRoot string) tea.Cmd {
+	return func() tea.Msg {
+		var buf bytes.Buffer
+		paths, err := usbPortablePaths(s)
+		if err != nil {
+			fmt.Fprintf(&buf, "error: %v\n", err)
+			return welcomeDownloadDoneMsg{log: logLines(&buf)}
+		}
+		if err := usbdrive.CopyPortable(destRoot, paths, &buf); err != nil {
+			fmt.Fprintf(&buf, "error: %v\n", err)
+		} else {
+			fmt.Fprintf(&buf, "done - copied to %s\n", destRoot)
+		}
+		return welcomeDownloadDoneMsg{log: logLines(&buf)}
+	}
+}
+
 // pendingSelected builds the installflow.Pending list for every
 // currently-ticked device, looked up from the full (unfiltered)
 // device list so a selection made before a filter change is still
@@ -740,8 +845,44 @@ func (m model) View() string {
 		return m.welcomeConfirmAllView()
 	case screenWelcomeDownloading:
 		return "Downloading... please wait.\n"
+	case screenUSBDrive:
+		return m.usbDriveView()
+	case screenUSBDriveConfirm:
+		return m.usbDriveConfirmView()
+	case screenUSBDriveCopying:
+		return "Copying... please wait.\n"
 	}
 	return m.tableView()
+}
+
+func (m model) usbDriveView() string {
+	var b strings.Builder
+	b.WriteString("Create a USB Drive - up/down: move, enter/space: select, q/esc/u: back\n\n")
+	b.WriteString("Select a removable drive:\n\n")
+	for i, d := range m.usbDrives {
+		cursor := "  "
+		if i == m.usbDriveIndex {
+			cursor = "> "
+		}
+		fmt.Fprintf(&b, "%s%s  (%s free of %s)\n", cursor, d.Root, common.BytesToStr(d.FreeBytes), common.BytesToStr(d.TotalBytes))
+	}
+	return b.String()
+}
+
+func (m model) usbDriveConfirmView() string {
+	d := m.usbDrives[m.usbDriveIndex]
+	required, err := usbPortablePaths(m.s)
+	var requiredBytes uint64
+	if err == nil {
+		requiredBytes, _ = usbdrive.RequiredBytes(required)
+	}
+	return fmt.Sprintf("Copy the app and driver-pack collection to %s?\n\n"+
+		"Space required:  %s\n"+
+		"Space available: %s\n\n"+
+		"This only adds/overwrites files - it never deletes anything\n"+
+		"already on the drive or formats it.\n\n"+
+		"y/enter: copy, n/esc/q: cancel\n",
+		d.Root, common.BytesToStr(requiredBytes), common.BytesToStr(d.FreeBytes))
 }
 
 func (m model) welcomeView() string {
@@ -804,7 +945,7 @@ func (m model) tableView() string {
 	footer := fmt.Sprintf("\n%d matched, %d missing/no better driver, %d selected for install\n"+
 		"Newer/Older/Better all outrank the installed driver - Newer/Older also means\n"+
 		"its own release date is newer/older (enter for the full comparison)\n"+
-		"space: tick, a: select all, n: select none, enter: details, i: install, o: options, w: welcome, ?: about, q: quit\n",
+		"space: tick, a: select all, n: select none, enter: details, i: install, o: options, w: welcome, u: usb drive, ?: about, q: quit\n",
 		m.matched, m.missing, len(m.pendingSelected()))
 	return header + m.table.View() + footer
 }
