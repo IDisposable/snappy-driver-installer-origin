@@ -90,7 +90,7 @@ func BootstrapIndexes(torrentFile, indexDir string) (int, error) {
 		}
 		placeholder := placeholderIndexFilename(base)
 		if _, err := os.Stat(filepath.Join(indexDir, placeholder)); err == nil {
-			continue // matches the original's single existence check - see doc comment
+			continue // already downloaded under its placeholder name
 		}
 		need = append(need, f.Path)
 		nameByPath[f.Path] = placeholder

@@ -137,15 +137,12 @@ func CreateRestorePoint(description string) error {
 }
 
 // restoreKeyPath is the registry key GetRestorePointCreationFrequency/
-// SetRestorePointCreationFrequency read and write, ported from
-// SystemImp::GetRestorePointCreationFrequency/
-// SetRestorePointCreationFrequency (system.cpp).
+// SetRestorePointCreationFrequency read and write.
 const restoreKeyPath = `SOFTWARE\Microsoft\Windows NT\CurrentVersion\SystemRestore`
 const restoreValueName = "SystemRestorePointCreationFrequency"
 
 // GetRestorePointCreationFrequency reads the system's minimum-interval-
-// between-restore-points setting (minutes), ported from
-// SystemImp::GetRestorePointCreationFrequency. Returns -1 if the value
+// between-restore-points setting (minutes). Returns -1 if the value
 // isn't set (no throttling configured).
 func GetRestorePointCreationFrequency() (int, error) {
 	k, err := registry.OpenKey(registry.LOCAL_MACHINE, restoreKeyPath, registry.QUERY_VALUE|registry.WOW64_64KEY)

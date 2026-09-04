@@ -203,9 +203,9 @@ type ManufacturerEntry struct {
 // per-device install section (with its "featurescore" hex flag) and
 // building the resulting Desc/HWID records. That resolution tries a
 // chain of NUM_DECS=336 OS-decoration suffixes from matcher.cpp's
-// nts[] table, which hasn't been ported yet - see
-// [[sdio-go-rewrite-plan]]. This function only gets as far as listing
-// which section names to look up in an InfSections; the caller must
+// nts[] table, which hasn't been ported yet - see go/README.md. This
+// function only gets as far as listing which section names to look up
+// in an InfSections; the caller must
 // resolve InfSections["<one of entry.Sections>"] and drive an
 // InfParser over the matched section itself to get descriptions/HWIDs.
 func ParseManufacturers(data []byte, sections InfSections, stringList map[string]string) []ManufacturerEntry {

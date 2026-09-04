@@ -66,7 +66,7 @@ func DecodeIndex(payload []byte) (*Index, error) {
 }
 
 // EncodeIndex serializes idx back to the same payload format
-// DecodeIndex reads, ported from Driverpack::saveindex.
+// DecodeIndex reads.
 func EncodeIndex(idx *Index) ([]byte, error) {
 	var buf bytes.Buffer
 

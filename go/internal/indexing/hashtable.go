@@ -26,7 +26,7 @@ type Hashtable struct {
 }
 
 // Reset initializes h with the given bucket count (at least 1) and
-// clears all items, ported from Hashtable::reset.
+// clears all items.
 func (h *Hashtable) Reset(size int32) {
 	if size == 0 {
 		size = 1
@@ -45,8 +45,7 @@ func bucketHash(key int32) uint32 {
 }
 
 // AddItem inserts a key/value pair, appending a new item to the
-// bucket's collision chain if the bucket is already occupied, ported
-// from Hashtable::additem.
+// bucket's collision chain if the bucket is already occupied.
 func (h *Hashtable) AddItem(key, value int32) {
 	curi := int32(bucketHash(key) % uint32(h.Size))
 	previ := int32(-1)
@@ -78,8 +77,7 @@ func (h *Hashtable) AddItem(key, value int32) {
 // Find looks up key (typically a string's APHash), returning the
 // first matching value. Call FindNext afterward to retrieve further
 // values inserted under the same key (duplicate keys are legal - e.g.
-// multiple driver-pack entries sharing one hardware ID). Ported from
-// Hashtable::find.
+// multiple driver-pack entries sharing one hardware ID).
 func (h *Hashtable) Find(key int32) (value int32, found bool) {
 	if h.Size == 0 {
 		return 0, false
@@ -107,7 +105,7 @@ func (h *Hashtable) Find(key int32) (value int32, found bool) {
 }
 
 // FindNext continues a lookup started by Find, returning further
-// values inserted under the same key. Ported from Hashtable::findnext.
+// values inserted under the same key.
 func (h *Hashtable) FindNext() (value int32, found bool) {
 	idx := h.findNextIdx
 	if idx <= 0 {

@@ -37,8 +37,7 @@ func NewInfParser(data []byte, blockBeg, blockEnd int, stringList map[string]str
 
 // parseWhitespace advances past spaces, tabs, comments (";" to end of
 // line), and backslash-CRLF line continuations. If eatNewline is
-// false, it stops at (without consuming) a line ending. Ported from
-// Parser::parseWhitespace.
+// false, it stops at (without consuming) a line ending.
 func (p *InfParser) parseWhitespace(eatNewline bool) {
 	for p.blockBeg < p.blockEnd {
 		switch p.data[p.blockBeg] {
@@ -68,8 +67,7 @@ func (p *InfParser) parseWhitespace(eatNewline bool) {
 
 // finalizeToken trims trailing spaces/tabs, strips one leading and one
 // trailing '"' if present (independently, not as a matched pair), and
-// applies %string% substitution - ported from the trimtoken()+subStr()
-// sequence every token goes through in the original.
+// applies %string% substitution.
 func (p *InfParser) finalizeToken(beg, end int) (string, bool) {
 	for end > beg && (p.data[end-1] == ' ' || p.data[end-1] == '\t') {
 		end--
@@ -86,8 +84,8 @@ func (p *InfParser) finalizeToken(beg, end int) (string, bool) {
 	return p.substitute(p.data[beg:end]), true
 }
 
-// substitute performs %name% replacement on tok, ported from
-// Parser::subStr. A token that is exactly "%name%" (or "%name" missing
+// substitute performs %name% replacement on tok. A token that is
+// exactly "%name%" (or "%name" missing
 // its closing '%') is looked up directly; otherwise, every "%name%"
 // found anywhere in tok is replaced piecewise, and unmatched '%'
 // characters are left as-is. A token with no successful substitution
@@ -147,8 +145,8 @@ func (p *InfParser) substitute(tok []byte) string {
 }
 
 // ParseItem finds the "key" of the next "key = ..." line in the
-// remaining block, silently skipping blank or malformed lines - ported
-// from Parser::parseItem. ok is false once the block is exhausted.
+// remaining block, silently skipping blank or malformed lines. ok is
+// false once the block is exhausted.
 func (p *InfParser) ParseItem() (key string, ok bool) {
 	p.parseWhitespace(true)
 	strBeg := p.blockBeg
@@ -173,9 +171,9 @@ func (p *InfParser) ParseItem() (key string, ok bool) {
 }
 
 // ParseField parses the next comma-delimited field after a "=" (from
-// ParseItem) or a previous field, supporting a quoted "str" form.
-// ported from Parser::parseField. ok is false at the end of the field
-// list (a line ending or comment with no more commas).
+// ParseItem) or a previous field, supporting a quoted "str" form. ok
+// is false at the end of the field list (a line ending or comment
+// with no more commas).
 func (p *InfParser) ParseField() (value string, ok bool) {
 	if p.blockBeg >= p.blockEnd {
 		return "", false
@@ -228,8 +226,8 @@ func (p *InfParser) ParseField() (value string, ok bool) {
 }
 
 // ParseHexByte decomposes a field value like "0x1A" into a single byte
-// value (0-255), ported from Parser::readHex. It skips a "0x"-style
-// prefix, then reads at most two hex digits.
+// value (0-255). It skips a "0x"-style prefix, then reads at most two
+// hex digits.
 func ParseHexByte(s string) (val int, rest string) {
 	i := 0
 	for i < len(s) && (s[i] == '0' || s[i] == 'x') {
@@ -258,8 +256,8 @@ func ParseHexByte(s string) (val int, rest string) {
 }
 
 // ParseNumber consumes a leading run of digits from s, plus one
-// trailing delimiter character if present, ported from
-// Parser::readNumber. It decomposes a single already-extracted field
+// trailing delimiter character if present. It decomposes a single
+// already-extracted field
 // value like "01/02/2024" or "1.2.3.4" one part at a time - callers
 // chain calls, threading rest through (see ParseDate/ParseVersion).
 func ParseNumber(s string) (n int, rest string) {
@@ -296,7 +294,7 @@ func ParseDate(s string) common.Version {
 }
 
 // ParseVersionNumber decomposes a field value into a four-part version
-// number, ported from Parser::readVersion.
+// number.
 func ParseVersionNumber(s string) common.Version {
 	var v1, v2, v3, v4 int
 	v1, s = ParseNumber(s)

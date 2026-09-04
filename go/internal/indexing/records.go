@@ -19,8 +19,10 @@ type ofst = uint32
 // .inf version-block fields tracked per file.
 const NumVerNames = 11
 
-// Indices into InfFile.Fields/Cats, ported from the anonymous enum in
-// indexing.h.
+// Indices into InfFile.Fields/Cats. Fields/Cats are fixed-size arrays
+// in the on-disk format, so this order must match indexing.h's
+// anonymous enum exactly - reordering these constants would silently
+// misread which array slot holds which field.
 const (
 	FieldClassGUID = iota
 	FieldClass

@@ -13,7 +13,7 @@ import (
 // Driverpack::scaninf's .inf-cache lookup (Feature, CatalogFileBits,
 // Cat, and a corrected InfPos), which isn't ported yet: it needs the
 // Driverpack/inf-cache orchestration from indexing.cpp's genindex,
-// which this rewrite hasn't built (see [[sdio-go-rewrite-plan]]).
+// which this rewrite hasn't built (see go/README.md).
 // Without it, DevPos reflects only the device-ID match
 // (Driver::calc_dev_pos), not scaninf's refinement of InfPos.
 type InstalledDriver struct {

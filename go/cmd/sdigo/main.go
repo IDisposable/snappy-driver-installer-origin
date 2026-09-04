@@ -86,8 +86,9 @@ func (it optionItem) toggle(s *settings.Settings) {
 
 // buildOptionItems lists every engine flag and display filter as one
 // combined, ordered list - flags first (matching declaration order in
-// internal/settings/flags.go), then filters (matching the original's
-// "Show" menu order).
+// internal/settings/flags.go), then filters in the same order as the
+// original's "Show" menu, so anyone already familiar with SDIO finds
+// each filter where they expect it.
 func buildOptionItems() []optionItem {
 	var items []optionItem
 	for _, f := range settings.FlagOptions() {
@@ -684,7 +685,7 @@ func (m model) updateWelcomeConfirmAll(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 }
 
 // updateUSBDrive handles key input on the drive-selection screen
-// opened by "u", ported from USBWizard's target-drive dropdown.
+// opened by "u".
 func (m model) updateUSBDrive(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	switch msg.String() {
 	case "ctrl+c":

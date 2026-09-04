@@ -1,9 +1,8 @@
 package hardware
 
 // WindowsVersion identifies one entry in the table of known Windows
-// releases, ported from WinVersions in enum.cpp. Number encodes
-// major*10+minor (e.g. 61 for both Windows 7 and Server 2008 R2 - Server
-// distinguishes the two).
+// releases. Number encodes major*10+minor (e.g. 61 for both Windows 7
+// and Server 2008 R2 - Server distinguishes the two).
 type WindowsVersion struct {
 	Number int
 	Server bool
@@ -11,7 +10,7 @@ type WindowsVersion struct {
 }
 
 // UnknownOSName is returned by FindWindowsVersionName when no entry
-// matches, mirroring the original's UnknownOS string.
+// matches.
 const UnknownOSName = "Unknown OS"
 
 // windowsVersions mirrors WinVersions::_versions. See

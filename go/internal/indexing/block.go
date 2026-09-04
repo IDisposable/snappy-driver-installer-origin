@@ -36,8 +36,8 @@ func readBlock[T any](r *bytes.Reader) ([]T, error) {
 	return items, nil
 }
 
-// writeBlock writes items in loadable_vector<T> form - ported from
-// vector_save in common.h.
+// writeBlock writes items in the same loadable_vector<T> form
+// readBlock reads.
 func writeBlock[T any](w *bytes.Buffer, items []T) error {
 	var zero T
 	usedBytes := int32(binary.Size(zero)) * int32(len(items))

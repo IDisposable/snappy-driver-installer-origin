@@ -164,7 +164,7 @@ func enumDisplayDevices(deviceName *uint16, devNum uint32, dd *displayDevice) bo
 }
 
 // getMonitorDevice finds the active, attached monitor for the given
-// adapter, ported from GetMonitorDevice in enum.cpp.
+// adapter.
 func getMonitorDevice(adapterName *uint16) (displayDevice, bool) {
 	var dd displayDevice
 	var devMon uint32

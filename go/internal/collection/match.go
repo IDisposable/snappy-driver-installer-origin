@@ -71,8 +71,7 @@ type DeviceMatch struct {
 }
 
 // firstHWID returns a device's first hardware ID, or its first
-// compatible ID if it has no hardware IDs, ported from
-// Device::getHWIDby(0, ...).
+// compatible ID if it has no hardware IDs.
 func firstHWID(d hardware.Device) string {
 	if len(d.HardwareIDs) > 0 {
 		return d.HardwareIDs[0]
@@ -84,7 +83,7 @@ func firstHWID(d hardware.Device) string {
 }
 
 // isIgnored reports whether a device's primary hardware ID is on the
-// user's ignore list, ported from Devicematch::isIgnored.
+// user's ignore list.
 func isIgnored(d hardware.Device, ignoreList []string) bool {
 	hwid := firstHWID(d)
 	if hwid == "" {
@@ -99,8 +98,18 @@ func isIgnored(d hardware.Device, ignoreList []string) bool {
 }
 
 // isMissing reports whether a device counts as "driver missing" for
-// status-reporting purposes, ported from Devicematch::isMissing.
-// installed is nil if the device has no installed driver.
+// status-reporting purposes. installed is nil if the device has no
+// installed driver. A device disabled by the user is never reported
+// missing (there's nothing to fix); one with any other Problem code
+// and a real hardware ID is missing regardless of what's installed.
+// With no installed driver, a USBPRINT/DOT4PRT/BTHENUM ID also counts
+// as missing - these are virtual bus-enumerator nodes Windows creates
+// on its own, not devices a driver pack ever installs a real driver
+// for, so "nothing installed" there is a genuine gap rather than an
+// expected empty state. PCI\CC_0300 is the generic "unidentified
+// display controller" class-code ID Windows falls back to when it
+// can't match a GPU precisely, so an installed driver under that ID
+// isn't a real match either.
 func isMissing(d hardware.Device, installed *hardware.InstalledDriver) bool {
 	if d.Problem == cmProbDisabled {
 		return false
@@ -198,10 +207,9 @@ func buildCandidate(drp *indexing.Driverpack, hwidIndex, devPos int, isHardwareI
 }
 
 // Match builds a device's DeviceMatch by searching packs for each of
-// its hardware and compatible IDs, ranking and dup-marking the results,
-// ported from the Devicematch constructor plus MatcherImp::sort's
-// per-device portion. installed is nil if the device has no installed
-// driver; installedScore should be nil exactly when installed is (see
+// its hardware and compatible IDs, ranking and dup-marking the
+// results. installed is nil if the device has no installed driver;
+// installedScore should be nil exactly when installed is (see
 // InstalledScore).
 func Match(d hardware.Device, installed *hardware.InstalledDriver, installedScore *InstalledScore, packs []*indexing.Driverpack, ctx indexing.MatchContext, ignoreList []string) DeviceMatch {
 	if isIgnored(d, ignoreList) {
@@ -251,8 +259,7 @@ func sortCandidates(candidates []Candidate) {
 }
 
 // markDups flags candidates that are the same underlying driver
-// reached via a different device ID, ported from the dup-marking pass
-// in MatcherImp::sort.
+// reached via a different device ID.
 func markDups(candidates []Candidate) {
 	for i := 0; i+1 < len(candidates); i++ {
 		for j := i + 1; j < len(candidates); j++ {

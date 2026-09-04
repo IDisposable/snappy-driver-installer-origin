@@ -28,13 +28,12 @@ func OpenInstalledDriver(driverKeyName string, device Device) (InstalledDriver, 
 
 // readInstalledDriver reads a currently-installed driver's info from
 // its already-open registry key (typically
-// SYSTEM\CurrentControlSet\Control\Class\<ClassGUID>\<Index>), ported
-// from Driver::Driver(State*, Device*, HKEY, Driverpack*) in enum.cpp
-// - see InstalledDriver's doc comment for what's deferred.
+// SYSTEM\CurrentControlSet\Control\Class\<ClassGUID>\<Index>) - see
+// InstalledDriver's doc comment for what's deferred.
 // DriverDate/DriverVersion are parsed with the same
 // indexing.ParseDate/ParseVersionNumber used for .inf DriverVer
-// fields, since the original parses both with the same Parser
-// methods (readDate/readVersion).
+// fields, so an installed driver's version compares consistently
+// against a candidate driver-pack entry's.
 func readInstalledDriver(key registry.Key, device Device) InstalledDriver {
 	var d InstalledDriver
 

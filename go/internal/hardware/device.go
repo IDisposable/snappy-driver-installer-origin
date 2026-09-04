@@ -23,8 +23,7 @@ func (g GUID) String() string {
 		g.Data4[2], g.Data4[3], g.Data4[4], g.Data4[5], g.Data4[6], g.Data4[7])
 }
 
-// DeviceStatus summarizes a device's runtime state, ported from
-// Device::print_status() in enum.cpp.
+// DeviceStatus summarizes a device's runtime state.
 type DeviceStatus int
 
 const (

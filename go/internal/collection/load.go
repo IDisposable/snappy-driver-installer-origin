@@ -44,12 +44,10 @@ func indexFilename(packFilename string) string {
 
 // LoadCollection scans driverpackDir for .7z driver packs (see
 // indexing.ScanDriverpackFolder) and loads each one's compiled index
-// from indexDir, ported from the file-discovery and index-loading
-// (not reindexing) parts of Collection::scanfolder/
-// Driverpack::loadindex. It also loads any pending (not-yet-
-// downloaded) packs found via LoadOnlineIndexes, appended to
-// LoadResult.Packs with Pending set, matching Collection::populate
-// calling both scanfolder and loadOnlineIndexes.
+// from indexDir - reindexing isn't supported (see LoadResult's doc),
+// so a pack with no valid index is only reported, never rebuilt. It
+// also loads any pending (not-yet-downloaded) packs found via
+// LoadOnlineIndexes, appended to LoadResult.Packs with Pending set.
 func LoadCollection(driverpackDir, indexDir string) (LoadResult, error) {
 	files, err := indexing.ScanDriverpackFolder(driverpackDir)
 	if err != nil {
@@ -80,10 +78,11 @@ func LoadCollection(driverpackDir, indexDir string) (LoadResult, error) {
 
 // expectedPackFilename reconstructs the driver-pack .7z filename an
 // underscore-prefixed pending index file (e.g.
-// "_P_Ports_SDIO01_26083.bin") stands in for, ported from the
-// filename manipulation in Collection::loadOnlineIndexes: the leading
-// "_" replaces what would otherwise be the "D" of the "DP_..." naming
-// convention, and the extension is swapped from .bin to .7z.
+// "_P_Ports_SDIO01_26083.bin") stands in for: the leading "_" replaces
+// the "D" of the "DP_..." naming convention, and the extension is
+// swapped from .bin to .7z. LoadOnlineIndexes relies on this exact
+// reversal to recognize a pack that's already been downloaded; get it
+// wrong and an up-to-date pack would keep showing as pending forever.
 func expectedPackFilename(pendingIndexFilename string) string {
 	base := "D" + pendingIndexFilename[1:]
 	return strings.TrimSuffix(base, filepath.Ext(base)) + ".7z"
@@ -121,7 +120,7 @@ func LoadOnlineIndexes(indexDir string, alreadyLoaded []*indexing.Driverpack) ([
 
 		idx, err := loadIndex(path)
 		if err != nil {
-			continue // matches the original's lack of error handling here
+			continue // a corrupt or incomplete pending index shouldn't block the rest from loading
 		}
 		pending = append(pending, &indexing.Driverpack{Filename: packFilename, Index: idx, Pending: true})
 	}

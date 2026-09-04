@@ -23,8 +23,7 @@ func (f DriverpackFile) Path() string {
 // indexing.cpp (using filepath.WalkDir instead of manual
 // FindFirstFile/FindNextFile recursion). The "unpacked" mode - scanning
 // loose .inf/.cat files directly, used only when a driver pack has
-// already been extracted via -PATH - isn't ported; see
-// [[sdio-go-rewrite-plan]].
+// already been extracted via -PATH - isn't ported; see go/README.md.
 func ScanDriverpackFolder(root string) ([]DriverpackFile, error) {
 	var found []DriverpackFile
 	err := filepath.WalkDir(root, func(path string, d fs.DirEntry, err error) error {

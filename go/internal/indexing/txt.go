@@ -14,7 +14,7 @@ type Txt struct {
 }
 
 // Get returns the null-terminated narrow-string bytes starting at
-// offset, ported from Txt::get. Returns nil if offset is out of range.
+// offset. Returns nil if offset is out of range.
 func (t Txt) Get(offset ofst) []byte {
 	i := int(offset)
 	if i < 0 || i >= len(t.Data) {
@@ -35,7 +35,7 @@ func (t Txt) GetString(offset ofst) string {
 }
 
 // GetW returns the null-terminated UTF-16LE string starting at offset,
-// decoded to a Go string, ported from Txt::getw.
+// decoded to a Go string.
 func (t Txt) GetW(offset ofst) string {
 	i := int(offset)
 	var u16 []uint16

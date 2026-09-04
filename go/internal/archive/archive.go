@@ -41,9 +41,7 @@ func (r *Reader) Close() error {
 	return r.rc.Close()
 }
 
-// Files lists every regular (non-directory) file in the archive,
-// ported from the SzArEx_IsDir-filtered loop in
-// Driverpack::genindex.
+// Files lists every regular (non-directory) file in the archive.
 func (r *Reader) Files() []File {
 	var files []File
 	for _, f := range r.rc.File {
@@ -56,15 +54,14 @@ func (r *Reader) Files() []File {
 }
 
 // HasSuffixFold reports whether name ends with suffix, ignoring case -
-// matching the original's _wcsicmp-based extension checks (looking for
-// .inf/.infdrp/.cat files) in Driverpack::genindex.
+// archive entries for .inf/.infdrp/.cat files can carry mixed-case
+// extensions, so an exact-case suffix check would silently miss some.
 func HasSuffixFold(name, suffix string) bool {
 	return len(name) >= len(suffix) && strings.EqualFold(name[len(name)-len(suffix):], suffix)
 }
 
 // Extract reads the full, decompressed contents of the named file from
-// the archive, ported from the SzArEx_Extract call in
-// Driverpack::genindex.
+// the archive.
 func (r *Reader) Extract(name string) ([]byte, error) {
 	for _, f := range r.rc.File {
 		if f.Name != name {

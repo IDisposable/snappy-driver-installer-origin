@@ -40,7 +40,11 @@ type Result struct {
 	Section       string
 }
 
-// Cmp orders two candidates best-first, ported from Hwidmatch::cmp.
+// Cmp orders two candidates best-first, breaking ties in order:
+// validity tier (AltSectScore), then Score - higher wins, hence the
+// negated CmpUnsigned - then release date, decoration score, marker
+// score, and finally Status with StatusDup masked out (duplicate
+// tracking lives in collection.Candidate.Dup instead, not this bit).
 func (r Result) Cmp(other Result) int {
 	if d := r.AltSectScore - other.AltSectScore; d != 0 {
 		return d
@@ -61,15 +65,13 @@ func (r Result) Cmp(other Result) int {
 }
 
 // IsDup reports whether r and other are the same underlying driver
-// entry reached via two different candidate paths, ported from
-// Hwidmatch::isdup.
+// entry reached via two different candidate paths.
 func (r Result) IsDup(other Result) bool {
 	return r.InfCRC == other.InfCRC && r.HWID == other.HWID && r.Section == other.Section
 }
 
 // IsDriverValid reports whether r survived the OS-decoration and
-// vendor-specific validity checks, ported from
-// Hwidmatch::isdrivervalid.
+// vendor-specific validity checks.
 func (r Result) IsDriverValid() bool {
 	return r.AltSectScore > 0 && r.DecorScore > 0
 }

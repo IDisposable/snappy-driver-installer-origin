@@ -1,8 +1,8 @@
-// Package installflow extracts and installs matched driver packs,
-// ported from the per-device loop in Manager::thread_install. It is
-// shared by cmd/sdi's -install flag and cmd/sdigo's install screen so
-// the one real system-modifying action in this rewrite has exactly
-// one implementation, not two that can quietly drift apart.
+// Package installflow extracts and installs matched driver packs. It
+// is shared by cmd/sdigo's -nogui -install flag and its interactive
+// install screen so the one real system-modifying action in this
+// rewrite has exactly one implementation, not two that can quietly
+// drift apart.
 package installflow
 
 import (
@@ -169,8 +169,7 @@ func findTorrentFile(files []update.FileInfo, packFilename string) *update.FileI
 }
 
 // InstallOne extracts one candidate's driver folder from its pack and
-// installs it, ported from the per-device body of
-// Manager::thread_install.
+// installs it.
 func InstallOne(s *settings.Settings, p Pending, out io.Writer) error {
 	drp := p.Candidate.Driverpack
 	infPath := drp.InfPath(p.Candidate.HWIDIndex)   // e.g. `dt\allx64\DtPort_1.0.0.6\`

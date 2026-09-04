@@ -23,9 +23,7 @@ import (
 	"strings"
 )
 
-// Result is the outcome of a driver-install attempt, ported from the
-// UpdateDriverForPlugAndPlayDevices call in driver_install
-// (install.cpp).
+// Result is the outcome of a driver-install attempt.
 type Result struct {
 	Installed   bool
 	NeedsReboot bool

@@ -10,8 +10,7 @@ type Version struct {
 	V1, V2, V3, V4   int
 }
 
-// NewVersion returns a Version with an unset version number, matching
-// the original default state (v1=-2).
+// NewVersion returns a Version with an unset version number.
 func NewVersion() Version {
 	return Version{V1: -2}
 }

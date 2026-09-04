@@ -1,10 +1,11 @@
-// Package matcher will eventually hold the hardware-to-driver matching
-// and ranking logic ported from matcher.cpp. As of this writing it
-// holds only OSDecorations: internal/indexing's install-section
-// resolution needs matcher.cpp's OS-decoration table as a last-resort
-// fallback, which pulled in this package ahead of the rest of
-// matcher.cpp (the actual scoring functions - calc_decorscore,
-// calc_markerscore, genmarker - are not ported yet).
+// Package matcher holds the hardware-to-driver scoring and ranking
+// primitives: OS-decoration/marker scoring, catalog-signature and
+// version-identifier scoring, candidate comparison, and the small
+// validity checks (blacklists, USB3 hub allow-lists, notebook/version
+// gating) that decide whether a candidate is even eligible. See
+// internal/collection for the orchestration that calls these per
+// device, and internal/indexing for the on-disk index data they
+// operate on.
 package matcher
 
 // OSDecorations mirrors nts[NUM_DECS] in matcher.cpp: every OS-version

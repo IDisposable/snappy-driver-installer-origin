@@ -14,8 +14,7 @@ type MonitorSize struct {
 	WidthCM, HeightCM int
 }
 
-// isWide reports whether a monitor is widescreen (aspect ratio > 1.35),
-// ported from iswide() in enum.cpp.
+// isWide reports whether a monitor is widescreen (aspect ratio > 1.35).
 func isWide(m MonitorSize) bool {
 	if m.WidthCM == 0 {
 		return false
@@ -52,7 +51,7 @@ type WindowsVersionInfo struct {
 func (w WindowsVersionInfo) IsServer() bool { return w.ProductType == 3 }
 
 // SysInfo is the "fast" system information gathered without a WMI
-// round trip, ported from State::getsysinfo_fast.
+// round trip.
 type SysInfo struct {
 	Battery  BatteryStatus
 	Monitors []MonitorSize
@@ -63,9 +62,9 @@ type SysInfo struct {
 	Is64Bit  bool
 }
 
-// IsLaptop decides desktop vs. laptop, ported from State::isnotebook_a.
-// hasACPIBatteryDevice should report whether any enumerated device's
-// hardware ID contains "*ACPI0003" (a control-method battery); pass
+// IsLaptop decides desktop vs. laptop. hasACPIBatteryDevice should
+// report whether any enumerated device's hardware ID contains
+// "*ACPI0003" (a control-method battery); pass
 // false if devices haven't been enumerated yet.
 func IsLaptop(chassisType int, monitors []MonitorSize, battery BatteryStatus, hasACPIBatteryDevice bool) bool {
 	// Chassis types 3 (Desktop) and 10 (Notebook) are unambiguous.
