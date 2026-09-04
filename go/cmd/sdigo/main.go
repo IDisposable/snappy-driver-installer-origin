@@ -25,12 +25,14 @@ import (
 	"github.com/charmbracelet/bubbles/viewport"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
+	"github.com/rs/zerolog"
 
 	"sdio/internal/collection"
 	"sdio/internal/common"
 	"sdio/internal/hardware"
 	"sdio/internal/install"
 	"sdio/internal/installflow"
+	"sdio/internal/logging"
 	"sdio/internal/matcher"
 	"sdio/internal/report"
 	"sdio/internal/scan"
@@ -120,7 +122,7 @@ func buildOptionItems() []optionItem {
 // with an ellipsis rather than distorting the whole layout.
 const (
 	deviceColumnWidth    = 48
-	bestMatchColumnWidth = 32
+	bestMatchColumnWidth = 38
 )
 
 // versionColumnWidth measures the widest cell a version-like column
@@ -180,10 +182,46 @@ func layoutColumns(width int, devices []scan.DeviceResult) ([]table.Column, bool
 	return cols, showInstalled
 }
 
+// truncateLeading fits s into width columns, replacing however much
+// of its start doesn't fit with a leading "…" - bubbles/table's own
+// truncation always cuts the end instead, wrong for driver-pack names
+// and version numbers, where the end is usually what tells one value
+// apart from another sharing the same start.
+func truncateLeading(s string, width int) string {
+	if width <= 0 {
+		return ""
+	}
+	if len(s) <= width {
+		return s
+	}
+	if width == 1 {
+		return "…"
+	}
+	return "…" + s[len(s)-(width-1):]
+}
+
+// displayPackName strips the boilerplate "DP_" prefix and ".7z"
+// suffix every driver-pack filename has - the same on every row, so
+// dropping them buys back real width - then leading-ellipsis-fits
+// whatever's left into width columns.
+func displayPackName(filename string, width int) string {
+	name := strings.TrimSuffix(filename, ".7z")
+	name = strings.TrimPrefix(name, "DP_")
+	return truncateLeading(name, width)
+}
+
 // deviceRow renders one device as a table row. selected marks it
 // ticked for install (meaningful only when it has a Best candidate -
-// there's nothing installable about a MISSING row).
-func deviceRow(dr scan.DeviceResult, selected, showInstalled bool) table.Row {
+// there's nothing installable about a MISSING row). bestMatchWidth/
+// versionWidth are the actual rendered column widths (from
+// layoutColumns), needed here to pre-fit cell content ourselves
+// rather than let bubbles/table's own trailing-ellipsis truncation
+// run - required for the Best match column specifically, since its
+// cell is sometimes styled (cautionStyle, see below) and
+// bubbles/table's width math isn't ANSI-aware: truncating a styled
+// string there miscounts the escape codes as visible characters and
+// throws off every column after it.
+func deviceRow(dr scan.DeviceResult, selected, showInstalled bool, bestMatchWidth, versionWidth int) table.Row {
 	sel := "   "
 	best := dr.Best()
 	if best != nil {
@@ -214,7 +252,15 @@ func deviceRow(dr scan.DeviceResult, selected, showInstalled bool) table.Row {
 		}
 		row = table.Row{sel, scan.MatchLabel(nil), description, reason, ""}
 	} else {
-		packName := best.Driverpack.Filename
+		fitWidth := bestMatchWidth
+		if best.Driverpack.Pending {
+			// Reserve room for cautionStyle's escape codes now, so the
+			// styled cell's raw length still fits within bestMatchWidth
+			// and bubbles/table's own truncation never has to touch it -
+			// see this function's doc comment.
+			fitWidth -= cautionStyleOverhead
+		}
+		packName := displayPackName(best.Driverpack.Filename, fitWidth)
 		if best.Driverpack.Pending {
 			// Its index was fetched ahead of its .7z data (see
 			// collection.LoadOnlineIndexes) - installing it means a
@@ -223,7 +269,8 @@ func deviceRow(dr scan.DeviceResult, selected, showInstalled bool) table.Row {
 			// extra width to say so.
 			packName = cautionStyle.Render(packName)
 		}
-		row = table.Row{sel, scan.MatchLabel(best), description, packName, best.Result.DriverVersion.String()}
+		version := truncateLeading(best.Result.DriverVersion.String(), versionWidth)
+		row = table.Row{sel, scan.MatchLabel(best), description, packName, version}
 	}
 	if showInstalled {
 		installedVersion := "not installed"
@@ -250,10 +297,10 @@ func visibleDevices(devices []scan.DeviceResult, filters settings.FilterShow) []
 	return out
 }
 
-func tableRows(devices []scan.DeviceResult, selected map[string]bool, showInstalled bool) []table.Row {
+func tableRows(devices []scan.DeviceResult, selected map[string]bool, showInstalled bool, bestMatchWidth, versionWidth int) []table.Row {
 	rows := make([]table.Row, len(devices))
 	for i, dr := range devices {
-		rows[i] = deviceRow(dr, selected[dr.Device.InstanceID], showInstalled)
+		rows[i] = deviceRow(dr, selected[dr.Device.InstanceID], showInstalled, bestMatchWidth, versionWidth)
 	}
 	return rows
 }
@@ -266,6 +313,11 @@ type model struct {
 	rows             []scan.DeviceResult // parallel to table.Rows(), for cursor -> device lookup
 	width, height    int
 	showInstalledCol bool
+	// bestMatchWidth/versionWidth are the last-computed column widths
+	// (layoutColumns), cached here so a selection-only row rebuild
+	// (ticking one row, select-all/none) can refit cell content
+	// without recomputing the whole layout.
+	bestMatchWidth, versionWidth int
 
 	// detailViewport scrolls the detail screen's content - it's often
 	// taller than the terminal, so unlike every other screen it needs
@@ -289,6 +341,13 @@ type model struct {
 	// live percent/bytes/speed readout instead of a static message.
 	dlProgress *progressTracker
 
+	// logger is file-only (console suppressed - this TUI owns the
+	// terminal via the alternate screen buffer). Always non-nil and
+	// safe to log through even with FlagNoLogFile set: sdiGo simply
+	// never calls Start in that case, so writes go to logging.New's
+	// default io.Discard sink instead of a file.
+	logger *logging.Logger
+
 	welcomeIndex int
 
 	usbDrives     []usbdrive.Drive
@@ -310,6 +369,7 @@ func (m *model) refreshTable() {
 	m.rows = visibleDevices(m.result.Devices, m.s.Filters)
 	cols, showInstalled := layoutColumns(m.width, m.rows)
 	m.showInstalledCol = showInstalled
+	m.bestMatchWidth, m.versionWidth = cols[3].Width, cols[4].Width
 
 	// SetColumns re-renders immediately against whatever rows are
 	// already loaded. If the column count is changing (showInstalled
@@ -322,8 +382,23 @@ func (m *model) refreshTable() {
 	cursor := m.table.Cursor()
 	m.table.SetRows(nil)
 	m.table.SetColumns(cols)
-	m.table.SetRows(tableRows(m.rows, m.selected, showInstalled))
+	m.table.SetRows(tableRows(m.rows, m.selected, showInstalled, m.bestMatchWidth, m.versionWidth))
 	m.table.SetCursor(cursor)
+}
+
+// alertLogger builds an update.Config.OnAlert callback that logs
+// through m.logger when -torrentalerts is set, and otherwise silently
+// discards the torrent client's own Warning-or-higher events (see
+// update.Config.OnAlert's doc comment for why they can't just go to
+// the default stderr handler). Checks the flag per call, not once at
+// construction, so toggling it live on the options screen takes
+// effect on the next event instead of needing a fresh download.
+func (m model) alertLogger() func(level, message string) {
+	return func(level, message string) {
+		if m.s.Flags&settings.FlagTorrentAlerts != 0 {
+			m.logger.Warn().Str("level", level).Msg(message)
+		}
+	}
 }
 
 // currentDevice returns the device under the table's cursor, or nil
@@ -341,7 +416,7 @@ func (m *model) currentDevice() *scan.DeviceResult {
 // elevation relaunch (see sdiGo/relaunchElevated) - the model starts
 // straight on the confirm-install screen instead of the table, so the
 // user's "y" isn't silently dropped by the elevation round trip.
-func newModel(result scan.Result, s *settings.Settings, resumeSelected map[string]bool) model {
+func newModel(result scan.Result, s *settings.Settings, resumeSelected map[string]bool, logger *logging.Logger) model {
 	matched, missing := 0, 0
 	for _, dr := range result.Devices {
 		if dr.Best() != nil {
@@ -362,6 +437,7 @@ func newModel(result scan.Result, s *settings.Settings, resumeSelected map[strin
 		options: buildOptionItems(), selected: map[string]bool{},
 		width: 100, height: 30,
 		detailViewport: viewport.New(100, 24),
+		logger:         logger,
 	}
 	if result.FirstRun {
 		m.screen = screenWelcome
@@ -514,7 +590,7 @@ func (m model) updateTable(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			} else {
 				m.selected[id] = true
 			}
-			m.table.SetRows(tableRows(m.rows, m.selected, m.showInstalledCol))
+			m.table.SetRows(tableRows(m.rows, m.selected, m.showInstalledCol, m.bestMatchWidth, m.versionWidth))
 		}
 		return m, nil
 	case "a":
@@ -523,11 +599,11 @@ func (m model) updateTable(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 				m.selected[dr.Device.InstanceID] = true
 			}
 		}
-		m.table.SetRows(tableRows(m.rows, m.selected, m.showInstalledCol))
+		m.table.SetRows(tableRows(m.rows, m.selected, m.showInstalledCol, m.bestMatchWidth, m.versionWidth))
 		return m, nil
 	case "n":
 		m.selected = map[string]bool{}
-		m.table.SetRows(tableRows(m.rows, m.selected, m.showInstalledCol))
+		m.table.SetRows(tableRows(m.rows, m.selected, m.showInstalledCol, m.bestMatchWidth, m.versionWidth))
 		return m, nil
 	case "i":
 		if len(m.pendingSelected()) > 0 {
@@ -587,7 +663,7 @@ func (m model) updateDetail(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		} else {
 			delete(m.selected, dr.Device.InstanceID)
 		}
-		m.table.SetRows(tableRows(m.rows, m.selected, m.showInstalledCol))
+		m.table.SetRows(tableRows(m.rows, m.selected, m.showInstalledCol, m.bestMatchWidth, m.versionWidth))
 		m.detailViewport.SetContent(m.detailView(*dr))
 	}
 
@@ -636,7 +712,7 @@ func (m model) updateConfirmInstall(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		pending := m.pendingSelected()
 		m.screen = screenInstalling
 		m.dlProgress = &progressTracker{}
-		return m, tea.Batch(runInstallCmd(m.s, pending, m.dlProgress), tickProgressCmd())
+		return m, tea.Batch(runInstallCmd(m.s, pending, m.dlProgress, m.alertLogger()), tickProgressCmd())
 	case "ctrl+c":
 		return m, tea.Quit
 	case "n", "q", "esc":
@@ -683,11 +759,11 @@ func (m model) updateWelcome(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		case 0:
 			m.screen = screenWelcomeDownloading
 			m.dlProgress = &progressTracker{}
-			return m, tea.Batch(runIndexRefreshCmd(m.s, m.dlProgress), tickProgressCmd())
+			return m, tea.Batch(runIndexRefreshCmd(m.s, m.dlProgress, m.alertLogger()), tickProgressCmd())
 		case 1:
 			m.screen = screenWelcomeDownloading
 			m.dlProgress = &progressTracker{}
-			return m, tea.Batch(runWelcomeDownloadCmd(m.s, update.NetworkDriverPacks, m.dlProgress), tickProgressCmd())
+			return m, tea.Batch(runWelcomeDownloadCmd(m.s, update.NetworkDriverPacks, m.dlProgress, m.alertLogger()), tickProgressCmd())
 		case 2:
 			m.screen = screenWelcomeConfirmAll
 			return m, nil
@@ -705,7 +781,7 @@ func (m model) updateWelcomeConfirmAll(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	case "y", "enter":
 		m.screen = screenWelcomeDownloading
 		m.dlProgress = &progressTracker{}
-		return m, tea.Batch(runWelcomeDownloadCmd(m.s, update.AllDriverPacks, m.dlProgress), tickProgressCmd())
+		return m, tea.Batch(runWelcomeDownloadCmd(m.s, update.AllDriverPacks, m.dlProgress, m.alertLogger()), tickProgressCmd())
 	case "ctrl+c":
 		return m, tea.Quit
 	case "n", "q", "esc":
@@ -891,10 +967,10 @@ type installDoneMsg struct{ log []string }
 // alternate-screen mode - writing to os.Stdout underneath that would
 // corrupt the display. progress receives live byte-level status for
 // the Installing screen.
-func runInstallCmd(s *settings.Settings, pending []installflow.Pending, progress *progressTracker) tea.Cmd {
+func runInstallCmd(s *settings.Settings, pending []installflow.Pending, progress *progressTracker, onAlert func(level, message string)) tea.Cmd {
 	return func() tea.Msg {
 		var buf bytes.Buffer
-		installflow.Run(s, pending, &buf, progress.report)
+		installflow.Run(s, pending, &buf, onAlert, progress.report)
 		return installDoneMsg{log: logLines(&buf)}
 	}
 }
@@ -915,10 +991,10 @@ type welcomeDownloadDoneMsg struct{ log []string }
 // this automatically for a genuinely empty index directory, so this
 // path matters for an on-demand refresh of an existing catalog).
 // progress receives live byte-level status for the Downloading screen.
-func runIndexRefreshCmd(s *settings.Settings, progress *progressTracker) tea.Cmd {
+func runIndexRefreshCmd(s *settings.Settings, progress *progressTracker, onAlert func(level, message string)) tea.Cmd {
 	return func() tea.Msg {
 		var buf bytes.Buffer
-		n, err := collection.BootstrapIndexes(s.TorrentFile, s.IndexDir, s.UpdatesDir, s.Flags&settings.FlagKeepSeeding != 0, progress.report)
+		n, err := collection.BootstrapIndexes(s.TorrentFile, s.IndexDir, s.UpdatesDir, s.Flags&settings.FlagKeepSeeding != 0, onAlert, progress.report)
 		if err != nil {
 			fmt.Fprintf(&buf, "error refreshing indexes: %v\n", err)
 		} else {
@@ -934,10 +1010,10 @@ func runIndexRefreshCmd(s *settings.Settings, progress *progressTracker) tea.Cmd
 // large network operation, run as a background tea.Cmd like install
 // so the UI stays responsive. progress receives live byte-level
 // status for the Downloading screen.
-func runWelcomeDownloadCmd(s *settings.Settings, filter update.DriverPackFilter, progress *progressTracker) tea.Cmd {
+func runWelcomeDownloadCmd(s *settings.Settings, filter update.DriverPackFilter, progress *progressTracker, onAlert func(level, message string)) tea.Cmd {
 	return func() tea.Msg {
 		var buf bytes.Buffer
-		n, err := update.DownloadDriverPacks(s.TorrentFile, s.DrpDir, s.UpdatesDir, s.Flags&settings.FlagKeepSeeding != 0, filter, &buf, 2*time.Hour, progress.report)
+		n, err := update.DownloadDriverPacks(s.TorrentFile, s.DrpDir, s.UpdatesDir, s.Flags&settings.FlagKeepSeeding != 0, onAlert, filter, &buf, 2*time.Hour, progress.report)
 		if err != nil {
 			fmt.Fprintf(&buf, "error: %v\n", err)
 		} else if n == 0 {
@@ -1192,6 +1268,13 @@ var (
 	betterStyle  = lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("2"))
 	invalidStyle = lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("1"))
 	cautionStyle = lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("3"))
+
+	// cautionStyleOverhead is how many extra bytes cautionStyle.Render
+	// adds around its content (the ANSI escape codes) - 0 outside a
+	// real terminal, where lipgloss renders plain text unstyled.
+	// deviceRow needs this to keep a styled cell's raw length within
+	// its column's width - see that function's doc comment.
+	cautionStyleOverhead = len(cautionStyle.Render(""))
 )
 
 // comparison holds the per-field installed-vs-candidate outcome,
@@ -1581,6 +1664,26 @@ func sdiGo(args []string) int {
 		}
 	}()
 
+	// This logger exists only for -torrentalerts (see alertLogger) -
+	// console is always nil since the TUI owns the whole terminal via
+	// bubbletea's alternate screen, and -nogui's own output already
+	// goes through fmt.Fprint*/report.Print directly, not this logger.
+	// -nologfile skips Start entirely rather than opening a file and
+	// discarding writes some other way, so "don't write a log file" is
+	// literally true, not just unused.
+	logger := logging.New(zerolog.WarnLevel, nil)
+	if s.Flags&settings.FlagNoLogFile == 0 {
+		if err := logger.Start(s.LogDir, time.Now().Format("20060102-150405")); err != nil {
+			fmt.Fprintln(os.Stderr, "warning: starting log file:", err)
+		}
+	}
+	defer logger.Stop()
+	alertLogger := func(level, message string) {
+		if s.Flags&settings.FlagTorrentAlerts != 0 {
+			logger.Warn().Str("level", level).Msg(message)
+		}
+	}
+
 	result, err := scan.Run(s)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "error:", err)
@@ -1605,12 +1708,12 @@ func sdiGo(args []string) int {
 			if !install.IsElevated() {
 				return relaunchElevated(s, cfgPath, args)
 			}
-			installflow.Run(s, pending, os.Stdout, nil)
+			installflow.Run(s, pending, os.Stdout, alertLogger, nil)
 		}
 		return 0
 	}
 
-	p := tea.NewProgram(newModel(result, s, resumeSelected), tea.WithAltScreen())
+	p := tea.NewProgram(newModel(result, s, resumeSelected, logger), tea.WithAltScreen())
 	final, err := p.Run()
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "error:", err)

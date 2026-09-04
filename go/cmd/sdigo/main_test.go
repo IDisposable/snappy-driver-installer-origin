@@ -9,11 +9,13 @@ import (
 
 	"github.com/charmbracelet/bubbles/table"
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/rs/zerolog"
 
 	"sdio/internal/collection"
 	"sdio/internal/common"
 	"sdio/internal/hardware"
 	"sdio/internal/indexing"
+	"sdio/internal/logging"
 	"sdio/internal/matcher"
 	"sdio/internal/scan"
 	"sdio/internal/sdwfile"
@@ -21,6 +23,10 @@ import (
 	"sdio/internal/update"
 	"sdio/internal/usbdrive"
 )
+
+// testLogger is a discard-everything Logger for tests that need to
+// pass one to newModel but aren't exercising logging itself.
+var testLogger = logging.New(zerolog.Disabled, nil)
 
 // realDtPortCandidate builds a real candidate.Candidate for the
 // reference installation's dtport pack, the same real fixture
@@ -238,12 +244,12 @@ func columnWidth(t *testing.T, cols []table.Column, title string) int {
 func TestDeviceRowIncludesInstalledColumnOnlyWhenRequested(t *testing.T) {
 	dr := scan.DeviceResult{Device: hardware.Device{InstanceID: "d1", Description: "Test Device"}}
 
-	narrow := deviceRow(dr, false, false)
+	narrow := deviceRow(dr, false, false, 50, 20)
 	if len(narrow) != 5 {
 		t.Fatalf("deviceRow(showInstalled=false) = %d cells, want 5", len(narrow))
 	}
 
-	wide := deviceRow(dr, false, true)
+	wide := deviceRow(dr, false, true, 50, 20)
 	if len(wide) != 6 {
 		t.Fatalf("deviceRow(showInstalled=true) = %d cells, want 6", len(wide))
 	}
@@ -264,13 +270,13 @@ func TestDeviceRowSelectionMarker(t *testing.T) {
 	}}}
 	missing := scan.DeviceResult{}
 
-	if got := deviceRow(actionable, false, false)[0]; got != "[ ]" {
+	if got := deviceRow(actionable, false, false, 50, 20)[0]; got != "[ ]" {
 		t.Errorf("unselected actionable row Sel cell = %q, want %q", got, "[ ]")
 	}
-	if got := deviceRow(actionable, true, false)[0]; got != "[x]" {
+	if got := deviceRow(actionable, true, false, 50, 20)[0]; got != "[x]" {
 		t.Errorf("selected actionable row Sel cell = %q, want %q", got, "[x]")
 	}
-	if got := deviceRow(missing, true, false)[0]; got != "   " {
+	if got := deviceRow(missing, true, false, 50, 20)[0]; got != "   " {
 		t.Errorf("MISSING row Sel cell = %q, want blank (nothing to install)", got)
 	}
 }
@@ -434,23 +440,23 @@ func TestDeviceRowFlagsMicrosoftDriver(t *testing.T) {
 			Result:     matcher.Result{AltSectScore: 2, DecorScore: 1, Status: matcher.StatusBetter},
 		}},
 	}
-	row := deviceRow(msInstalled, false, false)
+	row := deviceRow(msInstalled, false, false, 50, 20)
 	if got := row[2]; got != "[MS] Widget" {
 		t.Errorf("device cell = %q, want %q", got, "[MS] Widget")
 	}
 
 	nonMS := msInstalled
 	nonMS.Installed = &hardware.InstalledDriver{ProviderName: "Realtek"}
-	if got := deviceRow(nonMS, false, false)[2]; got != "Widget" {
+	if got := deviceRow(nonMS, false, false, 50, 20)[2]; got != "Widget" {
 		t.Errorf("device cell = %q, want %q (no MS flag for a non-Microsoft installed driver)", got, "Widget")
 	}
 }
 
 // TestDeviceRowFlagsPendingDownload confirms a matched candidate whose
 // .7z hasn't been downloaded yet (index-only, via
-// collection.LoadOnlineIndexes) still shows its real filename in the
-// Best match cell - cautionStyle.Render flags it by color (untestable
-// as plain text outside a real terminal; lipgloss no-ops without one),
+// collection.LoadOnlineIndexes) still shows its pack name in the Best
+// match cell - cautionStyle.Render flags it by color (untestable as
+// plain text outside a real terminal; lipgloss no-ops without one),
 // not by eating column width with a text suffix.
 func TestDeviceRowFlagsPendingDownload(t *testing.T) {
 	dr := scan.DeviceResult{
@@ -460,9 +466,33 @@ func TestDeviceRowFlagsPendingDownload(t *testing.T) {
 			Result:     matcher.Result{AltSectScore: 2, DecorScore: 1, Status: matcher.StatusBetter},
 		}},
 	}
-	got := deviceRow(dr, false, false)[3]
-	if !strings.Contains(got, "DP_Test_SDIO01_1.7z") {
-		t.Errorf("best match cell = %q, want it to contain the filename", got)
+	got := deviceRow(dr, false, false, 50, 20)[3]
+	if !strings.Contains(got, "Test_SDIO01_1") {
+		t.Errorf("best match cell = %q, want it to contain the pack name", got)
+	}
+}
+
+func TestDisplayPackNameStripsBoilerplate(t *testing.T) {
+	if got := displayPackName("DP_Test_SDIO01_1.7z", 50); got != "Test_SDIO01_1" {
+		t.Errorf("displayPackName() = %q, want %q", got, "Test_SDIO01_1")
+	}
+}
+
+func TestTruncateLeadingKeepsTheEnd(t *testing.T) {
+	cases := []struct {
+		in    string
+		width int
+		want  string
+	}{
+		{"short", 10, "short"},
+		{"DP_LAN_Realtek-NT_26081", 10, "…-NT_26081"},
+		{"anything", 1, "…"},
+		{"", 5, ""},
+	}
+	for _, c := range cases {
+		if got := truncateLeading(c.in, c.width); got != c.want {
+			t.Errorf("truncateLeading(%q, %d) = %q, want %q", c.in, c.width, got, c.want)
+		}
 	}
 }
 
@@ -483,7 +513,7 @@ func TestResizeWhileDetailScreenOpenDoesNotPanic(t *testing.T) {
 		Candidates: []collection.Candidate{best},
 	}}}
 	s := settings.New()
-	m := newModel(result, s, nil)
+	m := newModel(result, s, nil, testLogger)
 
 	mm, _ := m.Update(tea.WindowSizeMsg{Width: 200, Height: 50})
 	m = mm.(model)
@@ -523,7 +553,7 @@ func TestDetailViewportScrolls(t *testing.T) {
 		InstalledScore: &collection.InstalledScore{Score: 99, Feature: 1},
 	}}}
 	s := settings.New()
-	m := newModel(result, s, nil)
+	m := newModel(result, s, nil, testLogger)
 
 	mm, _ := m.Update(tea.WindowSizeMsg{Width: 100, Height: 8}) // short enough that content overflows
 	m = mm.(model)
@@ -549,7 +579,7 @@ func TestDetailViewportScrolls(t *testing.T) {
 // the table and q/esc/? all return to it - the same "only documented
 // keys act" contract as the other popups.
 func TestAboutScreenNavigation(t *testing.T) {
-	m := newModel(scan.Result{}, settings.New(), nil)
+	m := newModel(scan.Result{}, settings.New(), nil, testLogger)
 
 	mm, _ := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune("?")})
 	m = mm.(model)
@@ -583,10 +613,10 @@ func TestAboutScreenNavigation(t *testing.T) {
 // controls whether the TUI opens straight to the Welcome screen,
 // without needing an interactive keypress to get there.
 func TestNewModelOpensWelcomeOnFirstRun(t *testing.T) {
-	if m := newModel(scan.Result{FirstRun: true}, settings.New(), nil); m.screen != screenWelcome {
+	if m := newModel(scan.Result{FirstRun: true}, settings.New(), nil, testLogger); m.screen != screenWelcome {
 		t.Errorf("screen = %v with FirstRun=true, want screenWelcome", m.screen)
 	}
-	if m := newModel(scan.Result{FirstRun: false}, settings.New(), nil); m.screen != screenTable {
+	if m := newModel(scan.Result{FirstRun: false}, settings.New(), nil, testLogger); m.screen != screenTable {
 		t.Errorf("screen = %v with FirstRun=false, want screenTable", m.screen)
 	}
 }
@@ -597,7 +627,7 @@ func TestNewModelOpensWelcomeOnFirstRun(t *testing.T) {
 // was never configured.
 func TestWelcomeRequiresTorrentFile(t *testing.T) {
 	s := settings.New()
-	m := newModel(scan.Result{}, s, nil)
+	m := newModel(scan.Result{}, s, nil, testLogger)
 	m.screen = screenWelcome
 
 	mm, _ := m.Update(tea.KeyMsg{Type: tea.KeyEnter})
@@ -616,7 +646,7 @@ func TestWelcomeRequiresTorrentFile(t *testing.T) {
 func TestWelcomeAllDriverPacksNeedsConfirmation(t *testing.T) {
 	s := settings.New()
 	s.TorrentFile = "dummy.torrent" // just needs to be non-empty for this check
-	m := newModel(scan.Result{}, s, nil)
+	m := newModel(scan.Result{}, s, nil, testLogger)
 	m.screen = screenWelcome
 	m.welcomeIndex = len(welcomeItems) - 1 // "Download All Driver Packs"
 
@@ -640,7 +670,7 @@ func TestWelcomeAllDriverPacksNeedsConfirmation(t *testing.T) {
 // that error (instead of silently doing nothing) is a real,
 // mock-free proof the key is wired to the real function.
 func TestUSBDriveKeyReportsUnsupportedPlatform(t *testing.T) {
-	m := newModel(scan.Result{}, settings.New(), nil)
+	m := newModel(scan.Result{}, settings.New(), nil, testLogger)
 
 	mm, _ := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'u'}})
 	m = mm.(model)
@@ -656,7 +686,7 @@ func TestUSBDriveKeyReportsUnsupportedPlatform(t *testing.T) {
 // cursor within bounds and enter opens the confirm screen without
 // starting a copy, using synthetic drives (no real hardware needed).
 func TestUpdateUSBDriveNavigationAndConfirm(t *testing.T) {
-	m := newModel(scan.Result{}, settings.New(), nil)
+	m := newModel(scan.Result{}, settings.New(), nil, testLogger)
 	m.screen = screenUSBDrive
 	m.usbDrives = []usbdrive.Drive{
 		{Root: `E:\`, TotalBytes: 1000, FreeBytes: 900},
@@ -698,7 +728,7 @@ func TestUpdateUSBDriveNavigationAndConfirm(t *testing.T) {
 // trick used elsewhere in this file to prove a path is genuinely
 // reached rather than assumed.
 func TestUpdateConfirmInstallRelaunchesElevatedWhenNotElevated(t *testing.T) {
-	m := newModel(scan.Result{}, settings.New(), nil)
+	m := newModel(scan.Result{}, settings.New(), nil, testLogger)
 	m.screen = screenConfirmInstall
 	m.selected = map[string]bool{"DEV1": true, "DEV2": false}
 
@@ -718,7 +748,7 @@ func TestUpdateConfirmInstallRelaunchesElevatedWhenNotElevated(t *testing.T) {
 // confirm-install screen, so the "y" that triggered the relaunch
 // isn't silently dropped.
 func TestNewModelResumeSelectedOpensConfirmInstall(t *testing.T) {
-	m := newModel(scan.Result{}, settings.New(), map[string]bool{"DEV1": true})
+	m := newModel(scan.Result{}, settings.New(), map[string]bool{"DEV1": true}, testLogger)
 	if m.screen != screenConfirmInstall {
 		t.Fatalf("screen = %v, want screenConfirmInstall when resumeSelected is non-empty", m.screen)
 	}
@@ -803,7 +833,7 @@ func TestActiveFileLinesCapsShownFiles(t *testing.T) {
 // Downloading screen renders activeFileLines' output alongside the
 // overall percent, not just the overall percent alone.
 func TestDownloadStatusViewShowsPerFileBreakdown(t *testing.T) {
-	m := newModel(scan.Result{}, settings.New(), nil)
+	m := newModel(scan.Result{}, settings.New(), nil, testLogger)
 	m.dlProgress = &progressTracker{}
 	m.dlProgress.report(update.Progress{
 		Completed: 150, Total: 200,
