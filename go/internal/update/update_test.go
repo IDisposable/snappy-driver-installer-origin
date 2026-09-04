@@ -169,3 +169,46 @@ func TestProgressPercent(t *testing.T) {
 		}
 	}
 }
+
+func TestFileProgressPercent(t *testing.T) {
+	cases := []struct {
+		completed, total int64
+		want             int
+	}{
+		{0, 100, 0},
+		{25, 100, 25},
+		{100, 100, 100},
+		{0, 0, 100},
+	}
+	for _, c := range cases {
+		f := FileProgress{Completed: c.completed, Total: c.total}
+		if got := f.Percent(); got != c.want {
+			t.Errorf("FileProgress{%d,%d}.Percent() = %d, want %d", c.completed, c.total, got, c.want)
+		}
+	}
+}
+
+// TestProgressReportsPerFileBreakdown confirms Progress.Files carries
+// one entry per selected file (not just the Completed/Total
+// aggregate), in the same order the files were selected in - needed
+// for a caller to show individual file progress when many files
+// download together.
+func TestProgressReportsPerFileBreakdown(t *testing.T) {
+	tr := requireSharedTorrent(t)
+
+	want := []string{"SDIO_Update/docs/changelog.txt", "SDIO_Update/SDIO_auto.bat"}
+	selected := tr.SelectFiles(want)
+
+	p := tr.Progress(selected)
+	if len(p.Files) != len(want) {
+		t.Fatalf("Progress().Files has %d entries, want %d", len(p.Files), len(want))
+	}
+	for i, f := range p.Files {
+		if f.Path != selected[i].Path {
+			t.Errorf("Files[%d].Path = %q, want %q", i, f.Path, selected[i].Path)
+		}
+		if f.Total != selected[i].Length {
+			t.Errorf("Files[%d].Total = %d, want %d", i, f.Total, selected[i].Length)
+		}
+	}
+}

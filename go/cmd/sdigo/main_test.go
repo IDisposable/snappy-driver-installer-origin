@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -17,6 +18,7 @@ import (
 	"sdio/internal/scan"
 	"sdio/internal/sdwfile"
 	"sdio/internal/settings"
+	"sdio/internal/update"
 	"sdio/internal/usbdrive"
 )
 
@@ -727,5 +729,75 @@ func TestResumeFileRoundTrip(t *testing.T) {
 func TestReadResumeFileMissingFileReturnsNil(t *testing.T) {
 	if got := readResumeFile(filepath.Join(t.TempDir(), "does-not-exist.txt")); got != nil {
 		t.Errorf("readResumeFile() = %v, want nil for a missing file", got)
+	}
+}
+
+// TestActiveFileLinesShowsEachInProgressFile confirms a multi-file
+// download reports its own per-file breakdown, not just the overall
+// aggregate - the overall percent alone can sit unchanged for a long
+// time while individual files actually finish and start.
+func TestActiveFileLinesShowsEachInProgressFile(t *testing.T) {
+	got := activeFileLines([]update.FileProgress{
+		{Path: "a/DP_Done.7z", Completed: 100, Total: 100},
+		{Path: "a/DP_Half.7z", Completed: 50, Total: 100},
+		{Path: "a/DP_Started.7z", Completed: 10, Total: 100},
+	})
+
+	if !strings.Contains(got, "1/3 files complete") {
+		t.Errorf("activeFileLines() = %q, want a 1/3 complete count", got)
+	}
+	if !strings.Contains(got, "DP_Half.7z") || !strings.Contains(got, "DP_Started.7z") {
+		t.Errorf("activeFileLines() = %q, want both in-progress files listed", got)
+	}
+	if strings.Contains(got, "DP_Done.7z") {
+		t.Errorf("activeFileLines() = %q, a completed file shouldn't be listed as active", got)
+	}
+}
+
+// TestActiveFileLinesSingleFileIsEmpty confirms a single-file download
+// (the install path, which selects one pack at a time) doesn't
+// duplicate the overall percent as a redundant one-file breakdown.
+func TestActiveFileLinesSingleFileIsEmpty(t *testing.T) {
+	got := activeFileLines([]update.FileProgress{{Path: "a/DP_Only.7z", Completed: 10, Total: 100}})
+	if got != "" {
+		t.Errorf("activeFileLines() = %q, want empty for a single file", got)
+	}
+}
+
+// TestActiveFileLinesCapsShownFiles confirms a large batch (e.g.
+// "Download All Driver Packs", 100+ files) summarizes the overflow
+// instead of listing every in-progress file.
+func TestActiveFileLinesCapsShownFiles(t *testing.T) {
+	files := make([]update.FileProgress, maxActiveDownloadLines+3)
+	for i := range files {
+		files[i] = update.FileProgress{Path: fmt.Sprintf("a/DP_%d.7z", i), Completed: 1, Total: 100}
+	}
+
+	got := activeFileLines(files)
+	if !strings.Contains(got, "3 more in progress") {
+		t.Errorf("activeFileLines() = %q, want the overflow summarized as 3 more", got)
+	}
+}
+
+// TestDownloadStatusViewShowsPerFileBreakdown confirms the Installing/
+// Downloading screen renders activeFileLines' output alongside the
+// overall percent, not just the overall percent alone.
+func TestDownloadStatusViewShowsPerFileBreakdown(t *testing.T) {
+	m := newModel(scan.Result{}, settings.New(), nil)
+	m.dlProgress = &progressTracker{}
+	m.dlProgress.report(update.Progress{
+		Completed: 150, Total: 200,
+		Files: []update.FileProgress{
+			{Path: "a/DP_Done.7z", Completed: 100, Total: 100},
+			{Path: "a/DP_Half.7z", Completed: 50, Total: 100},
+		},
+	})
+
+	got := m.downloadStatusView("Downloading")
+	if !strings.Contains(got, "75%") {
+		t.Errorf("downloadStatusView() = %q, want the overall 75%% shown", got)
+	}
+	if !strings.Contains(got, "1/2 files complete") || !strings.Contains(got, "DP_Half.7z") {
+		t.Errorf("downloadStatusView() = %q, want the per-file breakdown included", got)
 	}
 }

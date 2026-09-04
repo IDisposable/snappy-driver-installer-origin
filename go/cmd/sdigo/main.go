@@ -14,6 +14,8 @@ import (
 	"bytes"
 	"fmt"
 	"os"
+	"path/filepath"
+	"sort"
 	"strings"
 	"sync"
 	"time"
@@ -827,6 +829,7 @@ type progressTracker struct {
 	rateBps   float64
 	sampleAt  time.Time
 	sampleBy  int64
+	files     []update.FileProgress
 }
 
 // report is passed as an update.ProgressFunc to whichever download is
@@ -841,14 +844,14 @@ func (p *progressTracker) report(pr update.Progress) {
 		p.rateBps = float64(pr.Completed-p.sampleBy) / dt
 		p.sampleAt, p.sampleBy = now, pr.Completed
 	}
-	p.label, p.completed, p.total = pr.Label, pr.Completed, pr.Total
+	p.label, p.completed, p.total, p.files = pr.Label, pr.Completed, pr.Total, pr.Files
 }
 
 // snapshot returns the most recently reported progress.
-func (p *progressTracker) snapshot() (label string, completed, total int64, rateBps float64) {
+func (p *progressTracker) snapshot() (label string, completed, total int64, rateBps float64, files []update.FileProgress) {
 	p.mu.Lock()
 	defer p.mu.Unlock()
-	return p.label, p.completed, p.total, p.rateBps
+	return p.label, p.completed, p.total, p.rateBps, p.files
 }
 
 // progressTickMsg drives periodic re-renders of the Installing/
@@ -966,18 +969,29 @@ func (m model) View() string {
 	return m.tableView()
 }
 
+// maxActiveDownloadLines caps how many in-progress files
+// downloadStatusView lists individually - "Download All Driver Packs"
+// selects 100+ files at once, more than a terminal screen can show one
+// line each, so only the closest-to-done ones are shown and the rest
+// are summarized as a count.
+const maxActiveDownloadLines = 8
+
 // downloadStatusView renders live torrent download progress for the
 // Installing/Downloading screens - the same percent/bytes/speed
 // status update.cpp's ShowProgress (STR_UPD_PROGRES) builds from
 // libtorrent's torrent_status, instead of a static "please wait".
 // Falls back to that static message until the first progress report
-// arrives (metadata/peer discovery can take a few seconds).
+// arrives (metadata/peer discovery can take a few seconds). When more
+// than one file is downloading together, the overall percent alone
+// can sit still for a long time while individual files actually
+// finish and start, so each file still in progress gets its own line
+// too (nearest-to-done first).
 func (m model) downloadStatusView(verb string) string {
 	header := verb + " - please wait, this may take a while.\n\n"
 	if m.dlProgress == nil {
 		return header
 	}
-	label, completed, total, rateBps := m.dlProgress.snapshot()
+	label, completed, total, rateBps, files := m.dlProgress.snapshot()
 	if total == 0 {
 		return header + "Connecting to the torrent swarm...\n"
 	}
@@ -990,7 +1004,50 @@ func (m model) downloadStatusView(verb string) string {
 	if label != "" {
 		line = label + "\n" + line
 	}
-	return header + line + "\n"
+
+	var b strings.Builder
+	b.WriteString(header)
+	b.WriteString(line)
+	b.WriteString("\n")
+	b.WriteString(activeFileLines(files))
+	return b.String()
+}
+
+// activeFileLines renders one line per file still short of 100%,
+// nearest-to-done first, capped at maxActiveDownloadLines with the
+// remainder summarized as a count - the per-file breakdown
+// downloadStatusView shows alongside its own overall percent. Returns
+// "" for a single-file download (its own line already says the same
+// thing as the overall percent).
+func activeFileLines(files []update.FileProgress) string {
+	if len(files) < 2 {
+		return ""
+	}
+	active := make([]update.FileProgress, 0, len(files))
+	done := 0
+	for _, f := range files {
+		if f.Percent() >= 100 {
+			done++
+		} else {
+			active = append(active, f)
+		}
+	}
+	sort.Slice(active, func(i, j int) bool { return active[i].Percent() > active[j].Percent() })
+
+	var b strings.Builder
+	fmt.Fprintf(&b, "\n%d/%d files complete\n", done, len(files))
+	shown := active
+	if len(shown) > maxActiveDownloadLines {
+		shown = shown[:maxActiveDownloadLines]
+	}
+	for _, f := range shown {
+		fmt.Fprintf(&b, "  %-3d%% %s (%s/%s)\n", f.Percent(), filepath.Base(f.Path),
+			common.BytesToStr(uint64(f.Completed)), common.BytesToStr(uint64(f.Total)))
+	}
+	if extra := len(active) - len(shown); extra > 0 {
+		fmt.Fprintf(&b, "  ... and %d more in progress\n", extra)
+	}
+	return b.String()
 }
 
 func (m model) usbDriveView() string {

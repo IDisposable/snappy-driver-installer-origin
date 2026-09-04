@@ -187,15 +187,37 @@ func (t *Torrent) SelectFiles(names []string) []FileInfo {
 	return selected
 }
 
+// FileProgress is one file's own download progress, as opposed to
+// Progress's aggregate across every selected file - needed once more
+// than a handful of files download together (e.g. "Download All
+// Driver Packs"), where an aggregate percent alone can sit unchanged
+// for a long time while individual files actually finish and start.
+type FileProgress struct {
+	Path      string
+	Completed int64
+	Total     int64
+}
+
+// Percent returns Completed/Total as 0-100, or 100 if Total is 0.
+func (f FileProgress) Percent() int {
+	if f.Total == 0 {
+		return 100
+	}
+	return int(f.Completed * 100 / f.Total)
+}
+
 // Progress sums BytesCompleted/Length across files, matching the
 // percent-complete calculation ShowProgress displays in update.cpp.
 // Label identifies what's being downloaded (e.g. a driver-pack
 // filename), set by WaitDownload's caller - it carries no meaning on
-// its own.
+// its own. Files carries the same breakdown per individual file, in
+// the same order as the files argument Progress/WaitDownload were
+// given.
 type Progress struct {
 	Label     string
 	Completed int64
 	Total     int64
+	Files     []FileProgress
 }
 
 // Percent returns Completed/Total as 0-100, or 100 if Total is 0.
@@ -207,12 +229,15 @@ func (p Progress) Percent() int {
 }
 
 // Progress reports download progress across files (typically the
-// slice SelectFiles returned).
+// slice SelectFiles returned), both as a Completed/Total aggregate and
+// as Files, one entry per file.
 func (t *Torrent) Progress(files []FileInfo) Progress {
-	var p Progress
-	for _, f := range files {
-		p.Completed += f.BytesCompleted()
+	p := Progress{Files: make([]FileProgress, len(files))}
+	for i, f := range files {
+		c := f.BytesCompleted()
+		p.Completed += c
 		p.Total += f.Length
+		p.Files[i] = FileProgress{Path: f.Path, Completed: c, Total: f.Length}
 	}
 	return p
 }
