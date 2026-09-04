@@ -54,6 +54,7 @@ var boolFlagDefs = []boolFlagDef{
 	{"checkupdates", "check for driver pack updates", FlagCheckUpdates, true},
 	{"onlyupdates", "only download updates, don't install", FlagOnlyUpdates, true},
 	{"torrentalerts", "log torrent alert events", FlagTorrentAlerts, true},
+	{"keepseeding", "keep seeding driver packs to other peers after download completes", FlagKeepSeeding, true},
 	{"norestorepnt", "don't create a system restore point", FlagNoRestorePoint, true},
 	{"novirusalerts", "don't warn about suspected virus-flagged files", FlagNoVirusAlerts, true},
 	{"keepunpackedindex", "keep unpacked index files after use", FlagKeepUnpackIndex, true},

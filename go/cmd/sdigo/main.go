@@ -909,7 +909,7 @@ type welcomeDownloadDoneMsg struct{ log []string }
 func runIndexRefreshCmd(s *settings.Settings, progress *progressTracker) tea.Cmd {
 	return func() tea.Msg {
 		var buf bytes.Buffer
-		n, err := collection.BootstrapIndexes(s.TorrentFile, s.IndexDir, s.UpdatesDir, progress.report)
+		n, err := collection.BootstrapIndexes(s.TorrentFile, s.IndexDir, s.UpdatesDir, s.Flags&settings.FlagKeepSeeding != 0, progress.report)
 		if err != nil {
 			fmt.Fprintf(&buf, "error refreshing indexes: %v\n", err)
 		} else {
@@ -928,7 +928,7 @@ func runIndexRefreshCmd(s *settings.Settings, progress *progressTracker) tea.Cmd
 func runWelcomeDownloadCmd(s *settings.Settings, filter update.DriverPackFilter, progress *progressTracker) tea.Cmd {
 	return func() tea.Msg {
 		var buf bytes.Buffer
-		n, err := update.DownloadDriverPacks(s.TorrentFile, s.DrpDir, s.UpdatesDir, filter, &buf, 2*time.Hour, progress.report)
+		n, err := update.DownloadDriverPacks(s.TorrentFile, s.DrpDir, s.UpdatesDir, s.Flags&settings.FlagKeepSeeding != 0, filter, &buf, 2*time.Hour, progress.report)
 		if err != nil {
 			fmt.Fprintf(&buf, "error: %v\n", err)
 		} else if n == 0 {

@@ -42,7 +42,7 @@ func placeholderIndexFilename(properBinName string) string {
 // in-progress file data - not a temp directory, so an interrupted
 // download resumes instead of restarting from zero next run.
 // onProgress, if non-nil, is called with live byte-level progress.
-func BootstrapIndexes(torrentFile, indexDir, updatesDir string, onProgress update.ProgressFunc) (int, error) {
+func BootstrapIndexes(torrentFile, indexDir, updatesDir string, seed bool, onProgress update.ProgressFunc) (int, error) {
 	if torrentFile == "" {
 		return 0, fmt.Errorf("no torrent source configured")
 	}
@@ -53,7 +53,7 @@ func BootstrapIndexes(torrentFile, indexDir, updatesDir string, onProgress updat
 		return 0, fmt.Errorf("creating %s: %w", updatesDir, err)
 	}
 
-	c, err := update.NewClient(update.Config{DataDir: updatesDir})
+	c, err := update.NewClient(update.Config{DataDir: updatesDir, Seed: seed})
 	if err != nil {
 		return 0, fmt.Errorf("starting torrent client: %w", err)
 	}

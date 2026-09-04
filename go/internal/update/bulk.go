@@ -45,7 +45,7 @@ func NetworkDriverPacks(filename string) bool {
 // onProgress, if non-nil, is called with live byte-level progress
 // across every selected file - see ProgressFunc. Returns how many
 // files were newly downloaded.
-func DownloadDriverPacks(torrentFile, drpDir, updatesDir string, filter DriverPackFilter, out io.Writer, timeout time.Duration, onProgress ProgressFunc) (int, error) {
+func DownloadDriverPacks(torrentFile, drpDir, updatesDir string, seed bool, filter DriverPackFilter, out io.Writer, timeout time.Duration, onProgress ProgressFunc) (int, error) {
 	if err := os.MkdirAll(drpDir, 0o755); err != nil {
 		return 0, err
 	}
@@ -53,7 +53,7 @@ func DownloadDriverPacks(torrentFile, drpDir, updatesDir string, filter DriverPa
 		return 0, err
 	}
 
-	c, err := NewClient(Config{DataDir: updatesDir})
+	c, err := NewClient(Config{DataDir: updatesDir, Seed: seed})
 	if err != nil {
 		return 0, fmt.Errorf("starting torrent client: %w", err)
 	}
