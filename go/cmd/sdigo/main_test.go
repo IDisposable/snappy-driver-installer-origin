@@ -633,6 +633,63 @@ func TestNewModelOpensWelcomeOnFirstRun(t *testing.T) {
 	}
 }
 
+// TestNewModelStartsOnSplash confirms a freshly constructed model
+// (before Init/Update has run at all) shows the splash screen, not
+// screenScanning directly - screenSplash is the zero value precisely
+// so this holds without newModel having to set it explicitly.
+func TestNewModelStartsOnSplash(t *testing.T) {
+	m := newModel(settings.New(), nil, testLogger)
+	if m.screen != screenSplash {
+		t.Errorf("screen = %v, want screenSplash", m.screen)
+	}
+}
+
+// TestSplashKeyPressAdvancesToScanning confirms any keypress on the
+// splash screen dismisses it early rather than making an impatient
+// user wait out splashDuration.
+func TestSplashKeyPressAdvancesToScanning(t *testing.T) {
+	m := newModel(settings.New(), nil, testLogger)
+	m.screen = screenSplash
+
+	mm, _ := m.Update(tea.KeyMsg{Type: tea.KeyEnter})
+	m = mm.(model)
+	if m.screen != screenScanning {
+		t.Errorf("screen = %v after a keypress on screenSplash, want screenScanning", m.screen)
+	}
+}
+
+// TestSplashDoneAdvancesToScanning confirms splashDoneMsg (the
+// splashDuration timer) moves screenSplash along on its own if the
+// user never presses a key.
+func TestSplashDoneAdvancesToScanning(t *testing.T) {
+	m := newModel(settings.New(), nil, testLogger)
+	m.screen = screenSplash
+
+	mm, _ := m.Update(splashDoneMsg{})
+	m = mm.(model)
+	if m.screen != screenScanning {
+		t.Errorf("screen = %v after splashDoneMsg, want screenScanning", m.screen)
+	}
+}
+
+// TestSplashDoneIgnoredOnceScanFinished confirms a stale splashDoneMsg
+// arriving after the background scan already finished (and moved
+// m.screen on to screenTable/screenWelcome/screenInstallLog) doesn't
+// knock the screen back to screenScanning.
+func TestSplashDoneIgnoredOnceScanFinished(t *testing.T) {
+	m := newTestModel(scan.Result{}, settings.New(), nil)
+	if m.screen == screenSplash {
+		t.Fatal("newTestModel left the model on screenSplash - test setup assumption broken")
+	}
+	want := m.screen
+
+	mm, _ := m.Update(splashDoneMsg{})
+	m = mm.(model)
+	if m.screen != want {
+		t.Errorf("screen = %v after a stale splashDoneMsg, want unchanged %v", m.screen, want)
+	}
+}
+
 // TestScanDoneReportsError confirms a failed background scan (Init's
 // tea.Cmd) shows the error instead of leaving screenScanning up
 // forever or panicking on the zero-value scan.Result that comes with
@@ -1006,5 +1063,47 @@ func TestDownloadStatusViewShowsPerFileBreakdown(t *testing.T) {
 	}
 	if !strings.Contains(got, "1/2 files complete") || !strings.Contains(got, "DP_Half.7z") {
 		t.Errorf("downloadStatusView() = %q, want the per-file breakdown included", got)
+	}
+}
+
+// TestScanProgressTrackerCapsRecentWindow confirms the recent-files
+// list scanningView scrolls through stays bounded at scanRecentLines
+// and keeps the most recent entries (oldest dropped first), not an
+// ever-growing slice across a 100+ pack collection.
+func TestScanProgressTrackerCapsRecentWindow(t *testing.T) {
+	var p scanProgressTracker
+	for i := 0; i < scanRecentLines+5; i++ {
+		p.report(i+1, scanRecentLines+5, fmt.Sprintf("DP_Pack%d.7z", i))
+	}
+
+	current, total, recent := p.snapshot()
+	if current != scanRecentLines+5 || total != scanRecentLines+5 {
+		t.Errorf("current/total = %d/%d, want %d/%d", current, total, scanRecentLines+5, scanRecentLines+5)
+	}
+	if len(recent) != scanRecentLines {
+		t.Fatalf("len(recent) = %d, want %d", len(recent), scanRecentLines)
+	}
+	if want := "DP_Pack5.7z"; recent[0] != want {
+		t.Errorf("recent[0] = %q, want %q (the oldest entry still in the window)", recent[0], want)
+	}
+	if want := fmt.Sprintf("DP_Pack%d.7z", scanRecentLines+4); recent[len(recent)-1] != want {
+		t.Errorf("recent[last] = %q, want %q (the most recently reported entry)", recent[len(recent)-1], want)
+	}
+}
+
+// TestScanningViewShowsRecentFiles confirms the scrolling list of
+// recently loaded packs actually reaches the rendered view, not just
+// the tracker itself.
+func TestScanningViewShowsRecentFiles(t *testing.T) {
+	m := newTestModel(scan.Result{}, settings.New(), nil)
+	m.scanProgress = &scanProgressTracker{}
+	m.scanProgress.report(3, 104, "DP_Example_26083.7z")
+
+	got := m.scanningView()
+	if !strings.Contains(got, "DP_Example_26083.7z") {
+		t.Errorf("scanningView() = %q, want the loaded pack filename listed", got)
+	}
+	if !strings.Contains(got, "3 of 104") {
+		t.Errorf("scanningView() = %q, want the current/total count shown", got)
 	}
 }

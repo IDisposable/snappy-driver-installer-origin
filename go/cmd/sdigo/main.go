@@ -45,7 +45,13 @@ import (
 type screen int
 
 const (
-	screenScanning screen = iota
+	// screenSplash is the zero value, so a freshly constructed model
+	// (see newModel) starts here before Init's background scan has
+	// produced anything to show - the ASCII splash is purely cosmetic
+	// and never gates the scan itself, which is already running
+	// underneath it (see tickSplashCmd/splashDoneMsg).
+	screenSplash screen = iota
+	screenScanning
 	screenTable
 	screenOptions
 	screenDetail
@@ -466,10 +472,27 @@ type scanDoneMsg struct {
 	err      error
 }
 
+// splashDuration is how long screenSplash stays up before yielding to
+// screenScanning on its own - purely cosmetic, so kept short. A user
+// in a hurry can also dismiss it early with any keypress; a scan that
+// finishes before either happens skips it entirely (scanDoneMsg sets
+// m.screen directly, regardless of what's currently showing).
+const splashDuration = 1200 * time.Millisecond
+
+// splashDoneMsg fires once splashDuration elapses.
+type splashDoneMsg struct{}
+
+func tickSplashCmd() tea.Cmd {
+	return tea.Tick(splashDuration, func(t time.Time) tea.Msg {
+		return splashDoneMsg{}
+	})
+}
+
 // Init runs the real scan in the background instead of blocking
 // program startup on it - see scanDoneMsg and screenScanning's View.
 // It also starts the progressTickMsg loop so screenScanning's View
-// picks up m.scanProgress as the collection loads.
+// picks up m.scanProgress as the collection loads, and the splash
+// timer that moves screenSplash along to screenScanning on its own.
 func (m model) Init() tea.Cmd {
 	scanCmd := func() tea.Msg {
 		p, err := scan.Prepare(m.s)
@@ -479,7 +502,7 @@ func (m model) Init() tea.Cmd {
 		res, err := scan.MatchWithCollection(m.s, p, m.scanProgress.report)
 		return scanDoneMsg{prepared: p, result: res, err: err}
 	}
-	return tea.Batch(scanCmd, tickProgressCmd())
+	return tea.Batch(scanCmd, tickProgressCmd(), tickSplashCmd())
 }
 
 // applyResult populates the model from a fresh scan.Result - the
@@ -609,7 +632,24 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 		return m, nil
 
+	case splashDoneMsg:
+		// Only advance if still on the splash - a scan that finished
+		// first already moved m.screen on to screenTable/screenWelcome/
+		// screenInstallLog, and this stale timer firing after that must
+		// not knock it back to screenScanning.
+		if m.screen == screenSplash {
+			m.screen = screenScanning
+		}
+		return m, nil
+
 	case tea.KeyMsg:
+		if m.screen == screenSplash {
+			// Any key dismisses the splash early, straight to whatever
+			// screenScanning currently has to show (still loading, or
+			// already past it if the scan won the race).
+			m.screen = screenScanning
+			return m, nil
+		}
 		switch m.screen {
 		case screenOptions:
 			return m.updateOptions(msg)
@@ -1053,6 +1093,13 @@ func (p *progressTracker) snapshot() (label string, completed, total int64, rate
 	return p.label, p.completed, p.total, p.rateBps, p.files
 }
 
+// scanRecentLines caps how many recently loaded driver-pack filenames
+// scanProgressTracker keeps - screenScanning renders these as a
+// scrolling list (oldest at the top, newest at the bottom), the same
+// "watch the file list go by" feel a classic installer's file-copy
+// screen gives, rather than a single line overwriting itself.
+const scanRecentLines = 12
+
 // scanProgressTracker is the mutex-guarded counterpart of
 // progressTracker for the startup scan - Init's background collection
 // load reports through it (see collection.LoadCollection's
@@ -1061,21 +1108,28 @@ func (p *progressTracker) snapshot() (label string, completed, total int64, rate
 type scanProgressTracker struct {
 	mu             sync.Mutex
 	current, total int
-	filename       string
+	recent         []string // bounded to scanRecentLines, oldest first
 }
 
 // report is passed as collection.LoadCollection's onProgress.
 func (p *scanProgressTracker) report(current, total int, filename string) {
 	p.mu.Lock()
 	defer p.mu.Unlock()
-	p.current, p.total, p.filename = current, total, filename
+	p.current, p.total = current, total
+	p.recent = append(p.recent, filename)
+	if len(p.recent) > scanRecentLines {
+		p.recent = p.recent[len(p.recent)-scanRecentLines:]
+	}
 }
 
-// snapshot returns the most recently reported scan progress.
-func (p *scanProgressTracker) snapshot() (current, total int, filename string) {
+// snapshot returns the most recently reported scan progress, and up
+// to scanRecentLines of the most recently loaded filenames (oldest
+// first) - a copy, safe for the caller to hold onto past the next
+// report call.
+func (p *scanProgressTracker) snapshot() (current, total int, recent []string) {
 	p.mu.Lock()
 	defer p.mu.Unlock()
-	return p.current, p.total, p.filename
+	return p.current, p.total, append([]string(nil), p.recent...)
 }
 
 // progressTickMsg drives periodic re-renders of the Installing/
@@ -1163,6 +1217,8 @@ func runWelcomeDownloadCmd(s *settings.Settings, filter update.DriverPackFilter,
 
 func (m model) View() string {
 	switch m.screen {
+	case screenSplash:
+		return m.splashView()
 	case screenScanning:
 		return m.scanningView()
 	case screenOptions:
@@ -1202,6 +1258,67 @@ func (m model) View() string {
 // are summarized as a count.
 const maxActiveDownloadLines = 8
 
+// splashBanner is the ASCII-art title screenSplash shows for
+// splashDuration on startup - "GO FORTH" in block letters, this
+// rewrite's own name (see the About screen and go/README.md), not a
+// reproduction of the original VCL app's own splash/logo. Every line
+// is exactly 67 runes wide by construction - verified directly rather
+// than assumed, since a ragged block-letter banner reads as broken
+// rather than stylized.
+const splashBanner = ` ██████╗  ██████╗      ███████╗ ██████╗ ██████╗ ████████╗██╗  ██╗
+██╔════╝ ██╔═══██╗     ██╔════╝██╔═══██╗██╔══██╗╚══██╔══╝██║  ██║
+██║  ███╗██║   ██║     █████╗  ██║   ██║██████╔╝   ██║   ███████║
+██║   ██║██║   ██║     ██╔══╝  ██║   ██║██╔══██╗   ██║   ██╔══██║
+╚██████╔╝╚██████╔╝     ██║     ╚██████╔╝██║  ██║   ██║   ██║  ██║
+ ╚═════╝  ╚═════╝      ╚═╝      ╚═════╝ ╚═╝  ╚═╝   ╚═╝   ╚═╝  ╚═╝`
+
+// splashStyle centers splashBanner and its subtitle in the terminal
+// and gives the banner itself a bit of color - the only screen in the
+// TUI that's purely decorative, so it's the one place a splash of
+// color doesn't fight with the table/status styling used everywhere
+// else.
+var splashStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("39")).Bold(true)
+
+// splashView renders screenSplash: splashBanner plus a subtitle,
+// centered in the terminal - see splashDuration/tickSplashCmd for how
+// long it stays up.
+func (m model) splashView() string {
+	body := splashStyle.Render(splashBanner) + "\n\n" +
+		"Snappy Driver Installer - reimplemented in Go\n\n" +
+		"press any key to skip..."
+	if m.width <= 0 || m.height <= 0 {
+		return body
+	}
+	return lipgloss.Place(m.width, m.height, lipgloss.Center, lipgloss.Center, body)
+}
+
+// scanningView renders screenScanning's "please wait" message, with a
+// scrolling list of the most recently loaded driver-pack filenames
+// once the background scan reaches collection loading - hardware
+// detection alone can be quick, but a full collection is 100+ packs
+// and worth showing real progress on rather than sitting on a bare
+// static message.
+func (m model) scanningView() string {
+	header := "Scanning hardware and loading driver packs - please wait...\n"
+	if m.scanProgress == nil {
+		return header
+	}
+	current, total, recent := m.scanProgress.snapshot()
+	if total == 0 {
+		return header
+	}
+
+	var b strings.Builder
+	b.WriteString(header)
+	fmt.Fprintf(&b, "\n%d of %d driver packs loaded\n\n", current, total)
+	for _, name := range recent {
+		b.WriteString("  ")
+		b.WriteString(name)
+		b.WriteString("\n")
+	}
+	return b.String()
+}
+
 // downloadStatusView renders live torrent download progress for the
 // Installing/Downloading screens - the same percent/bytes/speed
 // status update.cpp's ShowProgress (STR_UPD_PROGRES) builds from
@@ -1212,23 +1329,6 @@ const maxActiveDownloadLines = 8
 // can sit still for a long time while individual files actually
 // finish and start, so each file still in progress gets its own line
 // too (nearest-to-done first).
-// scanningView renders screenScanning's "please wait" message, with a
-// live "loading pack N of M" line once the background scan reaches
-// collection loading - hardware detection alone can be quick, but a
-// full collection is 100+ packs and worth showing progress on rather
-// than sitting on a bare static message.
-func (m model) scanningView() string {
-	header := "Scanning hardware and loading driver packs - please wait...\n"
-	if m.scanProgress == nil {
-		return header
-	}
-	current, total, filename := m.scanProgress.snapshot()
-	if total == 0 {
-		return header
-	}
-	return fmt.Sprintf("%s\nLoading %s (%d of %d)\n", header, filename, current, total)
-}
-
 func (m model) downloadStatusView(verb string) string {
 	header := verb + " - please wait, this may take a while.\n\n"
 	if m.dlProgress == nil {
