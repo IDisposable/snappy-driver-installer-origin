@@ -56,11 +56,13 @@ func writeSnapshot(s *settings.Settings, p Prepared, logger *logging.Logger) {
 		logger.Error().Err(err).Str("file", name).Msg("creating state snapshot failed")
 		return
 	}
-	defer f.Close()
 	if err := sdwfile.Encode(f, snapshotVersion, payload, true); err != nil {
 		logger.Error().Err(err).Str("file", name).Msg("writing state snapshot failed")
+		f.Close()
+		os.Remove(name) // don't leave a truncated .snp behind for a later -ls: to choke on
 		return
 	}
+	f.Close()
 	logger.Info().Str("file", name).Msg("saved state snapshot")
 }
 

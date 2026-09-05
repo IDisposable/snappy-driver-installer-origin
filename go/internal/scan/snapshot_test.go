@@ -127,6 +127,26 @@ func TestLoadSnapshotRoundTrips(t *testing.T) {
 	}
 }
 
+// TestLoadSnapshotRoundTripsEmptyDeviceList confirms a snapshot taken
+// with zero enumerated devices (a real possibility - e.g. a scan
+// racing device enumeration) round-trips to an empty, non-nil-vs-nil-
+// ambiguous slice rather than tripping up on JSON's null-for-nil-slice
+// encoding.
+func TestLoadSnapshotRoundTripsEmptyDeviceList(t *testing.T) {
+	s := settings.New()
+	s.LogDir = t.TempDir()
+	writeSnapshot(s, Prepared{System: System{IsLaptop: false}}, testLogger)
+	path := filepath.Join(s.LogDir, listSnapFiles(t, s.LogDir)[0])
+
+	_, devices, err := loadSnapshot(path)
+	if err != nil {
+		t.Fatalf("loadSnapshot() error: %v", err)
+	}
+	if len(devices) != 0 {
+		t.Errorf("Devices = %+v, want empty", devices)
+	}
+}
+
 // TestLoadSnapshotMissingFileReturnsError confirms a bad -ls: path
 // fails loudly instead of silently falling back to a real scan.
 func TestLoadSnapshotMissingFileReturnsError(t *testing.T) {
@@ -151,6 +171,25 @@ func TestLoadSnapshotRejectsWrongVersion(t *testing.T) {
 
 	if _, _, err := loadSnapshot(path); err == nil {
 		t.Error("loadSnapshot() error = nil, want a version-mismatch error")
+	}
+}
+
+// TestLoadSnapshotRejectsMalformedPayload confirms a truncated/corrupt
+// JSON payload inside an otherwise-valid SDW container is reported as
+// an error, not a zero-value System/nil Devices silently accepted.
+func TestLoadSnapshotRejectsMalformedPayload(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "malformed.snp")
+	f, err := os.Create(path)
+	if err != nil {
+		t.Fatalf("Create() error: %v", err)
+	}
+	if err := sdwfile.Encode(f, snapshotVersion, []byte(`{"System":`), true); err != nil {
+		t.Fatalf("Encode() error: %v", err)
+	}
+	f.Close()
+
+	if _, _, err := loadSnapshot(path); err == nil {
+		t.Error("loadSnapshot() error = nil, want a JSON decode error")
 	}
 }
 
