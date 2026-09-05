@@ -66,12 +66,13 @@ type Settings struct {
 
 	IgnoreList []string
 
-	// TorrentFile is a local .torrent file path or magnet URI to fetch
-	// pending (not-yet-downloaded) driver packs from - see
-	// collection.LoadOnlineIndexes and docs/PORTING_NOTES.md's
-	// update.cpp entry. Empty means torrent downloads are disabled; no
-	// tracker/webseed/metadata-fetch URL is hardcoded here, so this
-	// must be supplied explicitly.
+	// TorrentFile is a local .torrent file path, a magnet URI, or an
+	// http(s):// URL to fetch a .torrent file from (e.g. one published
+	// on a GitHub Pages/raw.githubusercontent.com page) - see
+	// update.Client.AddFromSpec, collection.LoadOnlineIndexes, and
+	// docs/PORTING_NOTES.md's update.cpp entry. Empty means torrent
+	// downloads are disabled; no tracker/webseed/metadata-fetch URL is
+	// hardcoded here, so this must be supplied explicitly.
 	TorrentFile string
 }
 

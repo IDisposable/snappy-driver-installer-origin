@@ -62,12 +62,7 @@ func DownloadDriverPacks(s *settings.Settings, onAlert func(level, message strin
 	}
 	defer c.Close()
 
-	var t *Torrent
-	if strings.HasPrefix(s.TorrentFile, "magnet:") {
-		t, err = c.AddFromMagnet(s.TorrentFile)
-	} else {
-		t, err = c.AddFromFile(s.TorrentFile)
-	}
+	t, err := c.AddFromSpec(s.TorrentFile)
 	if err != nil {
 		return 0, fmt.Errorf("adding torrent %s: %w", s.TorrentFile, err)
 	}

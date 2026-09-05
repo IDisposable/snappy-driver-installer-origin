@@ -1,6 +1,8 @@
 package update
 
 import (
+	"net/http"
+	"net/http/httptest"
 	"os"
 	"path/filepath"
 	"testing"
@@ -98,6 +100,115 @@ func TestAddFromFileListsRealFiles(t *testing.T) {
 		t.Errorf("expected to find %q among %d files", wantPath, len(files))
 	}
 	t.Logf("torrent has %d files", len(files))
+}
+
+// restrictedClient builds a torrent.Client with the same
+// network-disabling config TestMain uses, isolated in its own temp
+// data dir - used by tests that need their own Client instance (adding
+// the same real torrent sharedTorrent already holds would conflict on
+// info-hash) rather than a fresh full client.
+func restrictedClient(t *testing.T) *Client {
+	t.Helper()
+	tc := torrent.NewDefaultClientConfig()
+	tc.DataDir = t.TempDir()
+	tc.DisableTrackers = true
+	tc.NoDHT = true
+	tc.DisableWebseeds = true
+	tc.DisableTCP = true
+	tc.DisableUTP = true
+	tc.NoDefaultPortForwarding = true
+	tc.ListenPort = 0
+
+	cl, err := torrent.NewClient(tc)
+	if err != nil {
+		t.Fatalf("torrent.NewClient() error: %v", err)
+	}
+	c := &Client{cl: cl}
+	t.Cleanup(func() { c.Close() })
+	return c
+}
+
+// TestAddFromURLFetchesRealTorrent confirms AddFromURL correctly
+// fetches and parses a .torrent file served over plain HTTP - the
+// GitHub Pages/raw.githubusercontent.com case AddFromSpec exists to
+// support - by serving the same real SDIO_Update.torrent
+// TestAddFromFileListsRealFiles reads from disk.
+func TestAddFromURLFetchesRealTorrent(t *testing.T) {
+	if _, err := os.Stat(realTorrentPath); err != nil {
+		t.Skipf("real torrent file not available at %s: %v", realTorrentPath, err)
+	}
+
+	srv := httptest.NewServer(http.FileServer(http.Dir(filepath.Dir(realTorrentPath))))
+	defer srv.Close()
+
+	c := restrictedClient(t)
+	tr, err := c.AddFromURL(srv.URL + "/" + filepath.Base(realTorrentPath))
+	if err != nil {
+		t.Fatalf("AddFromURL() error: %v", err)
+	}
+	if tr.Name() != "SDIO_Update" {
+		t.Errorf("Name() = %q, want %q", tr.Name(), "SDIO_Update")
+	}
+	if len(tr.Files()) == 0 {
+		t.Error("Files() returned no files")
+	}
+}
+
+// TestAddFromURLRejectsHTTPError confirms a non-200 response is
+// reported as an error rather than fed to metainfo.Load, which would
+// otherwise fail with a confusing bencode-parse error instead of the
+// actual HTTP status.
+func TestAddFromURLRejectsHTTPError(t *testing.T) {
+	srv := httptest.NewServer(http.NotFoundHandler())
+	defer srv.Close()
+
+	c := restrictedClient(t)
+	if _, err := c.AddFromURL(srv.URL + "/missing.torrent"); err == nil {
+		t.Error("AddFromURL() with a 404 response returned no error")
+	}
+}
+
+// TestAddFromSpecDispatchesOnPrefix confirms AddFromSpec routes each
+// of the three Settings.TorrentFile forms to the right underlying
+// method rather than always falling through to AddFromFile.
+func TestAddFromSpecDispatchesOnPrefix(t *testing.T) {
+	if _, err := os.Stat(realTorrentPath); err != nil {
+		t.Skipf("real torrent file not available at %s: %v", realTorrentPath, err)
+	}
+	srv := httptest.NewServer(http.FileServer(http.Dir(filepath.Dir(realTorrentPath))))
+	defer srv.Close()
+
+	t.Run("local file path", func(t *testing.T) {
+		tr, err := restrictedClient(t).AddFromSpec(realTorrentPath)
+		if err != nil {
+			t.Fatalf("AddFromSpec() error: %v", err)
+		}
+		if tr.Name() != "SDIO_Update" {
+			t.Errorf("Name() = %q, want %q", tr.Name(), "SDIO_Update")
+		}
+	})
+
+	t.Run("http URL", func(t *testing.T) {
+		tr, err := restrictedClient(t).AddFromSpec(srv.URL + "/" + filepath.Base(realTorrentPath))
+		if err != nil {
+			t.Fatalf("AddFromSpec() error: %v", err)
+		}
+		if tr.Name() != "SDIO_Update" {
+			t.Errorf("Name() = %q, want %q", tr.Name(), "SDIO_Update")
+		}
+	})
+
+	t.Run("magnet URI", func(t *testing.T) {
+		// A syntactically valid magnet URI adds successfully without any
+		// network activity - AddMagnet only resolves the file list later,
+		// via WaitInfo - so a nil error here confirms AddFromSpec routed
+		// to AddFromMagnet rather than treating the string as a file path
+		// (which would fail to open) or a URL (which would fail to fetch).
+		const magnet = "magnet:?xt=urn:btih:0123456789abcdef0123456789abcdef01234567&dn=test"
+		if _, err := restrictedClient(t).AddFromSpec(magnet); err != nil {
+			t.Errorf("AddFromSpec(%q) error: %v", magnet, err)
+		}
+	})
 }
 
 func TestSelectFilesReturnsOnlyRequested(t *testing.T) {

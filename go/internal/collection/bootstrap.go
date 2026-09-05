@@ -61,12 +61,7 @@ func BootstrapIndexes(torrentFile, indexDir, updatesDir string, seed bool, onAle
 	}
 	defer c.Close()
 
-	var t *update.Torrent
-	if strings.HasPrefix(torrentFile, "magnet:") {
-		t, err = c.AddFromMagnet(torrentFile)
-	} else {
-		t, err = c.AddFromFile(torrentFile)
-	}
+	t, err := c.AddFromSpec(torrentFile)
 	if err != nil {
 		return 0, fmt.Errorf("adding torrent %s: %w", torrentFile, err)
 	}

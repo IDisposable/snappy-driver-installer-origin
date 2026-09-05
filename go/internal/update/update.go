@@ -8,7 +8,8 @@
 // or by a private config not present in this source snapshot. This
 // package therefore does not hardcode any tracker, webseed, or
 // metadata-fetch URL: callers supply a torrent source (a local
-// .torrent file or a magnet URI) via AddFromFile/AddFromMagnet.
+// .torrent file, a magnet URI, or an http(s):// URL to fetch a
+// .torrent file from) via AddFromSpec.
 //
 // The core behavior this package exists to preserve is the selective
 // download model: SDIO's drivers, indexes, app binaries, and docs are
@@ -26,12 +27,15 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"net/http"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	alog "github.com/anacrolix/log"
 	"github.com/anacrolix/torrent"
+	"github.com/anacrolix/torrent/metainfo"
 	"golang.org/x/time/rate"
 )
 
@@ -122,6 +126,51 @@ func (c *Client) AddFromMagnet(uri string) (*Torrent, error) {
 		return nil, fmt.Errorf("adding magnet: %w", err)
 	}
 	return &Torrent{t: t}, nil
+}
+
+// AddFromURL adds a torrent from a .torrent metadata file fetched over
+// HTTP(S), such as one published on a GitHub Pages/raw.githubusercontent.com
+// URL - the way this rewrite points a fresh machine at a torrent source
+// without shipping the .torrent file alongside the binary or requiring
+// a magnet link. Its file list is available immediately, same as
+// AddFromFile, since the whole .torrent is fetched up front rather
+// than resolved from peers/trackers.
+func (c *Client) AddFromURL(url string) (*Torrent, error) {
+	resp, err := http.Get(url)
+	if err != nil {
+		return nil, fmt.Errorf("fetching torrent %s: %w", url, err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("fetching torrent %s: %s", url, resp.Status)
+	}
+
+	mi, err := metainfo.Load(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("parsing torrent %s: %w", url, err)
+	}
+	t, err := c.cl.AddTorrent(mi)
+	if err != nil {
+		return nil, fmt.Errorf("adding torrent %s: %w", url, err)
+	}
+	return &Torrent{t: t}, nil
+}
+
+// AddFromSpec adds a torrent from spec, dispatching on its form: a
+// magnet: URI (AddFromMagnet), an http(s):// URL (AddFromURL), or
+// otherwise a local .torrent file path (AddFromFile) - the single
+// place every Settings.TorrentFile-driven call site should resolve a
+// torrent source through, so the three forms stay in sync instead of
+// each caller repeating its own prefix check.
+func (c *Client) AddFromSpec(spec string) (*Torrent, error) {
+	switch {
+	case strings.HasPrefix(spec, "magnet:"):
+		return c.AddFromMagnet(spec)
+	case strings.HasPrefix(spec, "http://"), strings.HasPrefix(spec, "https://"):
+		return c.AddFromURL(spec)
+	default:
+		return c.AddFromFile(spec)
+	}
 }
 
 // Torrent wraps *torrent.Torrent with SDIO's selective per-file
