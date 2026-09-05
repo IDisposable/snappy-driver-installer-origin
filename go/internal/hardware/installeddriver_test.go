@@ -18,6 +18,24 @@ func TestMatchDeviceIDCaseInsensitive(t *testing.T) {
 	}
 }
 
+func TestIsMicrosoftDriver(t *testing.T) {
+	cases := []struct {
+		inst *InstalledDriver
+		want bool
+	}{
+		{nil, false},
+		{&InstalledDriver{ProviderName: "Microsoft"}, true},
+		{&InstalledDriver{ProviderName: "  microsoft  "}, true},
+		{&InstalledDriver{ProviderName: "Realtek"}, false},
+		{&InstalledDriver{ProviderName: ""}, false},
+	}
+	for _, c := range cases {
+		if got := IsMicrosoftDriver(c.inst); got != c.want {
+			t.Errorf("IsMicrosoftDriver(%+v) = %v, want %v", c.inst, got, c.want)
+		}
+	}
+}
+
 func TestMatchDeviceIDFallsBackToCompatibleIDs(t *testing.T) {
 	hw := []string{`PCI\VEN_8086&DEV_1000`}
 	compat := []string{`PCI\CC_020000`, `PCI\CC_0200`}

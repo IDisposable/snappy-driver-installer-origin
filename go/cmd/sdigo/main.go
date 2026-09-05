@@ -239,7 +239,7 @@ func deviceRow(dr scan.DeviceResult, selected, showInstalled bool, bestMatchWidt
 	}
 
 	description := dr.Device.Description
-	if best != nil && isMicrosoftDriver(dr.Installed) {
+	if best != nil && hardware.IsMicrosoftDriver(dr.Installed) {
 		// Prepended, not appended, so a long description's ellipsis
 		// truncation can't hide this flag - replacing a Microsoft-
 		// provided driver is often unnecessary and riskier than
@@ -354,6 +354,17 @@ type model struct {
 	// operation last ran (install or a Welcome-screen download) -
 	// screenInstallLog renders it regardless of which one produced it.
 	opLog []string
+
+	// opLogIsError is true when opLog reports a failure rather than a
+	// completed operation - screenInstallLog then refuses to treat
+	// "enter" as a dismiss key (see updateTable's screenInstallLog
+	// case), only "esc"/"q". A real download failure was observed to
+	// flash by unread: "enter" both confirms a Welcome-screen menu
+	// choice and dismisses the log screen that immediately follows a
+	// fast failure, so an ordinary press-and-release (or a repeated
+	// keypress out of habit) can blow straight through an error message
+	// nobody had a chance to read.
+	opLogIsError bool
 
 	// dlProgress is set whenever screenInstalling/screenWelcomeDownloading
 	// starts a background download, so their View can poll it for a
@@ -542,6 +553,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case scanDoneMsg:
 		if msg.err != nil {
 			m.opLog = []string{fmt.Sprintf("error: %v", msg.err)}
+			m.opLogIsError = true
 			m.screen = screenInstallLog
 			return m, nil
 		}
@@ -582,6 +594,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case installDoneMsg:
 		m.opLog = msg.log
+		m.opLogIsError = msg.isErr
 		m.screen = screenInstallLog
 		// A completed install invalidates the ticked devices' old
 		// candidate state (they may now already have that driver), and
@@ -594,16 +607,19 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if res, err := scan.MatchWithCollection(m.s, m.prepared, nil); err == nil {
 			m.applyResult(res)
 		}
-		if m.s.Flags&settings.FlagAutoClose != 0 {
+		if m.s.Flags&settings.FlagAutoClose != 0 && !msg.isErr {
 			// Ported from Manager::thread_install's PostMessage(WM_CLOSE)
 			// once an install finishes - exits straight from here rather
 			// than waiting at the log screen, matching an unattended run.
+			// Skipped on failure - -autoclose means "close once done," not
+			// "close and hide that it failed."
 			return m, tea.Quit
 		}
 		return m, nil
 
 	case welcomeDownloadDoneMsg:
 		m.opLog = msg.log
+		m.opLogIsError = msg.isErr
 		m.screen = screenInstallLog
 		// Whatever just downloaded (indexes, driver packs) may have
 		// changed what's on disk - rescan so the table reflects it
@@ -612,12 +628,14 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if res, err := scan.MatchWithCollection(m.s, m.prepared, nil); err == nil {
 			m.applyResult(res)
 		}
-		if m.s.Flags&settings.FlagAutoClose != 0 {
+		if m.s.Flags&settings.FlagAutoClose != 0 && !msg.isErr {
 			// Ported from Updater_t's "Torrent finished" auto-exit
 			// (update.cpp) - the original skips this when -autoinstall is
 			// also set, since it closes after the install that follows
 			// instead; this rewrite has no -autoinstall to chain into, so
-			// there's nothing to wait for.
+			// there's nothing to wait for. Skipped on a failed download -
+			// -autoclose means "close once done," not "close and hide
+			// that it failed."
 			return m, tea.Quit
 		}
 		return m, nil
@@ -663,8 +681,18 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			switch msg.String() {
 			case "ctrl+c":
 				return m, tea.Quit
-			case "q", "esc", "enter":
+			case "q", "esc":
 				m.screen = screenTable
+				return m, nil
+			case "enter":
+				// Not honored on a failure (see model.opLogIsError's doc
+				// comment) - "enter" is also the key that starts most
+				// operations this screen reports on, so a fast failure
+				// followed by a habitual second "enter" would otherwise
+				// dismiss the error before anyone could read it.
+				if !m.opLogIsError {
+					m.screen = screenTable
+				}
 				return m, nil
 			}
 			return m, nil
@@ -721,6 +749,7 @@ func (m model) updateTable(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 				msg = fmt.Sprintf("Could not list removable drives: %v", err)
 			}
 			m.opLog = []string{msg}
+			m.opLogIsError = err != nil
 			m.screen = screenInstallLog
 			return m, nil
 		}
@@ -748,7 +777,13 @@ func (m model) updateTable(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return m, nil
 	case "a":
 		for _, dr := range m.rows {
-			if dr.Best() != nil {
+			// A Microsoft-provided driver is excluded from select-all for
+			// the same reason it gets the [MS] tag (see deviceRow) -
+			// replacing it is often unnecessary and riskier than keeping
+			// it, so it shouldn't be swept up by a bulk action; a space
+			// bar tick on the row still installs it if that's genuinely
+			// wanted.
+			if dr.Best() != nil && !hardware.IsMicrosoftDriver(dr.Installed) {
 				m.selected[dr.Device.InstanceID] = true
 			}
 		}
@@ -905,6 +940,7 @@ func (m model) updateWelcome(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	case "enter", " ":
 		if m.s.TorrentFile == "" {
 			m.opLog = []string{"No -torrent-file configured - nothing to download from."}
+			m.opLogIsError = true
 			m.screen = screenInstallLog
 			return m, nil
 		}
@@ -1146,8 +1182,14 @@ func tickProgressCmd() tea.Cmd {
 }
 
 // installDoneMsg carries installflow.Run's captured output back to
-// Update once the install command finishes.
-type installDoneMsg struct{ log []string }
+// Update once the install command finishes. isErr is Run's own return
+// value (not sniffed from the log text), so screenInstallLog can
+// refuse to let "enter" dismiss a failure the user hasn't had a
+// chance to read yet - see model.opLogIsError.
+type installDoneMsg struct {
+	log   []string
+	isErr bool
+}
 
 // runInstallCmd runs installflow.Run in the background (bubbletea
 // convention: a tea.Cmd is called on its own goroutine and its return
@@ -1162,8 +1204,8 @@ type installDoneMsg struct{ log []string }
 func runInstallCmd(s *settings.Settings, pending []installflow.Pending, progress *progressTracker, onAlert func(level, message string)) tea.Cmd {
 	return func() tea.Msg {
 		var buf bytes.Buffer
-		installflow.Run(s, pending, &buf, onAlert, progress.report)
-		return installDoneMsg{log: logLines(&buf)}
+		ok := installflow.Run(s, pending, &buf, onAlert, progress.report)
+		return installDoneMsg{log: logLines(&buf), isErr: !ok}
 	}
 }
 
@@ -1175,8 +1217,14 @@ func logLines(buf *bytes.Buffer) []string {
 }
 
 // welcomeDownloadDoneMsg carries a Welcome-screen download's captured
-// output back to Update once it finishes.
-type welcomeDownloadDoneMsg struct{ log []string }
+// output back to Update once it finishes. isErr is set from the real
+// error the download command got (not sniffed from the log text), so
+// screenInstallLog can refuse to let "enter" dismiss a failure the
+// user hasn't had a chance to read yet - see model.opLogIsError.
+type welcomeDownloadDoneMsg struct {
+	log   []string
+	isErr bool
+}
 
 // runIndexRefreshCmd re-runs collection.BootstrapIndexes on request
 // (the Welcome screen's "Download Indexes" - scan.Run already does
@@ -1192,7 +1240,7 @@ func runIndexRefreshCmd(s *settings.Settings, progress *progressTracker, onAlert
 		} else {
 			fmt.Fprintf(&buf, "downloaded %d new/updated index file(s)\n", n)
 		}
-		return welcomeDownloadDoneMsg{log: logLines(&buf)}
+		return welcomeDownloadDoneMsg{log: logLines(&buf), isErr: err != nil}
 	}
 }
 
@@ -1211,7 +1259,7 @@ func runWelcomeDownloadCmd(s *settings.Settings, filter update.DriverPackFilter,
 		} else if n == 0 {
 			fmt.Fprintf(&buf, "nothing new to download - already up to date\n")
 		}
-		return welcomeDownloadDoneMsg{log: logLines(&buf)}
+		return welcomeDownloadDoneMsg{log: logLines(&buf), isErr: err != nil}
 	}
 }
 
@@ -1626,16 +1674,6 @@ func hwidMatchBits(entry, installedID, candidateID string) int {
 	return pp
 }
 
-// isMicrosoftDriver reports whether the installed driver's provider
-// is Microsoft - almost always an inbox/generic Windows driver rather
-// than a vendor one, which replacing is often unnecessary and can be
-// riskier than leaving alone (Windows itself keeps it updated via
-// Windows Update, and a vendor "upgrade" can be a worse fit than the
-// inbox driver Microsoft ships for exactly this hardware class).
-func isMicrosoftDriver(inst *hardware.InstalledDriver) bool {
-	return inst != nil && strings.EqualFold(strings.TrimSpace(inst.ProviderName), "Microsoft")
-}
-
 // styleIf applies betterStyle when winner matches side (1=installed,
 // 2=candidate), otherwise renders value unstyled.
 func styleIf(value string, winner, side int) string {
@@ -1814,7 +1852,7 @@ func (m model) detailView(dr scan.DeviceResult) string {
 		if dr.InstalledScore != nil {
 			fmt.Fprintf(&b, "  Score          %s\n", styleIf(fmt.Sprintf("%08X", dr.InstalledScore.Score), cmp.score, 1))
 		}
-		if isMicrosoftDriver(inst) {
+		if hardware.IsMicrosoftDriver(inst) {
 			fmt.Fprintf(&b, "  %s\n", cautionStyle.Render("Microsoft-provided driver - replacing it is often unnecessary and can be riskier than keeping it"))
 		}
 		b.WriteString("\n")
@@ -1865,7 +1903,11 @@ func (m model) confirmInstallView() string {
 
 func (m model) opLogView() string {
 	var b strings.Builder
-	b.WriteString("Log - enter/esc/q: back to device list\n\n")
+	if m.opLogIsError {
+		b.WriteString(cautionStyle.Render("FAILED") + " - esc/q: back to device list\n\n")
+	} else {
+		b.WriteString("Log - enter/esc/q: back to device list\n\n")
+	}
 	for _, line := range m.opLog {
 		fmt.Fprintf(&b, "%s\n", line)
 	}
@@ -1980,7 +2022,9 @@ func sdiGo(args []string) int {
 			if !install.IsElevated() {
 				return relaunchElevated(s, cfgPath, args)
 			}
-			installflow.Run(s, pending, os.Stdout, alertLogger, nil)
+			if !installflow.Run(s, pending, os.Stdout, alertLogger, nil) {
+				return 1
+			}
 		}
 		return 0
 	}

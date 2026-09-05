@@ -43,9 +43,16 @@ type Pending struct {
 // non-nil, is called for the torrent client's own Warning-or-higher
 // events (see update.Config.OnAlert). This modifies the system - it
 // is only reached when a caller has explicitly requested an install.
-func Run(s *settings.Settings, pending []Pending, out io.Writer, onAlert func(level, message string), onProgress update.ProgressFunc) {
+// Returns false if anything along the way failed (a pending download,
+// the restore point, or any single device's install) - out already
+// has the human-readable detail; this is just a summary a caller can
+// act on (e.g. cmd/sdigo's TUI won't let a quick "enter" dismiss the
+// log screen unread, -nogui exits non-zero) without re-parsing text.
+func Run(s *settings.Settings, pending []Pending, out io.Writer, onAlert func(level, message string), onProgress update.ProgressFunc) bool {
+	ok := true
 	if err := DownloadPending(s, pending, out, onAlert, onProgress); err != nil {
 		fmt.Fprintf(out, "warning: downloading pending driver packs: %v\n", err)
+		ok = false
 	}
 
 	restorePointSelected := s.Flags&(settings.FlagDisableInstall|settings.FlagNoRestorePoint) == 0
@@ -67,6 +74,7 @@ func Run(s *settings.Settings, pending []Pending, out io.Writer, onAlert func(le
 		if err := install.CreateRestorePoint(install.RestorePointDescription); err != nil {
 			fmt.Fprintf(out, "warning: could not create a restore point: %v\n", err)
 			restorePointFailed = true
+			ok = false
 		}
 		if freqErr == nil {
 			if err := install.SetRestorePointCreationFrequency(origFreq); err != nil {
@@ -81,14 +89,16 @@ func Run(s *settings.Settings, pending []Pending, out io.Writer, onAlert func(le
 	// -nostop opts out, matching the flag's documented purpose.
 	if restorePointSelected && restorePointFailed && s.Flags&settings.FlagNoStop == 0 {
 		fmt.Fprintf(out, "install aborted: could not create a restore point (see -nostop to install anyway)\n")
-		return
+		return false
 	}
 
 	for _, p := range pending {
 		if err := InstallOne(s, p, out); err != nil {
 			fmt.Fprintf(out, "install %s: %v\n", p.Description, err)
+			ok = false
 		}
 	}
+	return ok
 }
 
 // DownloadPending fetches the .7z for every pending (not-yet-

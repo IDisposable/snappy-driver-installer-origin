@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"io"
 
+	"sdio/internal/hardware"
 	"sdio/internal/installflow"
 	"sdio/internal/scan"
 )
@@ -55,9 +56,25 @@ func Print(w io.Writer, result scan.Result) []installflow.Pending {
 		if best.Driverpack.Pending {
 			onTorrent = " [needs download]"
 		}
-		fmt.Fprintf(w, "%-8s %-50s -> %s (%s, %s)%s\n",
-			scan.MatchLabel(best), dr.Device.Description, best.Driverpack.Filename, best.Result.Section, best.Result.DriverVersion, onTorrent)
-		pending = append(pending, installflow.Pending{Description: dr.Device.Description, Candidate: *best})
+		msNote := ""
+		if hardware.IsMicrosoftDriver(dr.Installed) {
+			// Excluded from -install's automatic pending list below (see
+			// that comment) - flagged here too so a -install run's output
+			// doesn't silently install fewer devices than "matched"
+			// implies with no explanation.
+			msNote = " [kept: Microsoft-provided driver]"
+		}
+		fmt.Fprintf(w, "%-8s %-50s -> %s (%s, %s)%s%s\n",
+			scan.MatchLabel(best), dr.Device.Description, best.Driverpack.Filename, best.Result.Section, best.Result.DriverVersion, onTorrent, msNote)
+		if msNote == "" {
+			// A Microsoft-provided driver is often unnecessary and
+			// riskier to replace than to keep (see cmd/sdigo's [MS] tag
+			// and select-all exclusion for the same reasoning) - -install
+			// has no per-device selection to opt out with, so the safe
+			// default is to leave these alone rather than replace every
+			// matched device unconditionally.
+			pending = append(pending, installflow.Pending{Description: dr.Device.Description, Candidate: *best})
+		}
 	}
 
 	fmt.Fprintf(w, "\n%d devices matched, %d missing/no driver found\n", matched, missing)
@@ -97,6 +114,16 @@ type JSONDevice struct {
 	Section       string `json:"section,omitempty"`
 	Version       string `json:"version,omitempty"`
 	NeedsDownload bool   `json:"needsDownload,omitempty"`
+
+	// KeptMicrosoftDriver is true when this device matched but was
+	// excluded from the returned pending list because its currently
+	// installed driver is Microsoft-provided (see
+	// hardware.IsMicrosoftDriver) - replacing it is often unnecessary
+	// and riskier than keeping it, so -install's automatic action
+	// leaves it alone. Still counted in Matched; a caller that wants it
+	// installed anyway has no per-device switch to ask for that with
+	// today's -install (see cmd/sdigo's TUI for manual per-row control).
+	KeptMicrosoftDriver bool `json:"keptMicrosoftDriver,omitempty"`
 }
 
 // PrintJSON writes result to w as indented JSON (see JSONReport) and
@@ -135,15 +162,19 @@ func PrintJSON(w io.Writer, result scan.Result) ([]installflow.Pending, error) {
 			continue
 		}
 		rep.Matched++
+		msDriver := hardware.IsMicrosoftDriver(dr.Installed)
 		rep.Devices = append(rep.Devices, JSONDevice{
-			Description:   dr.Device.Description,
-			MatchLabel:    scan.MatchLabel(best),
-			DriverPack:    best.Driverpack.Filename,
-			Section:       best.Result.Section,
-			Version:       best.Result.DriverVersion.String(),
-			NeedsDownload: best.Driverpack.Pending,
+			Description:         dr.Device.Description,
+			MatchLabel:          scan.MatchLabel(best),
+			DriverPack:          best.Driverpack.Filename,
+			Section:             best.Result.Section,
+			Version:             best.Result.DriverVersion.String(),
+			NeedsDownload:       best.Driverpack.Pending,
+			KeptMicrosoftDriver: msDriver,
 		})
-		pending = append(pending, installflow.Pending{Description: dr.Device.Description, Candidate: *best})
+		if !msDriver {
+			pending = append(pending, installflow.Pending{Description: dr.Device.Description, Candidate: *best})
+		}
 	}
 
 	enc := json.NewEncoder(w)

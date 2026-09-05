@@ -92,6 +92,57 @@ func TestPrintJSONReportsFoundAndMissingDevices(t *testing.T) {
 	}
 }
 
+// TestPrintExcludesMicrosoftDriverFromPending confirms a matched
+// device whose currently installed driver is Microsoft-provided is
+// still reported as matched (with a note explaining why), but left
+// out of the actionable pending list -install would otherwise install
+// unconditionally with no per-device opt-out - the same safety
+// reasoning as cmd/sdigo's [MS] tag and select-all exclusion.
+func TestPrintExcludesMicrosoftDriverFromPending(t *testing.T) {
+	drp := &indexing.Driverpack{Filename: "DP_Test_SDIO01_1.7z"}
+	result := scan.Result{
+		Devices: []scan.DeviceResult{
+			{
+				Device:    hardware.Device{Description: "Widget Controller"},
+				Installed: &hardware.InstalledDriver{ProviderName: "Microsoft"},
+				Candidates: []collection.Candidate{{
+					Driverpack: drp,
+					Result:     matcher.Result{AltSectScore: 2, DecorScore: 1, Status: matcher.StatusBetter},
+				}},
+			},
+		},
+	}
+
+	var buf bytes.Buffer
+	pending := Print(&buf, result)
+	if len(pending) != 0 {
+		t.Errorf("Print() pending = %+v, want empty (Microsoft-provided driver excluded)", pending)
+	}
+	if out := buf.String(); !strings.Contains(out, "Microsoft-provided driver") {
+		t.Errorf("Print() output = %q, want a note explaining the exclusion", out)
+	}
+
+	buf.Reset()
+	jsonPending, err := PrintJSON(&buf, result)
+	if err != nil {
+		t.Fatalf("PrintJSON() error: %v", err)
+	}
+	if len(jsonPending) != 0 {
+		t.Errorf("PrintJSON() pending = %+v, want empty (Microsoft-provided driver excluded)", jsonPending)
+	}
+
+	var rep JSONReport
+	if err := json.Unmarshal(buf.Bytes(), &rep); err != nil {
+		t.Fatalf("PrintJSON() output isn't valid JSON: %v", err)
+	}
+	if rep.Matched != 1 {
+		t.Errorf("PrintJSON() Matched = %d, want 1 (still counted, just not auto-installed)", rep.Matched)
+	}
+	if len(rep.Devices) != 1 || !rep.Devices[0].KeptMicrosoftDriver {
+		t.Errorf("PrintJSON() devices = %+v, want KeptMicrosoftDriver=true", rep.Devices)
+	}
+}
+
 func TestPrintReturnsNoPendingWhenNothingMatched(t *testing.T) {
 	result := scan.Result{
 		Devices: []scan.DeviceResult{

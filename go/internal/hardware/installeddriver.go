@@ -50,6 +50,19 @@ func MatchDeviceID(hardwareIDs, compatibleIDs []string, matchingDeviceID string)
 	return pos, isHardwareID
 }
 
+// IsMicrosoftDriver reports whether inst's provider is Microsoft -
+// almost always an inbox/generic Windows driver rather than a vendor
+// one, which replacing is often unnecessary and can be riskier than
+// leaving alone (Windows itself keeps it updated via Windows Update,
+// and a vendor "upgrade" can be a worse fit than the inbox driver
+// Microsoft ships for exactly this hardware class). Shared between
+// cmd/sdigo's TUI ([MS] tag, select-all exclusion) and
+// internal/report (excluding these from -install's automatic pending
+// list) so the two surfaces can't drift apart on what counts.
+func IsMicrosoftDriver(inst *InstalledDriver) bool {
+	return inst != nil && strings.EqualFold(strings.TrimSpace(inst.ProviderName), "Microsoft")
+}
+
 func indexOfFold(list []string, s string) int {
 	for i, v := range list {
 		if strings.EqualFold(v, s) {

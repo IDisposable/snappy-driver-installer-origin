@@ -126,7 +126,9 @@ func TestRunAbortsWhenRestorePointFailsAndNotNoStop(t *testing.T) {
 	s.ExtractDir = t.TempDir()
 
 	var buf strings.Builder
-	Run(s, []Pending{p}, &buf, nil, nil)
+	if ok := Run(s, []Pending{p}, &buf, nil, nil); ok {
+		t.Error("Run() = true, want false for an aborted install")
+	}
 
 	out := buf.String()
 	if !strings.Contains(out, "install aborted") {
@@ -147,7 +149,9 @@ func TestRunProceedsWhenNoStopSet(t *testing.T) {
 	s.Flags |= settings.FlagNoStop
 
 	var buf strings.Builder
-	Run(s, []Pending{p}, &buf, nil, nil)
+	if ok := Run(s, []Pending{p}, &buf, nil, nil); ok {
+		t.Error("Run() = true, want false - InstallOne still fails on this dev machine's platform-unsupported error")
+	}
 
 	out := buf.String()
 	if strings.Contains(out, "install aborted") {
@@ -155,6 +159,22 @@ func TestRunProceedsWhenNoStopSet(t *testing.T) {
 	}
 	if !strings.Contains(out, "install "+p.Description) {
 		t.Errorf("Run() output = %q, want it to have reached InstallOne", out)
+	}
+}
+
+// TestRunReturnsTrueWhenEverythingSucceeds confirms Run's return value
+// is a real success signal, not just always-false because this dev
+// machine can't create restore points or install drivers -
+// -disableinstall skips both, leaving nothing to fail.
+func TestRunReturnsTrueWhenEverythingSucceeds(t *testing.T) {
+	p := realDtPortInstall(t)
+	s := settings.New()
+	s.ExtractDir = t.TempDir()
+	s.Flags |= settings.FlagDisableInstall
+
+	var buf strings.Builder
+	if ok := Run(s, []Pending{p}, &buf, nil, nil); !ok {
+		t.Errorf("Run() = false with -disableinstall (skips the restore point and the real install), want true: %s", buf.String())
 	}
 }
 

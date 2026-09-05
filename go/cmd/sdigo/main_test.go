@@ -420,24 +420,6 @@ func TestScoreDifferencesOmitsTiedFactors(t *testing.T) {
 	}
 }
 
-func TestIsMicrosoftDriver(t *testing.T) {
-	cases := []struct {
-		inst *hardware.InstalledDriver
-		want bool
-	}{
-		{nil, false},
-		{&hardware.InstalledDriver{ProviderName: "Microsoft"}, true},
-		{&hardware.InstalledDriver{ProviderName: "  microsoft  "}, true},
-		{&hardware.InstalledDriver{ProviderName: "Realtek"}, false},
-		{&hardware.InstalledDriver{ProviderName: ""}, false},
-	}
-	for _, c := range cases {
-		if got := isMicrosoftDriver(c.inst); got != c.want {
-			t.Errorf("isMicrosoftDriver(%+v) = %v, want %v", c.inst, got, c.want)
-		}
-	}
-}
-
 // TestDeviceRowFlagsMicrosoftDriver confirms the [MS] flag is
 // prepended (not appended) to the device description, so a long
 // description's ellipsis truncation can't hide it, and that it only
@@ -461,6 +443,46 @@ func TestDeviceRowFlagsMicrosoftDriver(t *testing.T) {
 	nonMS.Installed = &hardware.InstalledDriver{ProviderName: "Realtek"}
 	if got := deviceRow(nonMS, false, false, 50, 20)[2]; got != "Widget" {
 		t.Errorf("device cell = %q, want %q (no MS flag for a non-Microsoft installed driver)", got, "Widget")
+	}
+}
+
+// TestSelectAllExcludesMicrosoftDrivers confirms "a" (select all)
+// skips a device whose currently installed driver is Microsoft-
+// provided - the same safety reasoning as the [MS] tag itself
+// (TestDeviceRowFlagsMicrosoftDriver): replacing it is often
+// unnecessary and riskier than keeping it, so a bulk action shouldn't
+// sweep it up without the user deliberately ticking it themselves.
+func TestSelectAllExcludesMicrosoftDrivers(t *testing.T) {
+	drp := &indexing.Driverpack{Filename: "DP_Test_SDIO01_1.7z"}
+	candidate := func() []collection.Candidate {
+		return []collection.Candidate{{
+			Driverpack: drp,
+			Result:     matcher.Result{AltSectScore: 2, DecorScore: 1, Status: matcher.StatusBetter},
+		}}
+	}
+	result := scan.Result{Devices: []scan.DeviceResult{
+		{
+			Device:     hardware.Device{InstanceID: "MS-DEVICE", Description: "Widget A"},
+			Installed:  &hardware.InstalledDriver{ProviderName: "Microsoft"},
+			Candidates: candidate(),
+		},
+		{
+			Device:     hardware.Device{InstanceID: "VENDOR-DEVICE", Description: "Widget B"},
+			Installed:  &hardware.InstalledDriver{ProviderName: "Realtek"},
+			Candidates: candidate(),
+		},
+	}}
+
+	m := newTestModel(result, settings.New(), nil)
+	m.screen = screenTable
+	mm, _ := m.updateTable(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'a'}})
+	m = mm.(model)
+
+	if m.selected["MS-DEVICE"] {
+		t.Error(`selected["MS-DEVICE"] = true after select-all, want false (Microsoft-provided driver)`)
+	}
+	if !m.selected["VENDOR-DEVICE"] {
+		t.Error(`selected["VENDOR-DEVICE"] = false after select-all, want true`)
 	}
 }
 
@@ -877,6 +899,49 @@ func TestWelcomeDownloadDoneQuitsWhenAutoCloseSet(t *testing.T) {
 	}
 }
 
+// TestWelcomeDownloadDoneDoesNotQuitOnErrorEvenWithAutoClose confirms
+// -autoclose means "close once done," not "close and hide that it
+// failed" - a failed download must leave the error log up regardless,
+// the same reasoning as screenInstallLog refusing "enter" on error.
+func TestWelcomeDownloadDoneDoesNotQuitOnErrorEvenWithAutoClose(t *testing.T) {
+	s := settings.New()
+	s.Flags |= settings.FlagAutoClose
+	m := newTestModel(scan.Result{}, s, nil)
+
+	mm, cmd := m.Update(welcomeDownloadDoneMsg{log: []string{"error: boom"}, isErr: true})
+	if cmd != nil {
+		if _, ok := cmd().(tea.QuitMsg); ok {
+			t.Error("Update(welcomeDownloadDoneMsg{isErr: true}) quit despite -autoclose being for success, not failure")
+		}
+	}
+	m = mm.(model)
+	if m.screen != screenInstallLog {
+		t.Errorf("screen = %v, want screenInstallLog", m.screen)
+	}
+	if !m.opLogIsError {
+		t.Error("opLogIsError = false, want true")
+	}
+}
+
+// TestInstallDoneDoesNotQuitOnErrorEvenWithAutoClose is
+// TestWelcomeDownloadDoneDoesNotQuitOnErrorEvenWithAutoClose's
+// installDoneMsg counterpart.
+func TestInstallDoneDoesNotQuitOnErrorEvenWithAutoClose(t *testing.T) {
+	s := settings.New()
+	s.Flags |= settings.FlagAutoClose
+	m := newTestModel(scan.Result{}, s, nil)
+
+	mm, cmd := m.Update(installDoneMsg{log: []string{"install Widget: boom"}, isErr: true})
+	if cmd != nil {
+		if _, ok := cmd().(tea.QuitMsg); ok {
+			t.Error("Update(installDoneMsg{isErr: true}) quit despite -autoclose being for success, not failure")
+		}
+	}
+	if mm.(model).screen != screenInstallLog {
+		t.Errorf("screen = %v, want screenInstallLog", mm.(model).screen)
+	}
+}
+
 // TestUSBDriveKeyReportsUnsupportedPlatform exploits the same trick
 // TestInstallOneNormalModeReachesInstallDriver (internal/installflow)
 // uses: usbdrive.ListRemovable returns a real "unsupported platform"
@@ -893,6 +958,22 @@ func TestUSBDriveKeyReportsUnsupportedPlatform(t *testing.T) {
 	}
 	if len(m.opLog) == 0 || !strings.Contains(m.opLog[0], "removable drives") {
 		t.Errorf("opLog = %v, want a message about listing removable drives", m.opLog)
+	}
+	if !m.opLogIsError {
+		t.Error("opLogIsError = false, want true for a real listing error")
+	}
+
+	// The real bug this guards against: "enter" is the same key used
+	// throughout the TUI to confirm an action, so a habitual second
+	// "enter" (or a fast keyboard repeat) must not blow straight
+	// through this error before anyone reads it - only esc/q may.
+	mm, _ = m.Update(tea.KeyMsg{Type: tea.KeyEnter})
+	if mm.(model).screen != screenInstallLog {
+		t.Errorf("screen = %v after \"enter\" on a failed op, want screenInstallLog (unread errors must not dismiss on enter)", mm.(model).screen)
+	}
+	mm, _ = m.Update(tea.KeyMsg{Type: tea.KeyEsc})
+	if mm.(model).screen != screenTable {
+		t.Errorf("screen = %v after \"esc\" on a failed op, want screenTable", mm.(model).screen)
 	}
 }
 
