@@ -81,30 +81,33 @@ func realDtPortCandidate(t *testing.T) collection.Candidate {
 	return collection.Candidate{}
 }
 
-// TestBuildOptionItemsCoversEveryFlagAndFilter guards against the
-// options screen silently dropping a config option if
-// settings.FlagOptions/FilterOptions ever grow a new entry - the
-// user's explicit ask was for ALL of the original GUI's config
-// options, not a hand-picked subset.
-func TestBuildOptionItemsCoversEveryFlagAndFilter(t *testing.T) {
-	items := buildOptionItems()
-	want := len(settings.FlagOptions()) + len(settings.FilterOptions())
-	if len(items) != want {
-		t.Fatalf("buildOptionItems() = %d items, want %d (flags+filters)", len(items), want)
+// TestBuildFlagItemsCoversEveryFlag guards against the options screen
+// silently dropping a config option if settings.FlagOptions ever grows
+// a new entry - the user's explicit ask was for ALL of the original
+// GUI's config options, not a hand-picked subset.
+func TestBuildFlagItemsCoversEveryFlag(t *testing.T) {
+	items := buildFlagItems()
+	if len(items) != len(settings.FlagOptions()) {
+		t.Fatalf("buildFlagItems() = %d items, want %d", len(items), len(settings.FlagOptions()))
 	}
-	flags, filters := 0, 0
 	for _, it := range items {
-		if it.isFlag {
-			flags++
-		} else {
-			filters++
+		if !it.isFlag {
+			t.Errorf("buildFlagItems() returned a non-flag item: %+v", it)
 		}
 	}
-	if flags != len(settings.FlagOptions()) {
-		t.Errorf("flag items = %d, want %d", flags, len(settings.FlagOptions()))
+}
+
+// TestBuildFilterItemsCoversEveryFilter is buildFlagItems' counterpart
+// for settings.FilterOptions - see that test's doc comment.
+func TestBuildFilterItemsCoversEveryFilter(t *testing.T) {
+	items := buildFilterItems()
+	if len(items) != len(settings.FilterOptions()) {
+		t.Fatalf("buildFilterItems() = %d items, want %d", len(items), len(settings.FilterOptions()))
 	}
-	if filters != len(settings.FilterOptions()) {
-		t.Errorf("filter items = %d, want %d", filters, len(settings.FilterOptions()))
+	for _, it := range items {
+		if it.isFlag {
+			t.Errorf("buildFilterItems() returned a flag item: %+v", it)
+		}
 	}
 }
 
@@ -137,6 +140,75 @@ func TestOptionItemToggleFilter(t *testing.T) {
 	}
 	if s.Filters&settings.FilterBetter == 0 {
 		t.Error("toggling one filter bit must not disturb the others")
+	}
+}
+
+// TestTableKeysOpenOptionsAndFilters confirms "o"/"f" from the device
+// table open the two now-separate screens - split apart since a real
+// engine-flag list is long enough that filters used to require
+// scrolling well past it to reach.
+func TestTableKeysOpenOptionsAndFilters(t *testing.T) {
+	m := newTestModel(scan.Result{}, settings.New(), nil)
+
+	mm, _ := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'o'}})
+	if mm.(model).screen != screenOptions {
+		t.Errorf("screen = %v after \"o\", want screenOptions", mm.(model).screen)
+	}
+
+	mm, _ = m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'f'}})
+	if mm.(model).screen != screenFilters {
+		t.Errorf("screen = %v after \"f\", want screenFilters", mm.(model).screen)
+	}
+}
+
+// TestOptionsAndFiltersCrossNavigate confirms each screen's own
+// opening key also jumps directly to the other, without detouring
+// back through the device table.
+func TestOptionsAndFiltersCrossNavigate(t *testing.T) {
+	m := newTestModel(scan.Result{}, settings.New(), nil)
+	m.screen = screenOptions
+
+	mm, _ := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'f'}})
+	m = mm.(model)
+	if m.screen != screenFilters {
+		t.Fatalf("screen = %v after \"f\" on screenOptions, want screenFilters", m.screen)
+	}
+
+	mm, _ = m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'o'}})
+	if mm.(model).screen != screenOptions {
+		t.Errorf("screen = %v after \"o\" on screenFilters, want screenOptions", mm.(model).screen)
+	}
+}
+
+// TestFilterToggleRefreshesTableImmediately confirms toggling a filter
+// updates the visible row count right away (unlike an engine flag,
+// which only takes effect on the next scan - see updateOptions).
+func TestFilterToggleRefreshesTableImmediately(t *testing.T) {
+	drp := &indexing.Driverpack{Filename: "DP_Test_SDIO01_1.7z"}
+	worse := scan.DeviceResult{
+		Device: hardware.Device{InstanceID: "DEV", Description: "Widget"},
+		Candidates: []collection.Candidate{{
+			Driverpack: drp,
+			Result:     matcher.Result{AltSectScore: 2, DecorScore: 1, Status: matcher.StatusWorse},
+		}},
+	}
+	s := settings.New()
+	s.Filters = settings.DefaultFilters // does not include FilterWorseRank
+	m := newTestModel(scan.Result{Devices: []scan.DeviceResult{worse}}, s, nil)
+	if len(m.rows) != 0 {
+		t.Fatalf("rows = %d before toggling FilterWorseRank on, want 0", len(m.rows))
+	}
+
+	m.screen = screenFilters
+	for i, it := range m.filterOptions {
+		if it.filterBit == settings.FilterWorseRank {
+			m.filterIndex = i
+		}
+	}
+	mm, _ := m.Update(tea.KeyMsg{Type: tea.KeySpace})
+	m = mm.(model)
+	if len(m.rows) != 1 {
+		t.Errorf("rows = %d after toggling FilterWorseRank on, want 1 (table should refresh immediately)", len(m.rows))
 	}
 }
 

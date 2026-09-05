@@ -57,6 +57,7 @@ const (
 	screenScanning
 	screenTable
 	screenOptions
+	screenFilters
 	screenDetail
 	screenConfirmInstall
 	screenInstalling
@@ -70,13 +71,14 @@ const (
 	screenUSBDriveCopying
 )
 
-// optionItem is one toggleable entry in the options screen, wrapping
-// either a Settings.Flags bit (settings.FlagOptions) or a
-// Settings.Filters bit (settings.FilterOptions) - the two dimensions
-// of "config options" the original exposes as GUI checkboxes/menu
-// items. section groups entries under a heading in the rendered list.
+// optionItem is one toggleable entry on either the options
+// (screenOptions, engine flags) or filters (screenFilters, display
+// filters) screen - the two dimensions of "config options" the
+// original exposes as GUI checkboxes/menu items, split into separate
+// screens (see buildFlagItems/buildFilterItems) since a real flag list
+// is long enough that filters used to require scrolling well past it
+// to reach.
 type optionItem struct {
-	section   string
 	name      string
 	help      string
 	isFlag    bool
@@ -100,23 +102,26 @@ func (it optionItem) toggle(s *settings.Settings) {
 	s.Filters ^= it.filterBit
 }
 
-// buildOptionItems lists every engine flag and display filter as one
-// combined, ordered list - flags first (matching declaration order in
-// internal/settings/flags.go), then filters in the same order as the
-// original's "Show" menu, so anyone already familiar with SDIO finds
-// each filter where they expect it.
-func buildOptionItems() []optionItem {
+// buildFlagItems lists every engine flag (screenOptions), in the same
+// order as their declaration in internal/settings/flags.go.
+func buildFlagItems() []optionItem {
 	var items []optionItem
 	for _, f := range settings.FlagOptions() {
 		items = append(items, optionItem{
-			section: "Flags (persisted to sdio.cfg; most apply on the next scan, not live)",
-			name:    f.Name, help: f.Help, isFlag: true, flagBit: f.Bit, persist: f.Persist,
+			name: f.Name, help: f.Help, isFlag: true, flagBit: f.Bit, persist: f.Persist,
 		})
 	}
+	return items
+}
+
+// buildFilterItems lists every display filter (screenFilters), in the
+// same order as the original's "Show" menu, so anyone already
+// familiar with SDIO finds each filter where they expect it.
+func buildFilterItems() []optionItem {
+	var items []optionItem
 	for _, f := range settings.FilterOptions() {
 		items = append(items, optionItem{
-			section: "Display filters (apply immediately)",
-			name:    f.Name, help: f.Help, isFlag: false, filterBit: f.Bit,
+			name: f.Name, help: f.Help, isFlag: false, filterBit: f.Bit,
 		})
 	}
 	return items
@@ -350,8 +355,11 @@ type model struct {
 	selected         map[string]bool // keyed by Device.InstanceID
 
 	screen      screen
-	options     []optionItem
+	options     []optionItem // engine flags (screenOptions) - see buildFlagItems
 	optionIndex int
+
+	filterOptions []optionItem // display filters (screenFilters) - see buildFilterItems
+	filterIndex   int
 
 	// opLog holds the captured output of whichever background
 	// operation last ran (install or a Welcome-screen download) -
@@ -522,7 +530,7 @@ func newModel(s *settings.Settings, resumeSelected map[string]bool, logger *logg
 
 	return model{
 		table: t, s: s,
-		options: buildOptionItems(), selected: map[string]bool{},
+		options: buildFlagItems(), filterOptions: buildFilterItems(), selected: map[string]bool{},
 		width: 100, height: 30,
 		detailViewport:        viewport.New(100, 24),
 		scanProgress:          &scanProgressTracker{},
@@ -741,6 +749,8 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		switch m.screen {
 		case screenOptions:
 			return m.updateOptions(msg)
+		case screenFilters:
+			return m.updateFilters(msg)
 		case screenDetail:
 			return m.updateDetail(msg)
 		case screenConfirmInstall:
@@ -818,6 +828,9 @@ func (m model) updateTable(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	case "o":
 		m.screen = screenOptions
 		return m, nil
+	case "f":
+		m.screen = screenFilters
+		return m, nil
 	case "?":
 		m.screen = screenAbout
 		return m, nil
@@ -888,13 +901,19 @@ func (m model) updateTable(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	return m, cmd
 }
 
-// updateOptions handles key input while the options screen is active.
+// updateOptions handles key input while the (engine flags) options
+// screen is active. Flags take effect on the next scan, not live (most
+// feed into MatchContext/CalcAltSectScore at scan time, not display
+// time), so unlike updateFilters this never needs to refresh the table.
 func (m model) updateOptions(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	switch msg.String() {
 	case "q", "ctrl+c":
 		return m, tea.Quit
 	case "o", "esc":
 		m.screen = screenTable
+		return m, nil
+	case "f":
+		m.screen = screenFilters
 		return m, nil
 	case "up", "k":
 		if m.optionIndex > 0 {
@@ -905,15 +924,37 @@ func (m model) updateOptions(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			m.optionIndex++
 		}
 	case " ", "enter":
-		item := m.options[m.optionIndex]
-		item.toggle(m.s)
-		if !item.isFlag {
-			// Filters apply immediately; flags take effect on the next
-			// scan (most feed into MatchContext/CalcAltSectScore at
-			// scan time, not display time) - see buildOptionItems'
-			// section heading.
-			m.refreshTable()
+		m.options[m.optionIndex].toggle(m.s)
+	}
+	return m, nil
+}
+
+// updateFilters handles key input while the display-filters screen is
+// active - split out from updateOptions/screenOptions since a real
+// flag list is long enough that filters used to require scrolling
+// well past it to reach. Unlike a flag, a filter applies immediately,
+// so every toggle refreshes the table right away.
+func (m model) updateFilters(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
+	switch msg.String() {
+	case "q", "ctrl+c":
+		return m, tea.Quit
+	case "f", "esc":
+		m.screen = screenTable
+		return m, nil
+	case "o":
+		m.screen = screenOptions
+		return m, nil
+	case "up", "k":
+		if m.filterIndex > 0 {
+			m.filterIndex--
 		}
+	case "down", "j":
+		if m.filterIndex < len(m.filterOptions)-1 {
+			m.filterIndex++
+		}
+	case " ", "enter":
+		m.filterOptions[m.filterIndex].toggle(m.s)
+		m.refreshTable()
 	}
 	return m, nil
 }
@@ -1392,6 +1433,8 @@ func (m model) View() string {
 		return m.scanningView()
 	case screenOptions:
 		return m.optionsView()
+	case screenFilters:
+		return m.filtersView()
 	case screenDetail:
 		if m.currentDevice() != nil {
 			return detailHelpLine + "\n" + m.detailViewport.View()
@@ -1693,36 +1736,45 @@ func (m model) tableView() string {
 	footer := fmt.Sprintf("\n%d matched, %d missing/no better driver, %d selected for install\n"+
 		"Newer/Older/Better all outrank the installed driver - Newer/Older also means\n"+
 		"its own release date is newer/older (enter for the full comparison)\n"+
-		"space: tick, a: select all, n: select none, enter: details, i: install, o: options, w: welcome, u: usb drive, ?: about, q: quit\n",
+		"space: tick, a: select all, n: select none, enter: details, i: install, o: options, f: filters, w: welcome, u: usb drive, ?: about, q: quit\n",
 		m.matched, m.missing, len(m.pendingSelected()))
 	return header + m.table.View() + footer
 }
 
-func (m model) optionsView() string {
+// optionItemList renders items as a checkbox list with the cursor row
+// (at index selected) bolded - the shared body optionsView/filtersView
+// each put their own header above.
+func optionItemList(s *settings.Settings, items []optionItem, selected int) string {
 	var b strings.Builder
-	b.WriteString("Options - space/enter: toggle, up/down: move, o/esc: back, q: quit\n\n")
-
-	lastSection := ""
-	for i, item := range m.options {
-		if item.section != lastSection {
-			if lastSection != "" {
-				b.WriteString("\n")
-			}
-			fmt.Fprintf(&b, "%s\n", item.section)
-			lastSection = item.section
-		}
-
+	for i, item := range items {
 		box := "[ ]"
-		if item.checked(m.s) {
+		if item.checked(s) {
 			box = "[x]"
 		}
 		line := fmt.Sprintf("  %s %-20s %s\n", box, item.name, item.help)
-		if i == m.optionIndex {
+		if i == selected {
 			line = lipgloss.NewStyle().Bold(true).Render(fmt.Sprintf("> %s %-20s %s", box, item.name, item.help)) + "\n"
 		}
 		b.WriteString(line)
 	}
 	return b.String()
+}
+
+// optionsView renders the engine-flags screen (screenOptions) - split
+// from filtersView/screenFilters since a real flag list is long enough
+// that filters used to require scrolling well past it to reach.
+// Flags persist to sdio.cfg; most apply on the next scan, not live.
+func (m model) optionsView() string {
+	header := "Options (engine flags, persisted to sdio.cfg) - space/enter: toggle, up/down: move, o/esc: back, f: filters, q: quit\n\n"
+	return header + optionItemList(m.s, m.options, m.optionIndex)
+}
+
+// filtersView renders the display-filters screen (screenFilters) -
+// see optionsView's doc comment for why this is a separate screen.
+// Unlike a flag, a filter applies to the table immediately.
+func (m model) filtersView() string {
+	header := "Display Filters (apply immediately) - space/enter: toggle, up/down: move, f/esc: back, o: options, q: quit\n\n"
+	return header + optionItemList(m.s, m.filterOptions, m.filterIndex)
 }
 
 // betterStyle/invalidStyle render the detail screen's "greenlight"
