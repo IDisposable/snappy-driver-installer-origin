@@ -215,12 +215,14 @@ func Prepare(s *settings.Settings) (Prepared, error) {
 // currently on disk and matches every device Prepare found against
 // it. Call again with the same Prepared after a bootstrap/download to
 // refresh with the new data, without repeating hardware detection.
-func MatchWithCollection(s *settings.Settings, p Prepared) (Result, error) {
+// onProgress, if non-nil, is called before each driver pack is loaded
+// (see collection.LoadCollection).
+func MatchWithCollection(s *settings.Settings, p Prepared, onProgress func(current, total int, filename string)) (Result, error) {
 	res := Result{System: p.System, FirstRun: p.FirstRun}
 
 	var err error
 	res.Collection, err = collection.LoadCollection(s.DrpDir, s.IndexDir,
-		s.Flags&settings.FlagForceReindexing != 0, s.Flags&settings.FlagPrintIndex != 0)
+		s.Flags&settings.FlagForceReindexing != 0, s.Flags&settings.FlagPrintIndex != 0, onProgress)
 	if err != nil {
 		return res, fmt.Errorf("loading driver-pack collection: %w", err)
 	}
@@ -286,7 +288,7 @@ func Run(s *settings.Settings) (Result, error) {
 		indexesDownloaded, bootstrapErr = collection.BootstrapIndexes(s.TorrentFile, s.IndexDir, s.UpdatesDir, s.Flags&settings.FlagKeepSeeding != 0, nil, nil)
 	}
 
-	res, err := MatchWithCollection(s, p)
+	res, err := MatchWithCollection(s, p, nil)
 	res.IndexesDownloaded, res.BootstrapError = indexesDownloaded, bootstrapErr
 	return res, err
 }

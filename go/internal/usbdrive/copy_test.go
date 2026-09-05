@@ -35,7 +35,7 @@ func TestRequiredBytesSumsFilesRecursively(t *testing.T) {
 func TestCopyPortablePreservesStructureAndDoesNotTouchExisting(t *testing.T) {
 	src := t.TempDir()
 	writeFile(t, filepath.Join(src, "drivers", "DP_Test.7z"), 100)
-	writeFile(t, filepath.Join(src, "sdio.cfg"), 10)
+	writeFile(t, filepath.Join(src, "sdigo.cfg"), 10)
 
 	dest := t.TempDir()
 	// A pre-existing file that CopyPortable must not touch, since it
@@ -47,7 +47,7 @@ func TestCopyPortablePreservesStructureAndDoesNotTouchExisting(t *testing.T) {
 	var buf bytes.Buffer
 	err := CopyPortable(dest, []string{
 		filepath.Join(src, "drivers"),
-		filepath.Join(src, "sdio.cfg"),
+		filepath.Join(src, "sdigo.cfg"),
 	}, &buf)
 	if err != nil {
 		t.Fatalf("CopyPortable() error: %v\noutput:\n%s", err, buf.String())
@@ -55,7 +55,7 @@ func TestCopyPortablePreservesStructureAndDoesNotTouchExisting(t *testing.T) {
 
 	for _, want := range []string{
 		filepath.Join(dest, "drivers", "DP_Test.7z"),
-		filepath.Join(dest, "sdio.cfg"),
+		filepath.Join(dest, "sdigo.cfg"),
 	} {
 		if _, err := os.Stat(want); err != nil {
 			t.Errorf("expected %s to exist: %v", want, err)

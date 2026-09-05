@@ -125,7 +125,7 @@ func TestLoadCollectionIncludesPendingPacks(t *testing.T) {
 	const driverpackDir = "/mnt/d/OneDrive/Desktop/Reinstall/DriverInstaller/drivers"
 	indexDir := realIndexDirCopy(t, "/mnt/d/OneDrive/Desktop/Reinstall/DriverInstaller/indexes/SDI")
 
-	result, err := LoadCollection(driverpackDir, indexDir, false, false)
+	result, err := LoadCollection(driverpackDir, indexDir, false, false, nil)
 	if err != nil {
 		t.Skipf("no real installation available: %v", err)
 	}
@@ -157,7 +157,7 @@ func TestLoadCollectionRealInstallation(t *testing.T) {
 	const driverpackDir = "/mnt/d/OneDrive/Desktop/Reinstall/DriverInstaller/drivers"
 	indexDir := realIndexDirCopy(t, "/mnt/d/OneDrive/Desktop/Reinstall/DriverInstaller/indexes/SDI")
 
-	result, err := LoadCollection(driverpackDir, indexDir, false, false)
+	result, err := LoadCollection(driverpackDir, indexDir, false, false, nil)
 	if err != nil {
 		t.Skipf("no real installation available: %v", err)
 	}

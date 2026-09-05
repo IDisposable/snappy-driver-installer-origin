@@ -7,6 +7,8 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"sdio/internal/settings"
 )
 
 func TestNetworkDriverPacksFilter(t *testing.T) {
@@ -59,15 +61,20 @@ func TestDownloadDriverPacksRealTorrent(t *testing.T) {
 	}
 
 	const packFilename = "DP_CardReader_26072.7z"
-	drpDir := t.TempDir()
-	updatesDir := t.TempDir()
+	s := &settings.Settings{
+		TorrentFile: realTorrentPathForBulk,
+		DrpDir:      t.TempDir(),
+		IndexDir:    t.TempDir(),
+		UpdatesDir:  t.TempDir(),
+	}
+	drpDir := s.DrpDir
 
 	onlyCardReader := func(filename string) bool {
 		return strings.EqualFold(filename, packFilename)
 	}
 
 	var buf bytes.Buffer
-	n, err := DownloadDriverPacks(realTorrentPathForBulk, drpDir, updatesDir, false, nil, onlyCardReader, &buf, 30*time.Minute, nil)
+	n, err := DownloadDriverPacks(s, nil, onlyCardReader, &buf, 30*time.Minute, nil)
 	if err != nil {
 		t.Fatalf("DownloadDriverPacks() error: %v\noutput:\n%s", err, buf.String())
 	}
@@ -87,7 +94,7 @@ func TestDownloadDriverPacksRealTorrent(t *testing.T) {
 
 	// A second run must find it already present and download nothing.
 	buf.Reset()
-	n, err = DownloadDriverPacks(realTorrentPathForBulk, drpDir, updatesDir, false, nil, onlyCardReader, &buf, 30*time.Minute, nil)
+	n, err = DownloadDriverPacks(s, nil, onlyCardReader, &buf, 30*time.Minute, nil)
 	if err != nil {
 		t.Fatalf("second DownloadDriverPacks() error: %v", err)
 	}

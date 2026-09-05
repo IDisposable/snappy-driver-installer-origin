@@ -354,6 +354,12 @@ type model struct {
 	// live percent/bytes/speed readout instead of a static message.
 	dlProgress *progressTracker
 
+	// scanProgress is populated by Init's background collection load,
+	// so screenScanning's View can show which driver pack is loading
+	// instead of a static message for however long a full collection
+	// (100+ packs) takes.
+	scanProgress *scanProgressTracker
+
 	// logger is file-only (console suppressed - this TUI owns the
 	// terminal via the alternate screen buffer). Always non-nil and
 	// safe to log through even with FlagNoLogFile set: sdiGo simply
@@ -446,6 +452,7 @@ func newModel(s *settings.Settings, resumeSelected map[string]bool, logger *logg
 		options: buildOptionItems(), selected: map[string]bool{},
 		width: 100, height: 30,
 		detailViewport:        viewport.New(100, 24),
+		scanProgress:          &scanProgressTracker{},
 		logger:                logger,
 		pendingResumeSelected: resumeSelected,
 	}
@@ -461,15 +468,18 @@ type scanDoneMsg struct {
 
 // Init runs the real scan in the background instead of blocking
 // program startup on it - see scanDoneMsg and screenScanning's View.
+// It also starts the progressTickMsg loop so screenScanning's View
+// picks up m.scanProgress as the collection loads.
 func (m model) Init() tea.Cmd {
-	return func() tea.Msg {
+	scanCmd := func() tea.Msg {
 		p, err := scan.Prepare(m.s)
 		if err != nil {
 			return scanDoneMsg{err: err}
 		}
-		res, err := scan.MatchWithCollection(m.s, p)
+		res, err := scan.MatchWithCollection(m.s, p, m.scanProgress.report)
 		return scanDoneMsg{prepared: p, result: res, err: err}
 	}
+	return tea.Batch(scanCmd, tickProgressCmd())
 }
 
 // applyResult populates the model from a fresh scan.Result - the
@@ -558,7 +568,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		// just installed instead of showing stale "not installed"/older
 		// data until the next full restart.
 		m.selected = map[string]bool{}
-		if res, err := scan.MatchWithCollection(m.s, m.prepared); err == nil {
+		if res, err := scan.MatchWithCollection(m.s, m.prepared, nil); err == nil {
 			m.applyResult(res)
 		}
 		if m.s.Flags&settings.FlagAutoClose != 0 {
@@ -576,7 +586,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		// changed what's on disk - rescan so the table reflects it
 		// instead of showing stale "needs download"/missing rows until
 		// the next full restart.
-		if res, err := scan.MatchWithCollection(m.s, m.prepared); err == nil {
+		if res, err := scan.MatchWithCollection(m.s, m.prepared, nil); err == nil {
 			m.applyResult(res)
 		}
 		if m.s.Flags&settings.FlagAutoClose != 0 {
@@ -590,10 +600,11 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, nil
 
 	case progressTickMsg:
-		// Only reschedule while a download screen is still active - a
-		// tick delivered after the download finished and the screen
-		// already moved on would otherwise keep ticking forever.
-		if m.screen == screenInstalling || m.screen == screenWelcomeDownloading {
+		// Only reschedule while a progress-driven screen is still
+		// active - a tick delivered after the operation finished and
+		// the screen already moved on would otherwise keep ticking
+		// forever.
+		if m.screen == screenInstalling || m.screen == screenWelcomeDownloading || m.screen == screenScanning {
 			return m, tickProgressCmd()
 		}
 		return m, nil
@@ -1042,6 +1053,31 @@ func (p *progressTracker) snapshot() (label string, completed, total int64, rate
 	return p.label, p.completed, p.total, p.rateBps, p.files
 }
 
+// scanProgressTracker is the mutex-guarded counterpart of
+// progressTracker for the startup scan - Init's background collection
+// load reports through it (see collection.LoadCollection's
+// onProgress) and screenScanning's View polls it on the same
+// progressTickMsg loop.
+type scanProgressTracker struct {
+	mu             sync.Mutex
+	current, total int
+	filename       string
+}
+
+// report is passed as collection.LoadCollection's onProgress.
+func (p *scanProgressTracker) report(current, total int, filename string) {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	p.current, p.total, p.filename = current, total, filename
+}
+
+// snapshot returns the most recently reported scan progress.
+func (p *scanProgressTracker) snapshot() (current, total int, filename string) {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	return p.current, p.total, p.filename
+}
+
 // progressTickMsg drives periodic re-renders of the Installing/
 // Downloading screens while a background download command is
 // running - the download itself doesn't send messages as it
@@ -1115,7 +1151,7 @@ func runIndexRefreshCmd(s *settings.Settings, progress *progressTracker, onAlert
 func runWelcomeDownloadCmd(s *settings.Settings, filter update.DriverPackFilter, progress *progressTracker, onAlert func(level, message string)) tea.Cmd {
 	return func() tea.Msg {
 		var buf bytes.Buffer
-		n, err := update.DownloadDriverPacks(s.TorrentFile, s.DrpDir, s.UpdatesDir, s.Flags&settings.FlagKeepSeeding != 0, onAlert, filter, &buf, 2*time.Hour, progress.report)
+		n, err := update.DownloadDriverPacks(s, onAlert, filter, &buf, 2*time.Hour, progress.report)
 		if err != nil {
 			fmt.Fprintf(&buf, "error: %v\n", err)
 		} else if n == 0 {
@@ -1128,7 +1164,7 @@ func runWelcomeDownloadCmd(s *settings.Settings, filter update.DriverPackFilter,
 func (m model) View() string {
 	switch m.screen {
 	case screenScanning:
-		return "Scanning hardware and loading driver packs - please wait...\n"
+		return m.scanningView()
 	case screenOptions:
 		return m.optionsView()
 	case screenDetail:
@@ -1176,6 +1212,23 @@ const maxActiveDownloadLines = 8
 // can sit still for a long time while individual files actually
 // finish and start, so each file still in progress gets its own line
 // too (nearest-to-done first).
+// scanningView renders screenScanning's "please wait" message, with a
+// live "loading pack N of M" line once the background scan reaches
+// collection loading - hardware detection alone can be quick, but a
+// full collection is 100+ packs and worth showing progress on rather
+// than sitting on a bare static message.
+func (m model) scanningView() string {
+	header := "Scanning hardware and loading driver packs - please wait...\n"
+	if m.scanProgress == nil {
+		return header
+	}
+	current, total, filename := m.scanProgress.snapshot()
+	if total == 0 {
+		return header
+	}
+	return fmt.Sprintf("%s\nLoading %s (%d of %d)\n", header, filename, current, total)
+}
+
 func (m model) downloadStatusView(verb string) string {
 	header := verb + " - please wait, this may take a while.\n\n"
 	if m.dlProgress == nil {
@@ -1300,6 +1353,8 @@ func (m model) welcomeConfirmAllView() string {
 const aboutView = `Snappy Driver Installer: Go Forth
 A Go reimplementation of Snappy Driver Installer Origin
 
+Source: github.com/IDisposable/snappy-driver-installer-origin
+
 Based on Snappy Driver Installer Origin
   Home page: www.snappy-driver-installer.org
 
@@ -1311,6 +1366,18 @@ https://www.gnu.org/licenses/ for the full text.
 
 This reimplementation carries the same license, being a derivative
 work of the original source.
+
+Built with:
+  github.com/anacrolix/torrent
+  github.com/bodgit/sevenzip
+  github.com/charmbracelet/bubbles
+  github.com/charmbracelet/bubbletea
+  github.com/charmbracelet/lipgloss
+  github.com/rs/zerolog
+  github.com/ulikunitz/xz
+  github.com/yusufpapurcu/wmi
+  golang.org/x/sys
+  golang.org/x/time
 
 esc/q/?: back
 `

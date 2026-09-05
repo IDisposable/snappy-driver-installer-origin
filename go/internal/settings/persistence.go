@@ -9,19 +9,19 @@ import (
 )
 
 // DefaultCfgFilename is the config file every run loads by default,
-// matching the hardcoded L"sdio.cfg" in main()'s startup sequence. The
+// matching the hardcoded L"sdigo.cfg" in main()'s startup sequence. The
 // original also supports a "-cfg:<path>" switch to load an alternate
 // file instead (found via a separate pre-scan of the raw command
 // line, before the main flag parse); that override isn't replicated
 // here.
-const DefaultCfgFilename = "sdio.cfg"
+const DefaultCfgFilename = "sdigo.cfg"
 
 // LoadDefaultCfg loads DefaultCfgFilename if present, silently doing
 // nothing if it doesn't exist - matching the original, where a
-// missing sdio.cfg is the normal first-run case, not an error. Callers
+// missing sdigo.cfg is the normal first-run case, not an error. Callers
 // should call this before parsing command-line flags, so a config
 // file provides defaults that command-line switches can still
-// override (main()'s Settings.load(L"sdio.cfg") followed by
+// override (main()'s Settings.load(L"sdigo.cfg") followed by
 // Settings.parse(GetCommandLineW(),1)).
 func (s *Settings) LoadDefaultCfg() error {
 	err := s.LoadFile(DefaultCfgFilename)

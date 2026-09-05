@@ -55,14 +55,21 @@ func indexFilename(packFilename string) string {
 // not a standalone action) - it has no effect without reindex. It also
 // loads any pending (not-yet-downloaded) packs found via
 // LoadOnlineIndexes, appended to LoadResult.Packs with Pending set.
-func LoadCollection(driverpackDir, indexDir string, reindex, writeHumanReadable bool) (LoadResult, error) {
+// onProgress, if non-nil, is called before each pack is processed,
+// with its 1-based position and the total pack count - a real
+// collection can be over a hundred packs, worth showing live rather
+// than a silent pause (see cmd/sdigo's startup screen).
+func LoadCollection(driverpackDir, indexDir string, reindex, writeHumanReadable bool, onProgress func(current, total int, filename string)) (LoadResult, error) {
 	files, err := indexing.ScanDriverpackFolder(driverpackDir)
 	if err != nil {
 		return LoadResult{}, err
 	}
 
 	var result LoadResult
-	for _, f := range files {
+	for i, f := range files {
+		if onProgress != nil {
+			onProgress(i+1, len(files), f.Filename)
+		}
 		indexPath := filepath.Join(indexDir, indexFilename(f.Filename))
 		idx, err := loadIndex(indexPath)
 		if err == nil && !reindex {

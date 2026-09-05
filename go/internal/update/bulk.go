@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"sdio/internal/common"
+	"sdio/internal/settings"
 )
 
 // DriverPackFilter reports whether a driver-pack filename (just the
@@ -35,37 +36,40 @@ func NetworkDriverPacks(filename string) bool {
 }
 
 // DownloadDriverPacks downloads every .7z driver-pack file in
-// torrentFile matching filter and not already present in drpDir.
-// Progress and warnings are written to out.
-// updatesDir (Settings.UpdatesDir) is a persistent staging directory
-// for in-progress file data - not a temp directory, so an interrupted
-// download resumes instead of restarting from zero next run.
-// onProgress, if non-nil, is called with live byte-level progress
-// across every selected file - see ProgressFunc. onAlert, if non-nil,
-// is called for the torrent client's own Warning-or-higher events
-// (see Config.OnAlert). Returns how many files were newly downloaded.
-func DownloadDriverPacks(torrentFile, drpDir, updatesDir string, seed bool, onAlert func(level, message string), filter DriverPackFilter, out io.Writer, timeout time.Duration, onProgress ProgressFunc) (int, error) {
-	if err := os.MkdirAll(drpDir, 0o755); err != nil {
+// s.TorrentFile matching filter and not already present in s.DrpDir.
+// Progress and warnings are written to out. Once a pack's .7z lands
+// in s.DrpDir, its pending index in s.IndexDir (if any) is promoted
+// to its real DP_*.bin name - see PromotePendingIndex - so the very
+// next scan matches against it instead of reporting it missing.
+// s.UpdatesDir is a persistent staging directory for in-progress file
+// data - not a temp directory, so an interrupted download resumes
+// instead of restarting from zero next run. onProgress, if non-nil,
+// is called with live byte-level progress across every selected file
+// - see ProgressFunc. onAlert, if non-nil, is called for the torrent
+// client's own Warning-or-higher events (see Config.OnAlert). Returns
+// how many files were newly downloaded.
+func DownloadDriverPacks(s *settings.Settings, onAlert func(level, message string), filter DriverPackFilter, out io.Writer, timeout time.Duration, onProgress ProgressFunc) (int, error) {
+	if err := os.MkdirAll(s.DrpDir, 0o755); err != nil {
 		return 0, err
 	}
-	if err := os.MkdirAll(updatesDir, 0o755); err != nil {
+	if err := os.MkdirAll(s.UpdatesDir, 0o755); err != nil {
 		return 0, err
 	}
 
-	c, err := NewClient(Config{DataDir: updatesDir, Seed: seed, OnAlert: onAlert})
+	c, err := NewClient(Config{DataDir: s.UpdatesDir, Seed: s.Flags&settings.FlagKeepSeeding != 0, OnAlert: onAlert})
 	if err != nil {
 		return 0, fmt.Errorf("starting torrent client: %w", err)
 	}
 	defer c.Close()
 
 	var t *Torrent
-	if strings.HasPrefix(torrentFile, "magnet:") {
-		t, err = c.AddFromMagnet(torrentFile)
+	if strings.HasPrefix(s.TorrentFile, "magnet:") {
+		t, err = c.AddFromMagnet(s.TorrentFile)
 	} else {
-		t, err = c.AddFromFile(torrentFile)
+		t, err = c.AddFromFile(s.TorrentFile)
 	}
 	if err != nil {
-		return 0, fmt.Errorf("adding torrent %s: %w", torrentFile, err)
+		return 0, fmt.Errorf("adding torrent %s: %w", s.TorrentFile, err)
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
@@ -80,7 +84,7 @@ func DownloadDriverPacks(torrentFile, drpDir, updatesDir string, seed bool, onAl
 		if !strings.HasSuffix(strings.ToLower(base), ".7z") || !filter(base) {
 			continue
 		}
-		if _, err := os.Stat(filepath.Join(drpDir, base)); err == nil {
+		if _, err := os.Stat(filepath.Join(s.DrpDir, base)); err == nil {
 			continue // already have it
 		}
 		names = append(names, f.Path)
@@ -113,14 +117,17 @@ func DownloadDriverPacks(torrentFile, drpDir, updatesDir string, seed bool, onAl
 	downloaded := 0
 	for _, f := range selected {
 		base := path.Base(filepath.ToSlash(f.Path))
-		src := filepath.Join(updatesDir, filepath.FromSlash(f.Path))
+		src := filepath.Join(s.UpdatesDir, filepath.FromSlash(f.Path))
 		if _, err := os.Stat(src); err != nil {
 			continue // never completed, already reported above
 		}
-		dest := filepath.Join(drpDir, base)
+		dest := filepath.Join(s.DrpDir, base)
 		if err := SaveFile(src, dest); err != nil {
 			fmt.Fprintf(out, "warning: saving %s: %v\n", base, err)
 			continue
+		}
+		if err := PromotePendingIndex(s.IndexDir, base); err != nil {
+			fmt.Fprintf(out, "warning: promoting %s's index: %v\n", base, err)
 		}
 		fmt.Fprintf(out, "downloaded %s\n", base)
 		downloaded++

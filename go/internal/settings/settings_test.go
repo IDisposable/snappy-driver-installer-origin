@@ -208,7 +208,7 @@ func TestParseExpandsLogDir(t *testing.T) {
 
 func TestSaveLoadRoundTripsPersistentFlagsOnly(t *testing.T) {
 	dir := t.TempDir()
-	cfgPath := filepath.Join(dir, "sdio.cfg")
+	cfgPath := filepath.Join(dir, "sdigo.cfg")
 
 	s := New()
 	if err := s.Parse([]string{
@@ -256,7 +256,7 @@ func TestSaveLoadRoundTripsPersistentFlagsOnly(t *testing.T) {
 
 func TestSaveSkipsWhenPreserveCfgSet(t *testing.T) {
 	dir := t.TempDir()
-	cfgPath := filepath.Join(dir, "sdio.cfg")
+	cfgPath := filepath.Join(dir, "sdigo.cfg")
 
 	s := New()
 	s.Flags |= FlagPreserveCfg
@@ -270,7 +270,7 @@ func TestSaveSkipsWhenPreserveCfgSet(t *testing.T) {
 
 func TestLegacyExtractDirSwitch(t *testing.T) {
 	dir := t.TempDir()
-	cfgPath := filepath.Join(dir, "sdio.cfg")
+	cfgPath := filepath.Join(dir, "sdigo.cfg")
 	if err := os.WriteFile(cfgPath, []byte(`"-extractdir:D:\extract"`+"\n"), 0o644); err != nil {
 		t.Fatalf("writing cfg fixture: %v", err)
 	}
@@ -289,7 +289,7 @@ func TestLegacyExtractDirSwitch(t *testing.T) {
 
 func TestLoadFileAcceptsLegacyCfgSyntax(t *testing.T) {
 	dir := t.TempDir()
-	cfgPath := filepath.Join(dir, "sdio.cfg")
+	cfgPath := filepath.Join(dir, "sdigo.cfg")
 	legacy := `"-drp_dir:D:\driverpacks"
 "-index_dir:D:\driverpacks\indexes"
 "-output_dir:D:\driverpacks\indexes\txt"
@@ -343,7 +343,7 @@ func TestLoadFileAcceptsLegacyCfgSyntax(t *testing.T) {
 // (identical in both) is silently dropped rather than failing Parse.
 func TestLoadFileDropsRemovedFlags(t *testing.T) {
 	dir := t.TempDir()
-	cfgPath := filepath.Join(dir, "sdio.cfg")
+	cfgPath := filepath.Join(dir, "sdigo.cfg")
 	cfg := "-checkupdates\n-autoinstall\n-novirusalerts\n-failsafe\n-keepunpackedindex\n-keeptempfiles\n-nostamp\n"
 	if err := os.WriteFile(cfgPath, []byte(cfg), 0o644); err != nil {
 		t.Fatalf("writing cfg fixture: %v", err)

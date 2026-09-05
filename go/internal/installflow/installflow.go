@@ -150,6 +150,20 @@ func DownloadPending(s *settings.Settings, pending []Pending, out io.Writer, onA
 
 	for _, p := range need {
 		drp := p.Candidate.Driverpack
+		dest := filepath.Join(drp.Path, drp.Filename)
+		if _, err := os.Stat(dest); err == nil {
+			// Already on disk - the in-memory Pending flag is stale
+			// (e.g. a prior run downloaded it but this scan's index
+			// was still the pre-download pending placeholder). Don't
+			// re-fetch a file that can be gigabytes just because a
+			// flag says to.
+			if err := update.PromotePendingIndex(s.IndexDir, drp.Filename); err != nil {
+				fmt.Fprintf(out, "warning: promoting %s's index: %v\n", drp.Filename, err)
+			}
+			drp.Pending = false
+			continue
+		}
+
 		tf := findTorrentFile(files, drp.Filename)
 		if tf == nil {
 			fmt.Fprintf(out, "warning: %s not found in the torrent, skipping\n", drp.Filename)
@@ -166,10 +180,12 @@ func DownloadPending(s *settings.Settings, pending []Pending, out io.Writer, onA
 			continue
 		}
 
-		dest := filepath.Join(drp.Path, drp.Filename)
 		if err := update.SaveFile(filepath.Join(s.UpdatesDir, filepath.FromSlash(tf.Path)), dest); err != nil {
 			fmt.Fprintf(out, "warning: saving %s: %v\n", drp.Filename, err)
 			continue
+		}
+		if err := update.PromotePendingIndex(s.IndexDir, drp.Filename); err != nil {
+			fmt.Fprintf(out, "warning: promoting %s's index: %v\n", drp.Filename, err)
 		}
 		drp.Pending = false
 		fmt.Fprintf(out, "DOWNLOADED %-50s -> %s\n", p.Description, dest)
