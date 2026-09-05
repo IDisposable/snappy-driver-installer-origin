@@ -1844,7 +1844,7 @@ func sdiGo(args []string) int {
 	// literally true, not just unused.
 	logger := logging.New(zerolog.WarnLevel, nil)
 	if s.Flags&settings.FlagNoLogFile == 0 {
-		if err := logger.Start(s.LogDir, time.Now().Format("20060102-150405")); err != nil {
+		if err := logger.Start(s.LogDir, logging.Timestamp()); err != nil {
 			fmt.Fprintln(os.Stderr, "warning: starting log file:", err)
 		}
 	}

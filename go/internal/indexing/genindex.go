@@ -66,6 +66,45 @@ func splitInfPath(archivePath string) (dir, name string) {
 	return winPath[:i+1], winPath[i+1:]
 }
 
+// catIndex is a lookup from a .inf's declared CatalogFile* value to
+// the matching .cat file's OS-attribute string (see FindOSAttr).
+// Ported exactly from Driverpack::parsecat/genhashes (indexing.cpp):
+// parsecat keys cat_list by the .cat's own directory-plus-filename
+// string, lowercased (pathinf+inffilename, no basename extraction);
+// genhashes looks up a field by concatenating the .inf's own
+// directory with the field's raw declared value, unmodified, then
+// lowercasing and looking that up - an exact string match with no
+// basename-only fallback. A real pack can ship many identically-named
+// .cat files, one per version subfolder next to its own .inf (e.g.
+// "vendor/7x64/1.0/driver.cat" vs "vendor/7x64/2.0/driver.cat", signed
+// for different OS ranges) - only this exact per-directory match
+// disambiguates them the same way the original does; earlier attempts
+// at a basename-only or basename-with-fallback lookup silently picked
+// the wrong one.
+type catIndex map[string]string
+
+// buildCatIndex runs FindOSAttr once per .cat file in catFiles (keyed
+// by its archive path, forward-slash-separated, converted to the same
+// backslash-plus-trailing-slash directory/bare-filename split
+// splitInfPath already uses for .inf entries), keyed by the lowercased
+// concatenation of the two - see catIndex's doc comment.
+func buildCatIndex(catFiles map[string][]byte) catIndex {
+	ci := make(catIndex, len(catFiles))
+	for catPath, data := range catFiles {
+		dir, name := splitInfPath(catPath)
+		ci[strings.ToLower(dir+name)] = FindOSAttr(data)
+	}
+	return ci
+}
+
+// lookup resolves rawFieldValue (a .inf's declared CatalogFile* value,
+// exactly as written, no basename extraction) against a .cat found in
+// infDir (the .inf's own directory, in InfFile.InfPath's backslash-
+// plus-trailing-slash form) - see catIndex's doc comment.
+func (ci catIndex) lookup(infDir, rawFieldValue string) string {
+	return ci[strings.ToLower(infDir+rawFieldValue)]
+}
+
 // BuildIndex scans every already-extracted .inf file's content
 // (infFiles, keyed by its archive path, forward-slash-separated) into
 // a fresh Index - the write-side counterpart to DecodeIndex, ported
@@ -79,18 +118,19 @@ func splitInfPath(archivePath string) (dir, name string) {
 // directly, to avoid an internal/matcher <-> internal/indexing import
 // cycle - ScanInstalledInf already does the same).
 //
-// Does NOT populate InfFile.Cats (per-field catalog-signature cross-
-// references) - the original's genhashes() correlates each version-
-// section field's declared catalog filename against every .cat file
-// found in the pack (driverpack_parsecat_async), which needs .cat
-// parsing this rewrite hasn't wired into this path yet. A freshly
-// built index's candidates therefore always score as uncatalogued
-// (see matcher.SignatureScore) until that lands - a real but bounded
-// gap in ranking quality, not a correctness bug (every hardware ID/
-// manufacturer/section/install-string field is still fully correct).
-func BuildIndex(infFiles map[string][]byte, osDecorationSuffixes []string) *Index {
+// catFiles (keyed the same way as infFiles) is every .cat file
+// extracted from the same pack, used to populate InfFile.Cats: for
+// each non-empty CatalogFile*/Fields entry, the corresponding .cat
+// file's embedded OS-attribute string (see FindOSAttr/catIndex)
+// is interned into the same slot, so a freshly built index scores
+// catalog validity exactly like one shipped with the pack (see
+// IsValidCatForDriver). Pass nil/empty if the pack's .cat files aren't
+// available - every entry then scores as uncatalogued, same as before
+// this was wired up.
+func BuildIndex(infFiles map[string][]byte, catFiles map[string][]byte, osDecorationSuffixes []string) *Index {
 	idx := &Index{}
 	var txt TxtBuilder
+	cats := buildCatIndex(catFiles)
 
 	for infPath, data := range infFiles {
 		dir, name := splitInfPath(infPath)
@@ -108,8 +148,15 @@ func BuildIndex(infFiles map[string][]byte, osDecorationSuffixes []string) *Inde
 			InfCRC:      int32(crc),
 		}
 		for i := 0; i < NumVerNames; i++ {
-			if verInfo.Fields[i] != "" {
-				infFile.Fields[i] = txt.InternString(verInfo.Fields[i])
+			if verInfo.Fields[i] == "" {
+				continue
+			}
+			infFile.Fields[i] = txt.InternString(verInfo.Fields[i])
+			if i < FieldCatalogFile || i > FieldCatalogFileNTAMD64 {
+				continue
+			}
+			if attr := cats.lookup(dir, verInfo.Fields[i]); attr != "" {
+				infFile.Cats[i] = txt.InternString(attr)
 			}
 		}
 		idx.InfFiles = append(idx.InfFiles, infFile)

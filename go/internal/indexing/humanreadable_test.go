@@ -30,7 +30,7 @@ MFG="Synth Corp"
 DEV1.DeviceDesc="Synth Widget"
 `),
 	}
-	idx := BuildIndex(infFiles, nil)
+	idx := BuildIndex(infFiles, nil, nil)
 	drp := &Driverpack{Filename: "DP_Synth_1.7z", Index: idx}
 
 	var buf strings.Builder

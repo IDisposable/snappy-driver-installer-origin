@@ -8,9 +8,28 @@ import (
 	"os"
 	"path/filepath"
 	"sync/atomic"
+	"time"
 
 	"github.com/rs/zerolog"
 )
+
+// Timestamp returns a fresh timestamp string in the exact format the
+// original's Log_t::gen_timestamp produces (logging.cpp: wsprintf(...,
+// L"%4d_%02d_%02d__%02d_%02d_%02d__%s_", ...)) - the current local
+// date/time plus the machine's hostname, trailing-underscore-
+// terminated so a caller can directly append a bare filename like
+// "log.txt" or "state.snp" (matching "%s\\%slog.txt"/"%s\\%sstate.snp"
+// in logging.cpp/model.cpp) to get the real byte-for-byte filename
+// convention, e.g. "2026_09_04__20_27_02__FRAMIUS_log.txt". Falls back
+// to "unknown-host" if os.Hostname fails, rather than erroring the
+// whole log/snapshot filename out over a missing hostname.
+func Timestamp() string {
+	host, err := os.Hostname()
+	if err != nil {
+		host = "unknown-host"
+	}
+	return time.Now().Format("2006_01_02__15_04_05") + "__" + host + "_"
+}
 
 // Logger wraps a zerolog.Logger with file lifecycle management and an
 // error counter. Use the embedded zerolog methods (Debug, Info, Warn,
@@ -84,7 +103,15 @@ func (l *Logger) Start(logDir, timestamp string) error {
 
 	l.file = f
 	l.rebuild()
-	l.Logger.Info().Msg("start logging")
+	// Log() (zerolog's no-level event) rather than Info() - ported from
+	// log_start's unconditional print_file call (logging.cpp), which
+	// always records the start marker in the file regardless of
+	// console verbosity. l.level only ever gates what this rewrite's
+	// callers explicitly log afterward (e.g. -torrentalerts warnings);
+	// a leveled Info() call here would be filtered out at l.level's
+	// current WarnLevel default, producing a genuinely empty file even
+	// though the file itself opened and ran successfully.
+	l.Logger.Log().Msg("start logging")
 	return nil
 }
 
@@ -101,7 +128,7 @@ func (l *Logger) Stop() {
 	if l.file == nil {
 		return
 	}
-	l.Logger.Info().Msg("stop logging")
+	l.Logger.Log().Msg("stop logging")
 	l.file.Close()
 	l.file = nil
 	l.rebuild()

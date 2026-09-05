@@ -104,6 +104,22 @@ func TestBuildIndexFromArchiveMatchesRealShippedIndex(t *testing.T) {
 	if got, want := strings.ToLower(builtDrp.InstallPicked(builtPos)), strings.ToLower(realDrp.InstallPicked(realPos)); got != want {
 		t.Errorf("InstallPicked() = %q, want %q", got, want)
 	}
+
+	// Catalog cross-referencing (indexing.BuildIndex's catFiles
+	// parameter) must reproduce the real shipped index's own catalog
+	// validity, not just leave every candidate uncatalogued - a freshly
+	// built index that silently degrades to "uncatalogued" is exactly
+	// the regression that let a real collection's match quality
+	// collapse (see docs/PORTING_NOTES.md's genindex row).
+	for n := indexing.FieldCatalogFile; n <= indexing.FieldCatalogFileNTAMD64; n++ {
+		wantCat := realDrp.Cat(realPos, n)
+		if wantCat == "" {
+			continue
+		}
+		if gotCat := builtDrp.Cat(builtPos, n); gotCat != wantCat {
+			t.Errorf("Cat(slot %d) = %q, want %q (real shipped index)", n, gotCat, wantCat)
+		}
+	}
 }
 
 func findHWIDPos(t *testing.T, idx *indexing.Index, hwid string) int {
@@ -184,7 +200,7 @@ func TestBuildIndexSyntheticFixture(t *testing.T) {
 	infFiles := map[string][]byte{
 		"synth/synth.inf": []byte(syntheticInf),
 	}
-	idx := indexing.BuildIndex(infFiles, []string{"NTamd64"})
+	idx := indexing.BuildIndex(infFiles, nil, []string{"NTamd64"})
 
 	if len(idx.InfFiles) != 1 {
 		t.Fatalf("InfFiles = %d, want 1", len(idx.InfFiles))
@@ -218,5 +234,69 @@ func TestBuildIndexSyntheticFixture(t *testing.T) {
 	key := int32(indexing.APHash([]byte(strings.ToUpper(`SYNTH\VID_0001&PID_0002`))))
 	if _, found := idx.Hashes.Find(key); !found {
 		t.Error("Hashes.Find() didn't find the synthetic HWID's key")
+	}
+}
+
+// syntheticCatBytes builds a minimal byte string FindOSAttr recognizes
+// as a catalog file's embedded OS-attribute string, without needing a
+// real signed .cat file: the UTF-16LE "OSAtt" marker, 8 arbitrary
+// padding bytes (matching the original's tool-dependent alignment -
+// see FindOSAttr's doc comment), then osAttr itself as a null-
+// terminated UTF-16LE string starting right after the padding.
+func syntheticCatBytes(osAttr string) []byte {
+	buf := []byte{'O', 0, 'S', 0, 'A', 0, 't', 0, 't', 0}
+	buf = append(buf, make([]byte, 8)...)
+	for _, r := range osAttr {
+		buf = append(buf, byte(r), 0)
+	}
+	return append(buf, 0, 0)
+}
+
+// TestBuildIndexPopulatesCats confirms BuildIndex cross-references a
+// .inf's declared CatalogFile against the matching .cat file's own
+// embedded OS-attribute string (see indexing.BuildIndex's catFiles
+// parameter) - the gap whose absence let a freshly (re)built index
+// silently downgrade every candidate to "uncatalogued", collapsing a
+// real collection's match quality (see docs/PORTING_NOTES.md's
+// genindex row).
+func TestBuildIndexPopulatesCats(t *testing.T) {
+	infFiles := map[string][]byte{
+		"synth/synth.inf": []byte(syntheticInf),
+	}
+	catFiles := map[string][]byte{
+		"synth/synth.cat": syntheticCatBytes("2:10.0"),
+	}
+	idx := indexing.BuildIndex(infFiles, catFiles, []string{"NTamd64"})
+
+	drp := &indexing.Driverpack{Filename: "synth.7z", Index: idx}
+	hwidPos := findHWIDPos(t, idx, `SYNTH\VID_0001&PID_0002`)
+
+	if got := drp.Cat(hwidPos, indexing.FieldCatalogFile); got != "2:10.0" {
+		t.Errorf("Cat(FieldCatalogFile) = %q, want %q", got, "2:10.0")
+	}
+	if !drp.IsValidCatForDriver(hwidPos, 10, 0, true) {
+		t.Error("IsValidCatForDriver(10, 0) = false, want true for a catalog signed 2:10.0")
+	}
+	if drp.IsValidCatForDriver(hwidPos, 6, 1, true) {
+		t.Error("IsValidCatForDriver(6, 1) = true, want false - catalog isn't signed for that version")
+	}
+}
+
+// TestBuildIndexWithoutCatFilesScoresUncatalogued confirms a pack with
+// no .cat data available (nil/empty catFiles - e.g. genuinely no .cat
+// in the archive) still indexes successfully and simply has no
+// catalog data, the pre-existing behavior this rewrite must not
+// regress now that catFiles is wired up.
+func TestBuildIndexWithoutCatFilesScoresUncatalogued(t *testing.T) {
+	infFiles := map[string][]byte{
+		"synth/synth.inf": []byte(syntheticInf),
+	}
+	idx := indexing.BuildIndex(infFiles, nil, []string{"NTamd64"})
+
+	drp := &indexing.Driverpack{Filename: "synth.7z", Index: idx}
+	hwidPos := findHWIDPos(t, idx, `SYNTH\VID_0001&PID_0002`)
+
+	if got := drp.Cat(hwidPos, indexing.FieldCatalogFile); got != "" {
+		t.Errorf("Cat(FieldCatalogFile) = %q, want \"\" with no .cat files available", got)
 	}
 }

@@ -19,10 +19,13 @@ const indexFormatVersion = 0x205
 // index, ported from Driverpack::genindex's orchestration
 // (indexing.cpp): extract every .inf, parse it with the same pipeline
 // ScanInstalledInf/LoadCollection's read side already uses, and
-// record every manufacturer/section/hardware-ID found. Does not write
-// anything - see SaveIndex. Catalog-file cross-referencing isn't done
-// here either (see indexing.BuildIndex's doc comment) - a pack indexed
-// this way scores as uncatalogued until that lands.
+// record every manufacturer/section/hardware-ID found. Also extracts
+// every .cat file in the pack so indexing.BuildIndex can cross-
+// reference each .inf's declared CatalogFile* value against its
+// signed OS-attribute string (see indexing.BuildIndex's catFiles
+// parameter) - a pack with no .cat files at all (genuinely unsigned)
+// still indexes fine, just scores as uncatalogued like the original
+// would for the same pack. Does not write anything - see SaveIndex.
 func BuildIndexFromArchive(packPath string) (*indexing.Index, error) {
 	r, err := archive.Open(packPath)
 	if err != nil {
@@ -31,21 +34,28 @@ func BuildIndexFromArchive(packPath string) (*indexing.Index, error) {
 	defer r.Close()
 
 	infFiles := map[string][]byte{}
+	catFiles := map[string][]byte{}
 	for _, f := range r.Files() {
-		if !archive.HasSuffixFold(f.Name, ".inf") {
-			continue
+		switch {
+		case archive.HasSuffixFold(f.Name, ".inf"):
+			data, err := r.Extract(f.Name)
+			if err != nil {
+				return nil, fmt.Errorf("extracting %s: %w", f.Name, err)
+			}
+			infFiles[f.Name] = data
+		case archive.HasSuffixFold(f.Name, ".cat"):
+			data, err := r.Extract(f.Name)
+			if err != nil {
+				return nil, fmt.Errorf("extracting %s: %w", f.Name, err)
+			}
+			catFiles[f.Name] = data
 		}
-		data, err := r.Extract(f.Name)
-		if err != nil {
-			return nil, fmt.Errorf("extracting %s: %w", f.Name, err)
-		}
-		infFiles[f.Name] = data
 	}
 	if len(infFiles) == 0 {
 		return nil, fmt.Errorf("no .inf files found in %s", packPath)
 	}
 
-	return indexing.BuildIndex(infFiles, matcher.OSDecorations[:]), nil
+	return indexing.BuildIndex(infFiles, catFiles, matcher.OSDecorations[:]), nil
 }
 
 // SaveIndex writes idx to indexPath in the same "SDW" + LZMA container
