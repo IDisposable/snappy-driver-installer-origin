@@ -377,6 +377,14 @@ type model struct {
 	// nobody had a chance to read.
 	opLogIsError bool
 
+	// opLogReturnScreen is where "q"/"esc"/"enter" sends the user once
+	// they dismiss screenInstallLog - screenTable for anything launched
+	// from the main table (install, USB copy, a startup auto-download),
+	// screenWelcome for a download-menu task, so each menu item returns
+	// to the menu it came from once it finishes instead of always
+	// dropping back to the driver list.
+	opLogReturnScreen screen
+
 	// dlProgress is set whenever screenInstalling/screenWelcomeDownloading
 	// starts a background download, so their View can poll it for a
 	// live percent/bytes/speed readout instead of a static message.
@@ -630,6 +638,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if msg.err != nil {
 			m.opLog = []string{fmt.Sprintf("error: %v", msg.err)}
 			m.opLogIsError = true
+			m.opLogReturnScreen = screenTable
 			m.screen = screenInstallLog
 			return m, nil
 		}
@@ -648,6 +657,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			// after the table's first render instead of blocking it, the
 			// way the original's launch-time bootstrap did.
 			m.screen = screenWelcomeDownloading
+			m.opLogReturnScreen = screenTable
 			ctx := m.startDownload()
 			cmd = tea.Batch(runIndexRefreshCmd(ctx, m.s, m.dlProgress, m.alertLogger(), m.logger), tickProgressCmd())
 		case m.s.Flags&settings.FlagAutoUpdate != 0:
@@ -655,6 +665,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			// time auto-trigger (update.cpp) - fires once, right after the
 			// first scan.
 			m.screen = screenWelcomeDownloading
+			m.opLogReturnScreen = screenTable
 			ctx := m.startDownload()
 			cmd = tea.Batch(runWelcomeDownloadCmd(ctx, m.s, update.AllDriverPacks, m.dlProgress, m.alertLogger(), m.logger), tickProgressCmd())
 		}
@@ -671,6 +682,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case installDoneMsg:
 		m.opLog = msg.log
 		m.opLogIsError = msg.isErr
+		m.opLogReturnScreen = screenTable
 		m.screen = screenInstallLog
 		// A completed install invalidates the ticked devices' old
 		// candidate state (they may now already have that driver), and
@@ -762,7 +774,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			case "ctrl+c":
 				return m, tea.Quit
 			case "q", "esc":
-				m.screen = screenTable
+				m.screen = m.opLogReturnScreen
 				return m, nil
 			case "enter":
 				// Not honored on a failure (see model.opLogIsError's doc
@@ -771,7 +783,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				// followed by a habitual second "enter" would otherwise
 				// dismiss the error before anyone could read it.
 				if !m.opLogIsError {
-					m.screen = screenTable
+					m.screen = m.opLogReturnScreen
 				}
 				return m, nil
 			}
@@ -847,6 +859,7 @@ func (m model) updateTable(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			}
 			m.opLog = []string{msg}
 			m.opLogIsError = err != nil
+			m.opLogReturnScreen = screenTable
 			m.screen = screenInstallLog
 			return m, nil
 		}
@@ -1035,18 +1048,46 @@ func (m model) updateConfirmInstall(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	return m, nil
 }
 
-// welcomeItems mirrors the original's Welcome dialog buttons, minus
-// "Download Indexes" as an all-or-nothing gate: scan.Run already
-// fetches the index catalog automatically the first time it finds
-// none locally, so this entry is an on-demand refresh instead of a
-// first-run necessity.
+// welcomeItems is the download menu's task list - "indexes, network
+// drivers, this machine's drivers, all drivers, and quit". Indexes is
+// an on-demand refresh rather than a first-run necessity: scan.Run
+// already fetches the index catalog automatically the first time it
+// finds none locally (see scan.Result.FirstRun/this screen's own
+// auto-jump on it).
 var welcomeItems = []string{
-	"Refresh index catalog now",
-	"Download Network Drivers (Net/LAN/WLAN/WWAN - get this PC online quickly)",
-	"Download All Driver Packs (the entire collection - large, can take hours)",
+	"Indexes (refresh the driver-pack catalog)",
+	"Network Drivers (Net/LAN/WLAN/WWAN - get this PC online quickly)",
+	"This Machine's Drivers (only what the scanned devices need)",
+	"All Driver Packs (the entire collection - large, can take hours)",
+	"Quit (back to the driver list)",
 }
 
-// updateWelcome handles key input on the Welcome screen.
+const (
+	welcomeItemIndexes = iota
+	welcomeItemNetwork
+	welcomeItemThisMachine
+	welcomeItemAll
+	welcomeItemQuit
+)
+
+// thisMachineDriverPacksFilter matches only the driver-pack files the
+// scanned devices' own best candidates point at, so "This Machine's
+// Drivers" fetches a small, targeted set instead of the entire
+// collection - built from the same Best() every install/select-all
+// path already uses, not a separate notion of "needed".
+func (m model) thisMachineDriverPacksFilter() update.DriverPackFilter {
+	needed := map[string]bool{}
+	for _, dr := range m.result.Devices {
+		if best := dr.Best(); best != nil && best.Driverpack != nil {
+			needed[strings.ToLower(best.Driverpack.Filename)] = true
+		}
+	}
+	return func(filename string) bool {
+		return needed[strings.ToLower(filename)]
+	}
+}
+
+// updateWelcome handles key input on the download menu.
 func (m model) updateWelcome(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	switch msg.String() {
 	case "ctrl+c":
@@ -1063,22 +1104,34 @@ func (m model) updateWelcome(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			m.welcomeIndex++
 		}
 	case "enter", " ":
+		if m.welcomeIndex == welcomeItemQuit {
+			m.screen = screenTable
+			return m, nil
+		}
 		if m.s.TorrentFile == "" {
 			m.opLog = []string{"No -torrent-file configured - nothing to download from."}
 			m.opLogIsError = true
+			m.opLogReturnScreen = screenWelcome
 			m.screen = screenInstallLog
 			return m, nil
 		}
 		switch m.welcomeIndex {
-		case 0:
+		case welcomeItemIndexes:
 			m.screen = screenWelcomeDownloading
+			m.opLogReturnScreen = screenWelcome
 			ctx := m.startDownload()
 			return m, tea.Batch(runIndexRefreshCmd(ctx, m.s, m.dlProgress, m.alertLogger(), m.logger), tickProgressCmd())
-		case 1:
+		case welcomeItemNetwork:
 			m.screen = screenWelcomeDownloading
+			m.opLogReturnScreen = screenWelcome
 			ctx := m.startDownload()
 			return m, tea.Batch(runWelcomeDownloadCmd(ctx, m.s, update.NetworkDriverPacks, m.dlProgress, m.alertLogger(), m.logger), tickProgressCmd())
-		case 2:
+		case welcomeItemThisMachine:
+			m.screen = screenWelcomeDownloading
+			m.opLogReturnScreen = screenWelcome
+			ctx := m.startDownload()
+			return m, tea.Batch(runWelcomeDownloadCmd(ctx, m.s, m.thisMachineDriverPacksFilter(), m.dlProgress, m.alertLogger(), m.logger), tickProgressCmd())
+		case welcomeItemAll:
 			m.screen = screenWelcomeConfirmAll
 			return m, nil
 		}
@@ -1094,6 +1147,7 @@ func (m model) updateWelcomeConfirmAll(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	switch msg.String() {
 	case "y", "enter":
 		m.screen = screenWelcomeDownloading
+		m.opLogReturnScreen = screenWelcome
 		ctx := m.startDownload()
 		return m, tea.Batch(runWelcomeDownloadCmd(ctx, m.s, update.AllDriverPacks, m.dlProgress, m.alertLogger(), m.logger), tickProgressCmd())
 	case "ctrl+c":
@@ -1136,6 +1190,7 @@ func (m model) updateUSBDriveConfirm(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	switch msg.String() {
 	case "y", "enter":
 		m.screen = screenUSBDriveCopying
+		m.opLogReturnScreen = screenTable
 		return m, runUSBCopyCmd(m.s, m.usbDrives[m.usbDriveIndex].Root, m.logger)
 	case "ctrl+c":
 		return m, tea.Quit
@@ -1664,7 +1719,7 @@ func (m model) usbDriveConfirmView() string {
 
 func (m model) welcomeView() string {
 	var b strings.Builder
-	b.WriteString("Welcome - up/down: move, enter/space: select, q/esc/w: back\n\n")
+	b.WriteString("Download Menu - up/down: move, enter/space: select, q/esc/w: back\n\n")
 	if m.s.TorrentFile == "" {
 		b.WriteString("No -torrent-file is configured, so none of these can fetch anything yet.\n\n")
 	}
@@ -1736,7 +1791,7 @@ func (m model) tableView() string {
 	footer := fmt.Sprintf("\n%d matched, %d missing/no better driver, %d selected for install\n"+
 		"Newer/Older/Better all outrank the installed driver - Newer/Older also means\n"+
 		"its own release date is newer/older (enter for the full comparison)\n"+
-		"space: tick, a: select all, n: select none, enter: details, i: install, o: options, f: filters, w: welcome, u: usb drive, ?: about, q: quit\n",
+		"space: tick, a: select all, n: select none, enter: details, i: install, o: options, f: filters, w: downloads, u: usb drive, ?: about, q: quit\n",
 		m.matched, m.missing, len(m.pendingSelected()))
 	return header + m.table.View() + footer
 }
@@ -2102,11 +2157,15 @@ func (m model) confirmInstallView() string {
 }
 
 func (m model) opLogView() string {
+	dest := "device list"
+	if m.opLogReturnScreen == screenWelcome {
+		dest = "download menu"
+	}
 	var b strings.Builder
 	if m.opLogIsError {
-		b.WriteString(cautionStyle.Render("FAILED") + " - esc/q: back to device list\n\n")
+		b.WriteString(cautionStyle.Render("FAILED") + " - esc/q: back to " + dest + "\n\n")
 	} else {
-		b.WriteString("Log - enter/esc/q: back to device list\n\n")
+		b.WriteString("Log - enter/esc/q: back to " + dest + "\n\n")
 	}
 	for _, line := range m.opLog {
 		fmt.Fprintf(&b, "%s\n", line)

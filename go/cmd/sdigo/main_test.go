@@ -908,7 +908,7 @@ func TestWelcomeAllDriverPacksNeedsConfirmation(t *testing.T) {
 	s.TorrentFile = "dummy.torrent" // just needs to be non-empty for this check
 	m := newTestModel(scan.Result{}, s, nil)
 	m.screen = screenWelcome
-	m.welcomeIndex = len(welcomeItems) - 1 // "Download All Driver Packs"
+	m.welcomeIndex = welcomeItemAll
 
 	mm, _ := m.Update(tea.KeyMsg{Type: tea.KeyEnter})
 	m = mm.(model)
@@ -920,6 +920,100 @@ func TestWelcomeAllDriverPacksNeedsConfirmation(t *testing.T) {
 	m = mm.(model)
 	if m.screen != screenWelcome {
 		t.Fatalf("screen = %v after esc, want screenWelcome (cancel, not download)", m.screen)
+	}
+}
+
+// TestWelcomeQuitReturnsToTable confirms the menu's explicit "Quit"
+// item behaves like q/esc/w rather than trying to download anything -
+// it sits at the same index the confirm-gated "All Driver Packs" used
+// to occupy, so this also guards against that mixup.
+func TestWelcomeQuitReturnsToTable(t *testing.T) {
+	s := settings.New()
+	s.TorrentFile = "dummy.torrent"
+	m := newTestModel(scan.Result{}, s, nil)
+	m.screen = screenWelcome
+	m.welcomeIndex = welcomeItemQuit
+
+	mm, _ := m.Update(tea.KeyMsg{Type: tea.KeyEnter})
+	m = mm.(model)
+	if m.screen != screenTable {
+		t.Fatalf("screen = %v, want screenTable", m.screen)
+	}
+}
+
+// TestWelcomeMenuTaskReturnsToMenuWhenDone confirms dismissing a
+// completed menu-launched download (via screenInstallLog) goes back to
+// the download menu, not the driver table - "have each of the tasks
+// return to the menu when completed".
+func TestWelcomeMenuTaskReturnsToMenuWhenDone(t *testing.T) {
+	s := settings.New()
+	s.TorrentFile = "dummy.torrent"
+	m := newTestModel(scan.Result{}, s, nil)
+	m.screen = screenWelcome
+	m.welcomeIndex = welcomeItemNetwork
+
+	mm, _ := m.Update(tea.KeyMsg{Type: tea.KeyEnter})
+	m = mm.(model)
+	if m.screen != screenWelcomeDownloading {
+		t.Fatalf("screen = %v, want screenWelcomeDownloading", m.screen)
+	}
+
+	mm, _ = m.Update(welcomeDownloadDoneMsg{log: []string{"done"}})
+	m = mm.(model)
+	if m.screen != screenInstallLog {
+		t.Fatalf("screen = %v, want screenInstallLog", m.screen)
+	}
+
+	mm, _ = m.Update(tea.KeyMsg{Type: tea.KeyEsc})
+	m = mm.(model)
+	if m.screen != screenWelcome {
+		t.Fatalf("screen = %v after dismissing the log, want screenWelcome (return to the menu)", m.screen)
+	}
+}
+
+// TestInstallDoneReturnsToTableNotMenu confirms an install launched
+// from the driver table (not the download menu) still dismisses back
+// to the table, even though it shares screenInstallLog with menu
+// downloads.
+func TestInstallDoneReturnsToTableNotMenu(t *testing.T) {
+	m := newTestModel(scan.Result{}, settings.New(), nil)
+	m.screen = screenTable
+
+	mm, _ := m.Update(installDoneMsg{log: []string{"done"}})
+	m = mm.(model)
+	if m.screen != screenInstallLog {
+		t.Fatalf("screen = %v, want screenInstallLog", m.screen)
+	}
+
+	mm, _ = m.Update(tea.KeyMsg{Type: tea.KeyEsc})
+	m = mm.(model)
+	if m.screen != screenTable {
+		t.Fatalf("screen = %v after dismissing the log, want screenTable", m.screen)
+	}
+}
+
+// TestThisMachineDriverPacksFilterMatchesOnlyNeededPacks confirms the
+// "This Machine's Drivers" filter is scoped to what the scanned
+// devices' own Best() candidates point at, not the whole collection.
+func TestThisMachineDriverPacksFilterMatchesOnlyNeededPacks(t *testing.T) {
+	needed := &indexing.Driverpack{Filename: "DP_Needed_SDIO01_1.7z"}
+	m := newTestModel(scan.Result{Devices: []scan.DeviceResult{{
+		Device: hardware.Device{InstanceID: "dev1"},
+		Candidates: []collection.Candidate{{
+			Driverpack: needed,
+			Result:     matcher.Result{AltSectScore: 2, DecorScore: 1, Status: matcher.StatusBetter},
+		}},
+	}}}, settings.New(), nil)
+
+	filter := m.thisMachineDriverPacksFilter()
+	if !filter("DP_Needed_SDIO01_1.7z") {
+		t.Error(`filter("DP_Needed_SDIO01_1.7z") = false, want true`)
+	}
+	if !filter("dp_needed_sdio01_1.7z") {
+		t.Error("filter should be case-insensitive")
+	}
+	if filter("DP_Unrelated_SDIO01_1.7z") {
+		t.Error(`filter("DP_Unrelated_SDIO01_1.7z") = true, want false`)
 	}
 }
 
