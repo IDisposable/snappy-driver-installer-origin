@@ -16,6 +16,14 @@ import (
 // longer needing a download at all). Does nothing (not an error) if
 // no pending index for packFilename exists, e.g. -reindex builds one
 // locally instead.
+//
+// Uses SaveFile rather than a bare os.Rename: reported live, renaming
+// straight after a driver pack's own .7z had just landed failed with
+// "Access is denied" on Windows for several packs in the same batch -
+// the same transient just-written-file lock (antivirus scanning it,
+// or a lingering handle) SaveFile's own retry loop already exists to
+// ride out, not something specific to the torrent client's data
+// directory as its doc comment's original context implied.
 func PromotePendingIndex(indexDir, packFilename string) error {
 	ext := filepath.Ext(packFilename)
 	pendingPath := filepath.Join(indexDir, "_"+packFilename[1:len(packFilename)-len(ext)]+".bin")
@@ -23,5 +31,5 @@ func PromotePendingIndex(indexDir, packFilename string) error {
 		return nil
 	}
 	realPath := filepath.Join(indexDir, packFilename[:len(packFilename)-len(ext)]+".bin")
-	return os.Rename(pendingPath, realPath)
+	return SaveFile(pendingPath, realPath)
 }

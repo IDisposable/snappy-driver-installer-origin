@@ -13,6 +13,7 @@ import (
 	"sdio/internal/collection"
 	"sdio/internal/hardware"
 	"sdio/internal/indexing"
+	"sdio/internal/logging"
 	"sdio/internal/matcher"
 	"sdio/internal/settings"
 )
@@ -265,8 +266,9 @@ func MatchWithCollection(s *settings.Settings, p Prepared, onProgress func(curre
 // TUI instead calls Prepare/MatchWithCollection directly, so a
 // bootstrap can run as its own background step after an initial match
 // against whatever's already on disk, rather than blocking the first
-// render on a network operation.
-func Run(s *settings.Settings) (Result, error) {
+// render on a network operation. logger records a structured entry
+// for every file BootstrapIndexes downloads.
+func Run(s *settings.Settings, logger *logging.Logger) (Result, error) {
 	p, err := Prepare(s)
 	if err != nil {
 		return Result{}, err
@@ -286,7 +288,7 @@ func Run(s *settings.Settings) (Result, error) {
 	var indexesDownloaded int
 	var bootstrapErr error
 	if s.TorrentFile != "" && (p.FirstRun || s.Flags&settings.FlagCheckUpdates != 0) {
-		indexesDownloaded, bootstrapErr = collection.BootstrapIndexes(context.Background(), s.TorrentFile, s.IndexDir, s.UpdatesDir, s.Flags&settings.FlagKeepSeeding != 0, nil, nil)
+		indexesDownloaded, bootstrapErr = collection.BootstrapIndexes(context.Background(), s.TorrentFile, s.IndexDir, s.UpdatesDir, s.Flags&settings.FlagKeepSeeding != 0, nil, nil, logger)
 	}
 
 	res, err := MatchWithCollection(s, p, nil)

@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"sdio/internal/common"
+	"sdio/internal/logging"
 	"sdio/internal/settings"
 )
 
@@ -54,8 +55,11 @@ func NetworkDriverPacks(filename string) bool {
 // not a lost one; a torrent client closed via the normal defer c.Close()
 // path this way is far less likely to leave its on-disk piece state
 // inconsistent than force-killing the whole process ever was. Returns
-// how many files were newly downloaded.
-func DownloadDriverPacks(ctx context.Context, s *settings.Settings, onAlert func(level, message string), filter DriverPackFilter, out io.Writer, timeout time.Duration, onProgress ProgressFunc) (int, error) {
+// how many files were newly downloaded. logger records a structured
+// start/complete/failure entry for every individual file (not just an
+// overall summary), the specific per-file visibility reported missing
+// when diagnosing a stalled/crashed download.
+func DownloadDriverPacks(ctx context.Context, s *settings.Settings, onAlert func(level, message string), filter DriverPackFilter, out io.Writer, timeout time.Duration, onProgress ProgressFunc, logger *logging.Logger) (int, error) {
 	if err := os.MkdirAll(s.DrpDir, 0o755); err != nil {
 		return 0, err
 	}
@@ -97,6 +101,9 @@ func DownloadDriverPacks(ctx context.Context, s *settings.Settings, onAlert func
 
 	selected := t.SelectFiles(names)
 	fmt.Fprintf(out, "downloading %d driver pack(s)...\n", len(selected))
+	for _, f := range selected {
+		logger.Info().Str("file", path.Base(filepath.ToSlash(f.Path))).Int64("bytes", f.Length).Msg("driver pack download starting")
+	}
 
 	dlCtx, dlCancel := context.WithTimeout(ctx, timeout)
 	defer dlCancel()
@@ -104,8 +111,10 @@ func DownloadDriverPacks(ctx context.Context, s *settings.Settings, onAlert func
 	if err := t.WaitDownload(dlCtx, selected, timeout, label, onProgress); err != nil {
 		if errors.Is(err, context.Canceled) {
 			fmt.Fprintf(out, "download cancelled\n")
+			logger.Info().Msg("driver pack download batch cancelled")
 		} else {
 			fmt.Fprintf(out, "warning: download did not finish: %v\n", err)
+			logger.Warn().Err(err).Msg("driver pack download batch did not finish")
 		}
 		// Which file(s), not just that something didn't finish -
 		// otherwise a webseed outage or a peer-less file (both real,
@@ -113,9 +122,12 @@ func DownloadDriverPacks(ctx context.Context, s *settings.Settings, onAlert func
 		// "everything worked" once downloaded silently drops them.
 		for _, fp := range t.Progress(selected).Files {
 			if fp.Percent() < 100 {
+				base := path.Base(filepath.ToSlash(fp.Path))
 				fmt.Fprintf(out, "  incomplete: %s (%d%%, %s of %s - no peers/webseed data for the rest)\n",
-					path.Base(filepath.ToSlash(fp.Path)), fp.Percent(),
-					common.BytesToStr(uint64(fp.Completed)), common.BytesToStr(uint64(fp.Total)))
+					base, fp.Percent(), common.BytesToStr(uint64(fp.Completed)), common.BytesToStr(uint64(fp.Total)))
+				logger.Warn().Str("file", base).Int("percent", fp.Percent()).
+					Int64("completed", fp.Completed).Int64("total", fp.Total).
+					Msg("driver pack file incomplete")
 			}
 		}
 	}
@@ -130,12 +142,15 @@ func DownloadDriverPacks(ctx context.Context, s *settings.Settings, onAlert func
 		dest := filepath.Join(s.DrpDir, base)
 		if err := SaveFile(src, dest); err != nil {
 			fmt.Fprintf(out, "warning: saving %s: %v\n", base, err)
+			logger.Error().Err(err).Str("file", base).Msg("driver pack download failed: saving")
 			continue
 		}
 		if err := PromotePendingIndex(s.IndexDir, base); err != nil {
 			fmt.Fprintf(out, "warning: promoting %s's index: %v\n", base, err)
+			logger.Error().Err(err).Str("file", base).Msg("driver pack download: promoting pending index failed")
 		}
 		fmt.Fprintf(out, "downloaded %s\n", base)
+		logger.Info().Str("file", base).Msg("driver pack download complete")
 		downloaded++
 	}
 	return downloaded, nil

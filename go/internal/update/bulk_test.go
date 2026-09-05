@@ -9,8 +9,15 @@ import (
 	"testing"
 	"time"
 
+	"github.com/rs/zerolog"
+
+	"sdio/internal/logging"
 	"sdio/internal/settings"
 )
+
+// testLogger is a discard-everything Logger for tests that need to
+// pass one but aren't exercising logging itself.
+var testLogger = logging.New(zerolog.Disabled, nil)
 
 func TestNetworkDriverPacksFilter(t *testing.T) {
 	cases := []struct {
@@ -75,7 +82,7 @@ func TestDownloadDriverPacksRealTorrent(t *testing.T) {
 	}
 
 	var buf bytes.Buffer
-	n, err := DownloadDriverPacks(context.Background(), s, nil, onlyCardReader, &buf, 30*time.Minute, nil)
+	n, err := DownloadDriverPacks(context.Background(), s, nil, onlyCardReader, &buf, 30*time.Minute, nil, testLogger)
 	if err != nil {
 		t.Fatalf("DownloadDriverPacks() error: %v\noutput:\n%s", err, buf.String())
 	}
@@ -95,7 +102,7 @@ func TestDownloadDriverPacksRealTorrent(t *testing.T) {
 
 	// A second run must find it already present and download nothing.
 	buf.Reset()
-	n, err = DownloadDriverPacks(context.Background(), s, nil, onlyCardReader, &buf, 30*time.Minute, nil)
+	n, err = DownloadDriverPacks(context.Background(), s, nil, onlyCardReader, &buf, 30*time.Minute, nil, testLogger)
 	if err != nil {
 		t.Fatalf("second DownloadDriverPacks() error: %v", err)
 	}

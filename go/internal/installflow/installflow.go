@@ -17,6 +17,7 @@ import (
 	"sdio/internal/archive"
 	"sdio/internal/collection"
 	"sdio/internal/install"
+	"sdio/internal/logging"
 	"sdio/internal/settings"
 	"sdio/internal/update"
 )
@@ -48,9 +49,9 @@ type Pending struct {
 // has the human-readable detail; this is just a summary a caller can
 // act on (e.g. cmd/sdigo's TUI won't let a quick "enter" dismiss the
 // log screen unread, -nogui exits non-zero) without re-parsing text.
-func Run(s *settings.Settings, pending []Pending, out io.Writer, onAlert func(level, message string), onProgress update.ProgressFunc) bool {
+func Run(s *settings.Settings, pending []Pending, out io.Writer, onAlert func(level, message string), onProgress update.ProgressFunc, logger *logging.Logger) bool {
 	ok := true
-	if err := DownloadPending(s, pending, out, onAlert, onProgress); err != nil {
+	if err := DownloadPending(s, pending, out, onAlert, onProgress, logger); err != nil {
 		fmt.Fprintf(out, "warning: downloading pending driver packs: %v\n", err)
 		ok = false
 	}
@@ -111,8 +112,9 @@ func Run(s *settings.Settings, pending []Pending, out io.Writer, onAlert func(le
 // is always safe to call. onProgress, if non-nil, is called with live
 // byte-level progress for whichever pack is currently downloading.
 // onAlert, if non-nil, is called for the torrent client's own
-// Warning-or-higher events (see update.Config.OnAlert).
-func DownloadPending(s *settings.Settings, pending []Pending, out io.Writer, onAlert func(level, message string), onProgress update.ProgressFunc) error {
+// Warning-or-higher events (see update.Config.OnAlert). logger records
+// a structured start/complete/failure entry for every individual file.
+func DownloadPending(s *settings.Settings, pending []Pending, out io.Writer, onAlert func(level, message string), onProgress update.ProgressFunc, logger *logging.Logger) error {
 	var need []Pending
 	for _, p := range pending {
 		if p.Candidate.Driverpack.Pending {
@@ -141,12 +143,7 @@ func DownloadPending(s *settings.Settings, pending []Pending, out io.Writer, onA
 	}
 	defer c.Close()
 
-	var t *update.Torrent
-	if strings.HasPrefix(s.TorrentFile, "magnet:") {
-		t, err = c.AddFromMagnet(s.TorrentFile)
-	} else {
-		t, err = c.AddFromFile(s.TorrentFile)
-	}
+	t, err := c.AddFromSpec(s.TorrentFile)
 	if err != nil {
 		return fmt.Errorf("adding torrent %s: %w", s.TorrentFile, err)
 	}
@@ -169,6 +166,7 @@ func DownloadPending(s *settings.Settings, pending []Pending, out io.Writer, onA
 			// flag says to.
 			if err := update.PromotePendingIndex(s.IndexDir, drp.Filename); err != nil {
 				fmt.Fprintf(out, "warning: promoting %s's index: %v\n", drp.Filename, err)
+				logger.Error().Err(err).Str("file", drp.Filename).Msg("promoting already-downloaded pack's index failed")
 			}
 			drp.Pending = false
 			continue
@@ -177,28 +175,34 @@ func DownloadPending(s *settings.Settings, pending []Pending, out io.Writer, onA
 		tf := findTorrentFile(files, drp.Filename)
 		if tf == nil {
 			fmt.Fprintf(out, "warning: %s not found in the torrent, skipping\n", drp.Filename)
+			logger.Warn().Str("file", drp.Filename).Msg("pending driver pack not found in torrent")
 			continue
 		}
 
 		fmt.Fprintf(out, "DOWNLOAD %-50s (%s, %d bytes)\n", p.Description, drp.Filename, tf.Length)
+		logger.Info().Str("file", drp.Filename).Int64("bytes", tf.Length).Msg("pending driver pack download starting")
 		selected := t.SelectFiles([]string{tf.Path})
 		dlCtx, dlCancel := context.WithTimeout(context.Background(), 30*time.Minute)
 		err := t.WaitDownload(dlCtx, selected, 30*time.Minute, drp.Filename, onProgress)
 		dlCancel()
 		if err != nil {
 			fmt.Fprintf(out, "warning: downloading %s: %v\n", drp.Filename, err)
+			logger.Error().Err(err).Str("file", drp.Filename).Msg("pending driver pack download failed")
 			continue
 		}
 
 		if err := update.SaveFile(filepath.Join(s.UpdatesDir, filepath.FromSlash(tf.Path)), dest); err != nil {
 			fmt.Fprintf(out, "warning: saving %s: %v\n", drp.Filename, err)
+			logger.Error().Err(err).Str("file", drp.Filename).Msg("pending driver pack download failed: saving")
 			continue
 		}
 		if err := update.PromotePendingIndex(s.IndexDir, drp.Filename); err != nil {
 			fmt.Fprintf(out, "warning: promoting %s's index: %v\n", drp.Filename, err)
+			logger.Error().Err(err).Str("file", drp.Filename).Msg("pending driver pack download: promoting pending index failed")
 		}
 		drp.Pending = false
 		fmt.Fprintf(out, "DOWNLOADED %-50s -> %s\n", p.Description, dest)
+		logger.Info().Str("file", drp.Filename).Msg("pending driver pack download complete")
 	}
 	return nil
 }

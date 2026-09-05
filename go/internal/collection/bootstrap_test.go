@@ -6,9 +6,16 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/rs/zerolog"
+
 	"sdio/internal/indexing"
+	"sdio/internal/logging"
 	"sdio/internal/sdwfile"
 )
+
+// testLogger is a discard-everything Logger for tests that need to
+// pass one but aren't exercising logging itself.
+var testLogger = logging.New(zerolog.Disabled, nil)
 
 // TestMain forces an explicit os.Exit after tests complete, matching
 // the pattern in cmd/sdigo's and internal/update's test files - a real
@@ -32,7 +39,7 @@ func TestPlaceholderIndexFilename(t *testing.T) {
 }
 
 func TestBootstrapIndexesNoTorrentConfigured(t *testing.T) {
-	if _, err := BootstrapIndexes(context.Background(), "", t.TempDir(), t.TempDir(), false, nil, nil); err == nil {
+	if _, err := BootstrapIndexes(context.Background(), "", t.TempDir(), t.TempDir(), false, nil, nil, testLogger); err == nil {
 		t.Fatal("expected an error with no torrent source configured")
 	}
 }
@@ -61,7 +68,7 @@ func TestBootstrapIndexesRealTorrent(t *testing.T) {
 
 	indexDir := t.TempDir()
 	updatesDir := t.TempDir()
-	count, err := BootstrapIndexes(context.Background(), torrentFile, indexDir, updatesDir, false, nil, nil)
+	count, err := BootstrapIndexes(context.Background(), torrentFile, indexDir, updatesDir, false, nil, nil, testLogger)
 	if err != nil {
 		t.Fatalf("BootstrapIndexes() error: %v", err)
 	}
@@ -93,7 +100,7 @@ func TestBootstrapIndexesRealTorrent(t *testing.T) {
 	// download nothing new. Reuses the same updatesDir too, since that's
 	// the real scenario this is meant to support (a resumed/rerun
 	// download reusing its own staging directory).
-	count2, err := BootstrapIndexes(context.Background(), torrentFile, indexDir, updatesDir, false, nil, nil)
+	count2, err := BootstrapIndexes(context.Background(), torrentFile, indexDir, updatesDir, false, nil, nil, testLogger)
 	if err != nil {
 		t.Fatalf("second BootstrapIndexes() error: %v", err)
 	}

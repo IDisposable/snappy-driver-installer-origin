@@ -2,12 +2,14 @@ package collection
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
 	"time"
 
+	"sdio/internal/logging"
 	"sdio/internal/update"
 )
 
@@ -45,8 +47,10 @@ func placeholderIndexFilename(properBinName string) string {
 // onAlert, if non-nil, is called for the torrent client's own
 // Warning-or-higher events (see update.Config.OnAlert). ctx cancels
 // the operation early (e.g. a user-requested stop) - already-completed
-// index files are still saved rather than discarded.
-func BootstrapIndexes(ctx context.Context, torrentFile, indexDir, updatesDir string, seed bool, onAlert func(level, message string), onProgress update.ProgressFunc) (int, error) {
+// index files are still saved rather than discarded. logger records a
+// structured start/complete/failure entry for every individual index
+// file, not just an overall summary.
+func BootstrapIndexes(ctx context.Context, torrentFile, indexDir, updatesDir string, seed bool, onAlert func(level, message string), onProgress update.ProgressFunc, logger *logging.Logger) (int, error) {
 	if torrentFile == "" {
 		return 0, fmt.Errorf("no torrent source configured")
 	}
@@ -100,6 +104,10 @@ func BootstrapIndexes(ctx context.Context, torrentFile, indexDir, updatesDir str
 	}
 
 	selected := t.SelectFiles(need)
+	for _, fi := range selected {
+		logger.Info().Str("file", filepath.Base(fi.Path)).Int64("bytes", fi.Length).Msg("index download starting")
+	}
+
 	dlCtx, dlCancel := context.WithTimeout(ctx, 10*time.Minute)
 	defer dlCancel()
 	label := fmt.Sprintf("%d index file(s)", len(selected))
@@ -107,6 +115,13 @@ func BootstrapIndexes(ctx context.Context, torrentFile, indexDir, updatesDir str
 	// waitErr (a timeout, most often) doesn't mean nothing downloaded -
 	// save whatever did complete instead of discarding it; os.Stat
 	// below skips whichever files didn't reach 100%.
+	if waitErr != nil {
+		if errors.Is(waitErr, context.Canceled) {
+			logger.Info().Msg("index download batch cancelled")
+		} else {
+			logger.Warn().Err(waitErr).Msg("index download batch did not finish")
+		}
+	}
 
 	count := 0
 	for _, fi := range selected {
@@ -114,14 +129,17 @@ func BootstrapIndexes(ctx context.Context, torrentFile, indexDir, updatesDir str
 		if !ok {
 			continue
 		}
+		base := filepath.Base(fi.Path)
 		src := filepath.Join(updatesDir, filepath.FromSlash(fi.Path))
 		if _, err := os.Stat(src); err != nil {
 			continue // never completed
 		}
 		dest := filepath.Join(indexDir, placeholder)
 		if err := update.SaveFile(src, dest); err != nil {
+			logger.Error().Err(err).Str("file", base).Msg("index download failed: saving")
 			continue // best-effort: one bad file shouldn't fail the whole bootstrap
 		}
+		logger.Info().Str("file", base).Msg("index download complete")
 		count++
 	}
 	if waitErr != nil {

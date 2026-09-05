@@ -1297,7 +1297,7 @@ func runInstallCmd(s *settings.Settings, pending []installflow.Pending, progress
 		logger.Info().Int("devices", len(pending)).Msg("starting install")
 
 		var buf bytes.Buffer
-		ok := installflow.Run(s, pending, &buf, onAlert, progress.report)
+		ok := installflow.Run(s, pending, &buf, onAlert, progress.report, logger)
 		logger.Info().Bool("ok", ok).Msg("install finished")
 		if !ok {
 			logger.Warn().Str("log", buf.String()).Msg("install reported at least one failure")
@@ -1334,7 +1334,7 @@ func runIndexRefreshCmd(ctx context.Context, s *settings.Settings, progress *pro
 		logger.Info().Str("torrentFile", s.TorrentFile).Str("indexDir", s.IndexDir).Msg("starting index refresh")
 
 		var buf bytes.Buffer
-		n, err := collection.BootstrapIndexes(ctx, s.TorrentFile, s.IndexDir, s.UpdatesDir, s.Flags&settings.FlagKeepSeeding != 0, onAlert, progress.report)
+		n, err := collection.BootstrapIndexes(ctx, s.TorrentFile, s.IndexDir, s.UpdatesDir, s.Flags&settings.FlagKeepSeeding != 0, onAlert, progress.report, logger)
 		switch {
 		case errors.Is(err, context.Canceled):
 			fmt.Fprintf(&buf, "cancelled - %d new/updated index file(s) already saved\n", n)
@@ -1363,7 +1363,7 @@ func runWelcomeDownloadCmd(ctx context.Context, s *settings.Settings, filter upd
 		logger.Info().Str("torrentFile", s.TorrentFile).Str("drpDir", s.DrpDir).Msg("starting driver-pack download")
 
 		var buf bytes.Buffer
-		n, err := update.DownloadDriverPacks(ctx, s, onAlert, filter, &buf, 2*time.Hour, progress.report)
+		n, err := update.DownloadDriverPacks(ctx, s, onAlert, filter, &buf, 2*time.Hour, progress.report, logger)
 		switch {
 		case err == nil && ctx.Err() != nil:
 			// DownloadDriverPacks treats a cancel as a graceful partial
@@ -2170,7 +2170,7 @@ func sdiGo(args []string) int {
 	// (see newModel/Init), there's no terminal to keep responsive here,
 	// so scan.Run's synchronous bootstrap-then-scan is fine as is.
 	if s.Flags&settings.FlagNoGUI != 0 {
-		result, err := scan.Run(s)
+		result, err := scan.Run(s, logger)
 		if err != nil {
 			fmt.Fprintln(os.Stderr, "error:", err)
 			return 1
@@ -2189,7 +2189,7 @@ func sdiGo(args []string) int {
 			if !install.IsElevated() {
 				return relaunchElevated(s, cfgPath, args)
 			}
-			if !installflow.Run(s, pending, os.Stdout, alertLogger, nil) {
+			if !installflow.Run(s, pending, os.Stdout, alertLogger, nil, logger) {
 				return 1
 			}
 		}

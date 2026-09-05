@@ -349,26 +349,31 @@ func (t *Torrent) WaitDownload(ctx context.Context, files []FileInfo, timeout ti
 }
 
 // saveFileRetries/saveFileRetryDelay bound how long SaveFile waits for
-// a just-completed download's source file to become movable. The
-// torrent client keeps a shared read-handle pool open past a piece's
-// last write for verification/seeding (see anacrolix/torrent's
-// storage/file-handle-cache.go), so a rename attempted the instant
-// WaitDownload sees 100% can transiently fail on Windows with the
-// data already fully correct on disk - confirmed against a real
-// "Download All" run, where every affected file did succeed given a
-// later retry.
+// a source file to become movable. Originally added for the torrent
+// client's own shared read-handle pool, kept open past a piece's last
+// write for verification/seeding (see anacrolix/torrent's storage/
+// file-handle-cache.go), so a rename attempted the instant WaitDownload
+// sees 100% can transiently fail on Windows with the data already
+// fully correct on disk - confirmed against a real "Download All" run,
+// where every affected file did succeed given a later retry. The same
+// retry also covers any other transient just-written-file lock on
+// Windows (e.g. antivirus real-time scanning) - PromotePendingIndex
+// reuses SaveFile for exactly that reason, not a torrent-directory
+// move at all.
 const (
 	saveFileRetries    = 10
 	saveFileRetryDelay = 300 * time.Millisecond
 )
 
-// SaveFile relocates a downloaded file from a torrent client's data
-// directory to its final destination, falling back to copy-then-
-// remove if a direct rename fails (e.g. they're on different volumes -
-// the torrent client's temporary data directory and a driver-pack/
-// index directory need not be on the same drive). Both the rename and
-// the copy's initial open retry past a transient "in use" failure -
-// see saveFileRetries.
+// SaveFile relocates src to dest, retrying past a transient "in use"/
+// access-denied failure (see saveFileRetries) before falling back to
+// copy-then-remove if a direct rename still fails (e.g. they're on
+// different volumes - the torrent client's temporary data directory
+// and a driver-pack/index directory need not be on the same drive).
+// Originally written for moving a just-downloaded file out of the
+// torrent client's data directory, but equally applicable to any
+// same-package rename that can hit the same kind of transient lock -
+// see PromotePendingIndex.
 func SaveFile(src, dest string) error {
 	if err := os.MkdirAll(filepath.Dir(dest), 0o755); err != nil {
 		return err

@@ -7,12 +7,19 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/rs/zerolog"
+
 	"sdio/internal/archive"
 	"sdio/internal/collection"
 	"sdio/internal/indexing"
+	"sdio/internal/logging"
 	"sdio/internal/sdwfile"
 	"sdio/internal/settings"
 )
+
+// testLogger is a discard-everything Logger for tests that need to
+// pass one but aren't exercising logging itself.
+var testLogger = logging.New(zerolog.Disabled, nil)
 
 // TestMain forces an explicit os.Exit after tests complete. A real
 // torrent download (unlike internal/update's offline-only tests)
@@ -126,7 +133,7 @@ func TestRunAbortsWhenRestorePointFailsAndNotNoStop(t *testing.T) {
 	s.ExtractDir = t.TempDir()
 
 	var buf strings.Builder
-	if ok := Run(s, []Pending{p}, &buf, nil, nil); ok {
+	if ok := Run(s, []Pending{p}, &buf, nil, nil, testLogger); ok {
 		t.Error("Run() = true, want false for an aborted install")
 	}
 
@@ -149,7 +156,7 @@ func TestRunProceedsWhenNoStopSet(t *testing.T) {
 	s.Flags |= settings.FlagNoStop
 
 	var buf strings.Builder
-	if ok := Run(s, []Pending{p}, &buf, nil, nil); ok {
+	if ok := Run(s, []Pending{p}, &buf, nil, nil, testLogger); ok {
 		t.Error("Run() = true, want false - InstallOne still fails on this dev machine's platform-unsupported error")
 	}
 
@@ -173,7 +180,7 @@ func TestRunReturnsTrueWhenEverythingSucceeds(t *testing.T) {
 	s.Flags |= settings.FlagDisableInstall
 
 	var buf strings.Builder
-	if ok := Run(s, []Pending{p}, &buf, nil, nil); !ok {
+	if ok := Run(s, []Pending{p}, &buf, nil, nil, testLogger); !ok {
 		t.Errorf("Run() = false with -disableinstall (skips the restore point and the real install), want true: %s", buf.String())
 	}
 }
@@ -231,7 +238,7 @@ func TestDownloadPendingRealTorrent(t *testing.T) {
 		},
 	}}
 
-	if err := DownloadPending(s, pending, io.Discard, nil, nil); err != nil {
+	if err := DownloadPending(s, pending, io.Discard, nil, nil, testLogger); err != nil {
 		t.Fatalf("DownloadPending() error: %v", err)
 	}
 
