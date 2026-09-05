@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
+	"reflect"
 	"testing"
 
 	"github.com/rs/zerolog"
@@ -99,5 +100,86 @@ func TestWriteSnapshotSkippedWhenFlagNoSnapshotSet(t *testing.T) {
 
 	if names := listSnapFiles(t, s.LogDir); len(names) != 0 {
 		t.Errorf("found .snp file(s) %v with FlagNoSnapshot set, want none", names)
+	}
+}
+
+// TestLoadSnapshotRoundTrips confirms loadSnapshot reads back exactly
+// what writeSnapshot wrote - the -ls:<file> replay path's only job.
+func TestLoadSnapshotRoundTrips(t *testing.T) {
+	s := settings.New()
+	s.LogDir = t.TempDir()
+	want := Prepared{
+		System:  System{IsLaptop: true, BaseBoard: hardware.BaseBoard{Manufacturer: "Acme"}},
+		devices: []hardware.Device{{InstanceID: "dev1", Description: "Test Device"}},
+	}
+	writeSnapshot(s, want, testLogger)
+	path := filepath.Join(s.LogDir, listSnapFiles(t, s.LogDir)[0])
+
+	system, devices, err := loadSnapshot(path)
+	if err != nil {
+		t.Fatalf("loadSnapshot() error: %v", err)
+	}
+	if !reflect.DeepEqual(system, want.System) {
+		t.Errorf("System = %+v, want %+v", system, want.System)
+	}
+	if len(devices) != 1 || devices[0].InstanceID != "dev1" {
+		t.Errorf("Devices = %+v, want one device with InstanceID \"dev1\"", devices)
+	}
+}
+
+// TestLoadSnapshotMissingFileReturnsError confirms a bad -ls: path
+// fails loudly instead of silently falling back to a real scan.
+func TestLoadSnapshotMissingFileReturnsError(t *testing.T) {
+	if _, _, err := loadSnapshot(filepath.Join(t.TempDir(), "missing.snp")); err == nil {
+		t.Error("loadSnapshot() error = nil, want a not-found error")
+	}
+}
+
+// TestLoadSnapshotRejectsWrongVersion confirms a version mismatch (a
+// real C++ VER_STATE 0x102 snapshot, or a future incompatible Go
+// format) is rejected rather than misdecoded as JSON.
+func TestLoadSnapshotRejectsWrongVersion(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "wrongversion.snp")
+	f, err := os.Create(path)
+	if err != nil {
+		t.Fatalf("Create() error: %v", err)
+	}
+	if err := sdwfile.Encode(f, 0x102, []byte(`{}`), true); err != nil {
+		t.Fatalf("Encode() error: %v", err)
+	}
+	f.Close()
+
+	if _, _, err := loadSnapshot(path); err == nil {
+		t.Error("loadSnapshot() error = nil, want a version-mismatch error")
+	}
+}
+
+// TestPrepareWithStateModeEmulReplaysSnapshot confirms StateModeEmul
+// actually takes the snapshot-replay branch instead of falling
+// through to real hardware detection - hardware.GetBaseBoard/
+// GetSysInfoFast/ScanDevices all return ErrWindowsOnly on this
+// (non-Windows) test machine, so Prepare succeeding at all here is
+// itself proof the real-hardware calls were never reached.
+func TestPrepareWithStateModeEmulReplaysSnapshot(t *testing.T) {
+	s := settings.New()
+	s.LogDir = t.TempDir()
+	s.DrpDir, s.IndexDir = t.TempDir(), t.TempDir()
+	saved := Prepared{
+		System:  System{IsLaptop: true, BaseBoard: hardware.BaseBoard{Manufacturer: "Acme"}},
+		devices: []hardware.Device{{InstanceID: "dev1", Description: "Test Device"}},
+	}
+	writeSnapshot(s, saved, testLogger)
+	s.StateFile = filepath.Join(s.LogDir, listSnapFiles(t, s.LogDir)[0])
+	s.StateMode = settings.StateModeEmul
+
+	p, err := Prepare(s, testLogger)
+	if err != nil {
+		t.Fatalf("Prepare() error: %v", err)
+	}
+	if !reflect.DeepEqual(p.System, saved.System) {
+		t.Errorf("System = %+v, want %+v", p.System, saved.System)
+	}
+	if len(p.devices) != 1 || p.devices[0].InstanceID != "dev1" {
+		t.Errorf("devices = %+v, want the snapshot's one device", p.devices)
 	}
 }

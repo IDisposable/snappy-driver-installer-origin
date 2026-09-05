@@ -2,6 +2,7 @@ package scan
 
 import (
 	"encoding/json"
+	"fmt"
 	"os"
 	"path/filepath"
 
@@ -61,4 +62,30 @@ func writeSnapshot(s *settings.Settings, p Prepared, logger *logging.Logger) {
 		return
 	}
 	logger.Info().Str("file", name).Msg("saved state snapshot")
+}
+
+// loadSnapshot reads back a snapshot writeSnapshot wrote, for
+// StateModeEmul (-ls:<file>) replay - the Go equivalent of
+// State::load, decoding the JSON payload described on snapshotPayload
+// rather than the original's raw struct dump.
+func loadSnapshot(path string) (System, []hardware.Device, error) {
+	f, err := os.Open(path)
+	if err != nil {
+		return System{}, nil, err
+	}
+	defer f.Close()
+
+	version, payload, err := sdwfile.Decode(f, true)
+	if err != nil {
+		return System{}, nil, fmt.Errorf("decoding SDW container: %w", err)
+	}
+	if version != snapshotVersion {
+		return System{}, nil, fmt.Errorf("unsupported snapshot version %d (want %d)", version, snapshotVersion)
+	}
+
+	var snap snapshotPayload
+	if err := json.Unmarshal(payload, &snap); err != nil {
+		return System{}, nil, fmt.Errorf("decoding snapshot payload: %w", err)
+	}
+	return snap.System, snap.Devices, nil
 }

@@ -159,35 +159,53 @@ type Prepared struct {
 	marker   string
 }
 
-// Prepare detects hardware and creates DrpDir/IndexDir if missing -
-// the fast, no-network part of Run. Also writes a state snapshot (see
-// writeSnapshot) once hardware detection completes, matching the
-// original's Bundle::bundle_load -> bundle_lowpriority sequence.
+// Prepare detects hardware (or, under StateModeEmul, replays a saved
+// state snapshot instead - see loadSnapshot) and creates DrpDir/
+// IndexDir if missing - the fast, no-network part of Run. Also writes
+// a fresh state snapshot (see writeSnapshot) once that completes,
+// matching the original's Bundle::bundle_load -> bundle_lowpriority
+// sequence: model.cpp's own bundle_lowpriority always resnapshots
+// after either a real scan or a loaded one, and this does the same.
 func Prepare(s *settings.Settings, logger *logging.Logger) (Prepared, error) {
 	var p Prepared
 
-	bb, err := hardware.GetBaseBoard()
-	if err != nil {
-		return p, fmt.Errorf("reading base board info: %w", err)
-	}
-	si, err := hardware.GetSysInfoFast()
-	if err != nil {
-		return p, fmt.Errorf("reading system info: %w", err)
-	}
-	devices, err := hardware.ScanDevices()
-	if err != nil {
-		return p, fmt.Errorf("scanning devices: %w", err)
-	}
+	var bb hardware.BaseBoard
+	var si hardware.SysInfo
+	var devices []hardware.Device
+	var isLaptop bool
 
-	hasACPIBattery := false
-	for _, d := range devices {
-		for _, id := range d.HardwareIDs {
-			if strings.Contains(id, "*ACPI0003") {
-				hasACPIBattery = true
+	if s.StateMode == settings.StateModeEmul {
+		system, snapDevices, err := loadSnapshot(s.StateFile)
+		if err != nil {
+			return p, fmt.Errorf("loading state snapshot %s: %w", s.StateFile, err)
+		}
+		bb, si, isLaptop, devices = system.BaseBoard, system.SysInfo, system.IsLaptop, snapDevices
+	} else {
+		var err error
+		bb, err = hardware.GetBaseBoard()
+		if err != nil {
+			return p, fmt.Errorf("reading base board info: %w", err)
+		}
+		si, err = hardware.GetSysInfoFast()
+		if err != nil {
+			return p, fmt.Errorf("reading system info: %w", err)
+		}
+		devices, err = hardware.ScanDevices()
+		if err != nil {
+			return p, fmt.Errorf("scanning devices: %w", err)
+		}
+
+		hasACPIBattery := false
+		for _, d := range devices {
+			for _, id := range d.HardwareIDs {
+				if strings.Contains(id, "*ACPI0003") {
+					hasACPIBattery = true
+				}
 			}
 		}
+		isLaptop = hardware.IsLaptop(bb.ChassisType, si.Monitors, si.Battery, hasACPIBattery)
 	}
-	isLaptop := hardware.IsLaptop(bb.ChassisType, si.Monitors, si.Battery, hasACPIBattery)
+
 	marker := ""
 	if isLaptop {
 		marker = matcher.NotebookOEMMarker(bb.SystemManufacturer)
