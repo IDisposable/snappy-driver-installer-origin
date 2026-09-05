@@ -1,8 +1,8 @@
 name: Release
 
 # Builds sdigo.exe and attaches it to a GitHub Release whenever a tag
-# matching v*.*.* is pushed (e.g. v0.1.0), via go/scripts/release.sh -
-# see go/docs/RELEASE.md for what that script does and why the
+# matching v*.*.* is pushed (e.g. v0.1.0), via scripts/release.sh -
+# see docs/RELEASE.md for what that script does and why the
 # manifest/version resource it generates isn't committed.
 
 on:
@@ -23,14 +23,14 @@ jobs:
 
       - uses: actions/setup-go@v5
         with:
-          go-version-file: go/go.mod
+          go-version-file: go.mod
 
       - name: Build release
-        working-directory: go
+        working-directory: .
         run: scripts/release.sh
 
       - name: Create release
         uses: softprops/action-gh-release@v2
         with:
-          files: go/sdigo.exe
+          files: sdigo.exe
           generate_release_notes: true
