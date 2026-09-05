@@ -64,7 +64,7 @@ var boolFlagDefs = []boolFlagDef{
 	{"disableinstall", "scan and match only: never install, and never create a restore point", FlagDisableInstall, false},
 	{"delextrainfs", "delete extra .inf files after install", FlagDelExtraInfs, false},
 	{"nologfile", "don't write a log file (not implemented - no log-file writer exists yet)", FlagNoLogFile, false},
-	{"nosnapshot", "don't save a system snapshot (not implemented - no snapshot writer exists yet)", FlagNoSnapshot, false},
+	{"nosnapshot", "don't save a system snapshot (logs/*.snp) after scanning", FlagNoSnapshot, false},
 	{"reindex", "rebuild every driver pack's index from its own .7z, even if a valid one already exists", FlagForceReindexing, false},
 	{"index-hr", "also write a human-readable text index alongside any index (re)built this run", FlagPrintIndex, false},
 }

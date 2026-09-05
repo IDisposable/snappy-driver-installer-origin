@@ -160,8 +160,10 @@ type Prepared struct {
 }
 
 // Prepare detects hardware and creates DrpDir/IndexDir if missing -
-// the fast, no-network part of Run.
-func Prepare(s *settings.Settings) (Prepared, error) {
+// the fast, no-network part of Run. Also writes a state snapshot (see
+// writeSnapshot) once hardware detection completes, matching the
+// original's Bundle::bundle_load -> bundle_lowpriority sequence.
+func Prepare(s *settings.Settings, logger *logging.Logger) (Prepared, error) {
 	var p Prepared
 
 	bb, err := hardware.GetBaseBoard()
@@ -210,6 +212,7 @@ func Prepare(s *settings.Settings) (Prepared, error) {
 	if err := os.MkdirAll(s.IndexDir, 0o755); err != nil {
 		return p, fmt.Errorf("creating %s: %w", s.IndexDir, err)
 	}
+	writeSnapshot(s, p, logger)
 	return p, nil
 }
 
@@ -269,7 +272,7 @@ func MatchWithCollection(s *settings.Settings, p Prepared, onProgress func(curre
 // render on a network operation. logger records a structured entry
 // for every file BootstrapIndexes downloads.
 func Run(s *settings.Settings, logger *logging.Logger) (Result, error) {
-	p, err := Prepare(s)
+	p, err := Prepare(s, logger)
 	if err != nil {
 		return Result{}, err
 	}

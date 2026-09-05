@@ -580,7 +580,7 @@ func (m model) Init() tea.Cmd {
 	scanCmd := func() tea.Msg {
 		defer logPanic(m.logger, "scan")
 		m.logger.Info().Msg("starting hardware scan")
-		p, err := scan.Prepare(m.s)
+		p, err := scan.Prepare(m.s, m.logger)
 		if err != nil {
 			m.logger.Error().Err(err).Msg("hardware scan failed")
 			return scanDoneMsg{err: err}
