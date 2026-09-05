@@ -733,6 +733,7 @@ func TestWelcomeDownloadDoneRescans(t *testing.T) {
 // was never configured.
 func TestWelcomeRequiresTorrentFile(t *testing.T) {
 	s := settings.New()
+	s.TorrentFile = "" // override the real default - this test wants the unconfigured case
 	m := newTestModel(scan.Result{}, s, nil)
 	m.screen = screenWelcome
 

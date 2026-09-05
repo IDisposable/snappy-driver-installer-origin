@@ -70,11 +70,22 @@ type Settings struct {
 	// http(s):// URL to fetch a .torrent file from (e.g. one published
 	// on a GitHub Pages/raw.githubusercontent.com page) - see
 	// update.Client.AddFromSpec, collection.LoadOnlineIndexes, and
-	// docs/PORTING_NOTES.md's update.cpp entry. Empty means torrent
-	// downloads are disabled; no tracker/webseed/metadata-fetch URL is
-	// hardcoded here, so this must be supplied explicitly.
+	// docs/PORTING_NOTES.md's update.cpp entry. Defaults to
+	// DefaultTorrentFile; -torrent-file/a config file can still override
+	// it, including back to "" to disable torrent downloads entirely.
 	TorrentFile string
 }
+
+// DefaultTorrentFile is Settings.TorrentFile's out-of-the-box value:
+// this fork's own GitHub-hosted copy of the SDIO update torrent (the
+// original never hardcoded one - see update.h's undefined torrent_url/
+// torrent2_url, docs/PORTING_NOTES.md's update.cpp entry - since no
+// real URL existed in that source snapshot). Unlike the upstream
+// project, this rewrite has one real distribution to point at, so a
+// fresh install bootstraps its index/driver-pack catalog with no
+// configuration at all instead of silently doing nothing until a user
+// finds and sets -torrent-file themselves.
+const DefaultTorrentFile = "https://github.com/IDisposable/snappy-driver-installer-origin/raw/refs/heads/main/seed/SDIO_Update.torrent"
 
 // New returns Settings populated with the same defaults as the original
 // Settings_t constructor.
@@ -90,6 +101,7 @@ func New() *Settings {
 		StateFile:     "untitled.snp",
 		StateMode:     StateModeReal,
 		Filters:       DefaultFilters,
+		TorrentFile:   DefaultTorrentFile,
 	}
 }
 
