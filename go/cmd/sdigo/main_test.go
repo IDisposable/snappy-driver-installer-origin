@@ -1,6 +1,8 @@
 package main
 
 import (
+	"bytes"
+	"context"
 	"errors"
 	"fmt"
 	"os"
@@ -849,6 +851,45 @@ func TestWelcomeAllDriverPacksNeedsConfirmation(t *testing.T) {
 	}
 }
 
+// TestEscOnWelcomeDownloadingCancelsTheRunningOperation confirms "esc"
+// while a Welcome-screen download is in flight calls the context
+// cancel function startDownload wired up, rather than being ignored
+// like every other key on this screen - the only way to stop a
+// download used to be force-killing the whole process, which was
+// observed to leave the torrent client's on-disk state in a shape
+// that crashed on the next resume.
+func TestEscOnWelcomeDownloadingCancelsTheRunningOperation(t *testing.T) {
+	m := newTestModel(scan.Result{}, settings.New(), nil)
+	m.screen = screenWelcomeDownloading
+	called := false
+	m.dlCancel = func() { called = true }
+
+	mm, _ := m.Update(tea.KeyMsg{Type: tea.KeyEsc})
+	m = mm.(model)
+	if !called {
+		t.Error("esc on screenWelcomeDownloading did not call dlCancel")
+	}
+	if !m.dlCancelling {
+		t.Error("dlCancelling = false after esc, want true")
+	}
+	if m.screen != screenWelcomeDownloading {
+		t.Errorf("screen = %v after esc, want screenWelcomeDownloading unchanged (the running command finishes on its own)", m.screen)
+	}
+}
+
+// TestEscOnWelcomeDownloadingWithNoCancelIsANoOp confirms esc doesn't
+// panic when reached with nothing running to cancel (m.dlCancel nil) -
+// a defensive case, not one the normal flow should hit.
+func TestEscOnWelcomeDownloadingWithNoCancelIsANoOp(t *testing.T) {
+	m := newTestModel(scan.Result{}, settings.New(), nil)
+	m.screen = screenWelcomeDownloading
+
+	mm, _ := m.Update(tea.KeyMsg{Type: tea.KeyEsc})
+	if mm.(model).screen != screenWelcomeDownloading {
+		t.Errorf("screen = %v, want screenWelcomeDownloading unchanged", mm.(model).screen)
+	}
+}
+
 // TestInstallDoneQuitsWhenAutoCloseSet confirms -autoclose exits the
 // program once an install finishes, ported from Manager::thread_
 // install's PostMessage(WM_CLOSE) - instead of leaving the log screen
@@ -1086,7 +1127,7 @@ func TestActiveFileLinesShowsEachInProgressFile(t *testing.T) {
 		{Path: "a/DP_Done.7z", Completed: 100, Total: 100},
 		{Path: "a/DP_Half.7z", Completed: 50, Total: 100},
 		{Path: "a/DP_Started.7z", Completed: 10, Total: 100},
-	})
+	}, maxActiveDownloadLines)
 
 	if !strings.Contains(got, "1/3 files complete") {
 		t.Errorf("activeFileLines() = %q, want a 1/3 complete count", got)
@@ -1103,7 +1144,7 @@ func TestActiveFileLinesShowsEachInProgressFile(t *testing.T) {
 // (the install path, which selects one pack at a time) doesn't
 // duplicate the overall percent as a redundant one-file breakdown.
 func TestActiveFileLinesSingleFileIsEmpty(t *testing.T) {
-	got := activeFileLines([]update.FileProgress{{Path: "a/DP_Only.7z", Completed: 10, Total: 100}})
+	got := activeFileLines([]update.FileProgress{{Path: "a/DP_Only.7z", Completed: 10, Total: 100}}, maxActiveDownloadLines)
 	if got != "" {
 		t.Errorf("activeFileLines() = %q, want empty for a single file", got)
 	}
@@ -1118,7 +1159,7 @@ func TestActiveFileLinesCapsShownFiles(t *testing.T) {
 		files[i] = update.FileProgress{Path: fmt.Sprintf("a/DP_%d.7z", i), Completed: 1, Total: 100}
 	}
 
-	got := activeFileLines(files)
+	got := activeFileLines(files, maxActiveDownloadLines)
 	if !strings.Contains(got, "3 more in progress") {
 		t.Errorf("activeFileLines() = %q, want the overflow summarized as 3 more", got)
 	}
@@ -1186,5 +1227,57 @@ func TestScanningViewShowsRecentFiles(t *testing.T) {
 	}
 	if !strings.Contains(got, "3 of 104") {
 		t.Errorf("scanningView() = %q, want the current/total count shown", got)
+	}
+}
+
+// TestLogPanicLogsBeforeRePanicking confirms a panic inside a
+// background tea.Cmd gets a real log entry (op name, the panic value,
+// a stack trace) before continuing to propagate to bubbletea's own
+// recovery - reported live: a resumed download crashed with nothing
+// in the log file at all, since nothing recovered/logged it first.
+func TestLogPanicLogsBeforeRePanicking(t *testing.T) {
+	var buf bytes.Buffer
+	logger := logging.New(zerolog.InfoLevel, &buf)
+
+	func() {
+		defer func() {
+			if r := recover(); r == nil {
+				t.Fatal("logPanic swallowed the panic instead of re-panicking")
+			}
+		}()
+		func() {
+			defer logPanic(logger, "testop")
+			panic("boom")
+		}()
+	}()
+
+	out := buf.String()
+	if !strings.Contains(out, "testop") {
+		t.Errorf("log output = %q, want the op name \"testop\"", out)
+	}
+	if !strings.Contains(out, "boom") {
+		t.Errorf("log output = %q, want the panic value \"boom\"", out)
+	}
+}
+
+// TestRunIndexRefreshCmdLogsFailure confirms a real (not mocked)
+// failure from a background command - here BootstrapIndexes given no
+// torrent source at all - produces a log entry, not just the
+// message returned to Update. Run synchronously (calling the returned
+// tea.Cmd directly) rather than through the full bubbletea runtime,
+// same as exercising any other tea.Cmd in isolation.
+func TestRunIndexRefreshCmdLogsFailure(t *testing.T) {
+	var buf bytes.Buffer
+	logger := logging.New(zerolog.InfoLevel, &buf)
+	s := settings.New()
+	s.TorrentFile = ""
+
+	msg := runIndexRefreshCmd(context.Background(), s, &progressTracker{}, nil, logger)()
+	wd, ok := msg.(welcomeDownloadDoneMsg)
+	if !ok || !wd.isErr {
+		t.Fatalf("cmd() = %#v, want a welcomeDownloadDoneMsg with isErr=true", msg)
+	}
+	if !strings.Contains(buf.String(), "index refresh failed") {
+		t.Errorf("log output = %q, want a line reporting the index refresh failure", buf.String())
 	}
 }

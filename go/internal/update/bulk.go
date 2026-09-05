@@ -2,6 +2,7 @@ package update
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -46,9 +47,15 @@ func NetworkDriverPacks(filename string) bool {
 // instead of restarting from zero next run. onProgress, if non-nil,
 // is called with live byte-level progress across every selected file
 // - see ProgressFunc. onAlert, if non-nil, is called for the torrent
-// client's own Warning-or-higher events (see Config.OnAlert). Returns
+// client's own Warning-or-higher events (see Config.OnAlert). ctx
+// cancels the operation early (e.g. a user-requested stop) - already-
+// completed files are still saved and their indexes promoted rather
+// than discarded, so a cancel behaves like a graceful partial run,
+// not a lost one; a torrent client closed via the normal defer c.Close()
+// path this way is far less likely to leave its on-disk piece state
+// inconsistent than force-killing the whole process ever was. Returns
 // how many files were newly downloaded.
-func DownloadDriverPacks(s *settings.Settings, onAlert func(level, message string), filter DriverPackFilter, out io.Writer, timeout time.Duration, onProgress ProgressFunc) (int, error) {
+func DownloadDriverPacks(ctx context.Context, s *settings.Settings, onAlert func(level, message string), filter DriverPackFilter, out io.Writer, timeout time.Duration, onProgress ProgressFunc) (int, error) {
 	if err := os.MkdirAll(s.DrpDir, 0o755); err != nil {
 		return 0, err
 	}
@@ -67,9 +74,9 @@ func DownloadDriverPacks(s *settings.Settings, onAlert func(level, message strin
 		return 0, fmt.Errorf("adding torrent %s: %w", s.TorrentFile, err)
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	infoCtx, cancel := context.WithTimeout(ctx, 30*time.Second)
 	defer cancel()
-	if err := t.WaitInfo(ctx); err != nil {
+	if err := t.WaitInfo(infoCtx); err != nil {
 		return 0, fmt.Errorf("reading torrent metadata: %w", err)
 	}
 
@@ -91,11 +98,15 @@ func DownloadDriverPacks(s *settings.Settings, onAlert func(level, message strin
 	selected := t.SelectFiles(names)
 	fmt.Fprintf(out, "downloading %d driver pack(s)...\n", len(selected))
 
-	dlCtx, dlCancel := context.WithTimeout(context.Background(), timeout)
+	dlCtx, dlCancel := context.WithTimeout(ctx, timeout)
 	defer dlCancel()
 	label := fmt.Sprintf("%d driver pack(s)", len(selected))
 	if err := t.WaitDownload(dlCtx, selected, timeout, label, onProgress); err != nil {
-		fmt.Fprintf(out, "warning: download did not finish: %v\n", err)
+		if errors.Is(err, context.Canceled) {
+			fmt.Fprintf(out, "download cancelled\n")
+		} else {
+			fmt.Fprintf(out, "warning: download did not finish: %v\n", err)
+		}
 		// Which file(s), not just that something didn't finish -
 		// otherwise a webseed outage or a peer-less file (both real,
 		// seen against the actual public torrent) look identical to

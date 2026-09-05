@@ -2,6 +2,7 @@ package update
 
 import (
 	"bytes"
+	"context"
 	"os"
 	"path/filepath"
 	"strings"
@@ -74,7 +75,7 @@ func TestDownloadDriverPacksRealTorrent(t *testing.T) {
 	}
 
 	var buf bytes.Buffer
-	n, err := DownloadDriverPacks(s, nil, onlyCardReader, &buf, 30*time.Minute, nil)
+	n, err := DownloadDriverPacks(context.Background(), s, nil, onlyCardReader, &buf, 30*time.Minute, nil)
 	if err != nil {
 		t.Fatalf("DownloadDriverPacks() error: %v\noutput:\n%s", err, buf.String())
 	}
@@ -94,7 +95,7 @@ func TestDownloadDriverPacksRealTorrent(t *testing.T) {
 
 	// A second run must find it already present and download nothing.
 	buf.Reset()
-	n, err = DownloadDriverPacks(s, nil, onlyCardReader, &buf, 30*time.Minute, nil)
+	n, err = DownloadDriverPacks(context.Background(), s, nil, onlyCardReader, &buf, 30*time.Minute, nil)
 	if err != nil {
 		t.Fatalf("second DownloadDriverPacks() error: %v", err)
 	}

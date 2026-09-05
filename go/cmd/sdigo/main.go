@@ -13,9 +13,12 @@ package main
 
 import (
 	"bytes"
+	"context"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
+	"runtime/debug"
 	"sort"
 	"strings"
 	"sync"
@@ -371,6 +374,21 @@ type model struct {
 	// live percent/bytes/speed readout instead of a static message.
 	dlProgress *progressTracker
 
+	// dlCancel stops a screenWelcomeDownloading run early (see
+	// startDownload/"esc" in updateTable's screenWelcomeDownloading
+	// case) - scoped to Welcome-screen downloads only, not
+	// screenInstalling, since interrupting an in-progress driver
+	// install (rather than just a download feeding it) risks leaving a
+	// device half-configured. Already-completed files are still saved,
+	// not discarded - see update.DownloadDriverPacks/
+	// collection.BootstrapIndexes's ctx parameter. nil when no
+	// cancelable download is running.
+	dlCancel context.CancelFunc
+	// dlCancelling is set the moment "esc" requests a stop, so the view
+	// can say so immediately instead of looking unresponsive for
+	// however long the in-flight torrent I/O takes to actually unwind.
+	dlCancelling bool
+
 	// scanProgress is populated by Init's background collection load,
 	// so screenScanning's View can show which driver pack is loading
 	// instead of a static message for however long a full collection
@@ -429,12 +447,50 @@ func (m *model) refreshTable() {
 // the default stderr handler). Checks the flag per call, not once at
 // construction, so toggling it live on the options screen takes
 // effect on the next event instead of needing a fresh download.
+// logPanic recovers a panic in a background tea.Cmd goroutine and logs
+// it via zerolog (full stack trace, structured fields) before letting
+// it continue to propagate. bubbletea's own recovery (see its tea.go)
+// still catches it after that, restores the terminal, and reports a
+// generic "program panicked" error - but its own diagnostic print goes
+// to stdout while still inside the alt-screen buffer, which can be
+// overwritten or never actually flushed to a visible terminal before
+// the process exits. Reported live: a resumed download crashed with
+// nothing in the log file but the startup marker, nothing on screen
+// either. op names which background command panicked, since a log
+// covers many different operations over a session. Call as the first
+// line of a tea.Cmd closure via defer.
+func logPanic(logger *logging.Logger, op string) {
+	if r := recover(); r != nil {
+		logger.Error().
+			Str("op", op).
+			Interface("panic", r).
+			Str("stack", string(debug.Stack())).
+			Msg("recovered panic in background command")
+		panic(r)
+	}
+}
+
 func (m model) alertLogger() func(level, message string) {
 	return func(level, message string) {
 		if m.s.Flags&settings.FlagTorrentAlerts != 0 {
 			m.logger.Warn().Str("level", level).Msg(message)
 		}
 	}
+}
+
+// startDownload prepares model state for a screenWelcomeDownloading
+// run - a fresh progress tracker and a cancelable context, so "esc"
+// can stop the operation early (see updateTable's screenWelcomeDownloading
+// case) rather than the only way out being to force-kill the whole
+// process, which was observed to leave the torrent client's on-disk
+// state in a shape that crashed on the next resume. Returns the
+// context to pass into whichever run*Cmd is about to start.
+func (m *model) startDownload() context.Context {
+	m.dlProgress = &progressTracker{}
+	m.dlCancelling = false
+	ctx, cancel := context.WithCancel(context.Background())
+	m.dlCancel = cancel
+	return ctx
 }
 
 // currentDevice returns the device under the table's cursor, or nil
@@ -506,11 +562,23 @@ func tickSplashCmd() tea.Cmd {
 // timer that moves screenSplash along to screenScanning on its own.
 func (m model) Init() tea.Cmd {
 	scanCmd := func() tea.Msg {
+		defer logPanic(m.logger, "scan")
+		m.logger.Info().Msg("starting hardware scan")
 		p, err := scan.Prepare(m.s)
 		if err != nil {
+			m.logger.Error().Err(err).Msg("hardware scan failed")
 			return scanDoneMsg{err: err}
 		}
 		res, err := scan.MatchWithCollection(m.s, p, m.scanProgress.report)
+		if err != nil {
+			m.logger.Error().Err(err).Msg("loading driver-pack collection failed")
+		} else {
+			m.logger.Info().
+				Int("devices", len(res.Devices)).
+				Int("packsLoaded", len(res.Collection.Packs)).
+				Int("packsSkipped", len(res.Collection.Skipped)).
+				Msg("scan complete")
+		}
 		return scanDoneMsg{prepared: p, result: res, err: err}
 	}
 	return tea.Batch(scanCmd, tickProgressCmd(), tickSplashCmd())
@@ -572,15 +640,15 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			// after the table's first render instead of blocking it, the
 			// way the original's launch-time bootstrap did.
 			m.screen = screenWelcomeDownloading
-			m.dlProgress = &progressTracker{}
-			cmd = tea.Batch(runIndexRefreshCmd(m.s, m.dlProgress, m.alertLogger()), tickProgressCmd())
+			ctx := m.startDownload()
+			cmd = tea.Batch(runIndexRefreshCmd(ctx, m.s, m.dlProgress, m.alertLogger(), m.logger), tickProgressCmd())
 		case m.s.Flags&settings.FlagAutoUpdate != 0:
 			// Ported from the "-autoupdate command line parameter" launch-
 			// time auto-trigger (update.cpp) - fires once, right after the
 			// first scan.
 			m.screen = screenWelcomeDownloading
-			m.dlProgress = &progressTracker{}
-			cmd = tea.Batch(runWelcomeDownloadCmd(m.s, update.AllDriverPacks, m.dlProgress, m.alertLogger()), tickProgressCmd())
+			ctx := m.startDownload()
+			cmd = tea.Batch(runWelcomeDownloadCmd(ctx, m.s, update.AllDriverPacks, m.dlProgress, m.alertLogger(), m.logger), tickProgressCmd())
 		}
 		if len(m.pendingResumeSelected) > 0 {
 			// An elevation relaunch resuming a confirmed selection wins
@@ -621,6 +689,8 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.opLog = msg.log
 		m.opLogIsError = msg.isErr
 		m.screen = screenInstallLog
+		m.dlCancel = nil
+		m.dlCancelling = false
 		// Whatever just downloaded (indexes, driver packs) may have
 		// changed what's on disk - rescan so the table reflects it
 		// instead of showing stale "needs download"/missing rows until
@@ -710,7 +780,21 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case screenWelcomeConfirmAll:
 			return m.updateWelcomeConfirmAll(msg)
 		case screenWelcomeDownloading:
-			return m, nil // ignore input while the download command is running
+			switch msg.String() {
+			case "esc", "ctrl+c":
+				// Only stop the operation, not the whole process - the
+				// running command still finishes on its own (see
+				// welcomeDownloadDoneMsg) once WaitDownload notices ctx is
+				// done, saving whatever completed first rather than
+				// discarding it. m.dlCancel is nil once already called
+				// (or if somehow reached with nothing running), so a
+				// repeated esc is a harmless no-op instead of a panic.
+				if m.dlCancel != nil {
+					m.dlCancel()
+					m.dlCancelling = true
+				}
+			}
+			return m, nil // otherwise ignore input while the download command is running
 		case screenUSBDrive:
 			return m.updateUSBDrive(msg)
 		case screenUSBDriveConfirm:
@@ -900,7 +984,7 @@ func (m model) updateConfirmInstall(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		pending := m.pendingSelected()
 		m.screen = screenInstalling
 		m.dlProgress = &progressTracker{}
-		return m, tea.Batch(runInstallCmd(m.s, pending, m.dlProgress, m.alertLogger()), tickProgressCmd())
+		return m, tea.Batch(runInstallCmd(m.s, pending, m.dlProgress, m.alertLogger(), m.logger), tickProgressCmd())
 	case "ctrl+c":
 		return m, tea.Quit
 	case "n", "q", "esc":
@@ -947,12 +1031,12 @@ func (m model) updateWelcome(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		switch m.welcomeIndex {
 		case 0:
 			m.screen = screenWelcomeDownloading
-			m.dlProgress = &progressTracker{}
-			return m, tea.Batch(runIndexRefreshCmd(m.s, m.dlProgress, m.alertLogger()), tickProgressCmd())
+			ctx := m.startDownload()
+			return m, tea.Batch(runIndexRefreshCmd(ctx, m.s, m.dlProgress, m.alertLogger(), m.logger), tickProgressCmd())
 		case 1:
 			m.screen = screenWelcomeDownloading
-			m.dlProgress = &progressTracker{}
-			return m, tea.Batch(runWelcomeDownloadCmd(m.s, update.NetworkDriverPacks, m.dlProgress, m.alertLogger()), tickProgressCmd())
+			ctx := m.startDownload()
+			return m, tea.Batch(runWelcomeDownloadCmd(ctx, m.s, update.NetworkDriverPacks, m.dlProgress, m.alertLogger(), m.logger), tickProgressCmd())
 		case 2:
 			m.screen = screenWelcomeConfirmAll
 			return m, nil
@@ -969,8 +1053,8 @@ func (m model) updateWelcomeConfirmAll(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	switch msg.String() {
 	case "y", "enter":
 		m.screen = screenWelcomeDownloading
-		m.dlProgress = &progressTracker{}
-		return m, tea.Batch(runWelcomeDownloadCmd(m.s, update.AllDriverPacks, m.dlProgress, m.alertLogger()), tickProgressCmd())
+		ctx := m.startDownload()
+		return m, tea.Batch(runWelcomeDownloadCmd(ctx, m.s, update.AllDriverPacks, m.dlProgress, m.alertLogger(), m.logger), tickProgressCmd())
 	case "ctrl+c":
 		return m, tea.Quit
 	case "n", "q", "esc":
@@ -1011,7 +1095,7 @@ func (m model) updateUSBDriveConfirm(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	switch msg.String() {
 	case "y", "enter":
 		m.screen = screenUSBDriveCopying
-		return m, runUSBCopyCmd(m.s, m.usbDrives[m.usbDriveIndex].Root)
+		return m, runUSBCopyCmd(m.s, m.usbDrives[m.usbDriveIndex].Root, m.logger)
 	case "ctrl+c":
 		return m, tea.Quit
 	case "n", "q", "esc":
@@ -1040,19 +1124,25 @@ func usbPortablePaths(s *settings.Settings) ([]string, error) {
 // background, matching the async pattern every other real
 // system-modifying action in this TUI uses (installflow.Run, Welcome
 // downloads) so the UI stays responsive.
-func runUSBCopyCmd(s *settings.Settings, destRoot string) tea.Cmd {
+func runUSBCopyCmd(s *settings.Settings, destRoot string, logger *logging.Logger) tea.Cmd {
 	return func() tea.Msg {
+		defer logPanic(logger, "usbcopy")
+		logger.Info().Str("dest", destRoot).Msg("starting USB drive copy")
+
 		var buf bytes.Buffer
 		paths, err := usbPortablePaths(s)
 		if err != nil {
 			fmt.Fprintf(&buf, "error: %v\n", err)
-			return welcomeDownloadDoneMsg{log: logLines(&buf)}
+			logger.Error().Err(err).Msg("resolving paths to copy for USB drive failed")
+			return welcomeDownloadDoneMsg{log: logLines(&buf), isErr: true}
 		}
 		if err := usbdrive.CopyPortable(destRoot, paths, &buf); err != nil {
 			fmt.Fprintf(&buf, "error: %v\n", err)
-		} else {
-			fmt.Fprintf(&buf, "done - copied to %s\n", destRoot)
+			logger.Error().Err(err).Str("dest", destRoot).Msg("USB drive copy failed")
+			return welcomeDownloadDoneMsg{log: logLines(&buf), isErr: true}
 		}
+		fmt.Fprintf(&buf, "done - copied to %s\n", destRoot)
+		logger.Info().Str("dest", destRoot).Msg("USB drive copy complete")
 		return welcomeDownloadDoneMsg{log: logLines(&buf)}
 	}
 }
@@ -1201,10 +1291,17 @@ type installDoneMsg struct {
 // alternate-screen mode - writing to os.Stdout underneath that would
 // corrupt the display. progress receives live byte-level status for
 // the Installing screen.
-func runInstallCmd(s *settings.Settings, pending []installflow.Pending, progress *progressTracker, onAlert func(level, message string)) tea.Cmd {
+func runInstallCmd(s *settings.Settings, pending []installflow.Pending, progress *progressTracker, onAlert func(level, message string), logger *logging.Logger) tea.Cmd {
 	return func() tea.Msg {
+		defer logPanic(logger, "install")
+		logger.Info().Int("devices", len(pending)).Msg("starting install")
+
 		var buf bytes.Buffer
 		ok := installflow.Run(s, pending, &buf, onAlert, progress.report)
+		logger.Info().Bool("ok", ok).Msg("install finished")
+		if !ok {
+			logger.Warn().Str("log", buf.String()).Msg("install reported at least one failure")
+		}
 		return installDoneMsg{log: logLines(&buf), isErr: !ok}
 	}
 }
@@ -1231,14 +1328,24 @@ type welcomeDownloadDoneMsg struct {
 // this automatically for a genuinely empty index directory, so this
 // path matters for an on-demand refresh of an existing catalog).
 // progress receives live byte-level status for the Downloading screen.
-func runIndexRefreshCmd(s *settings.Settings, progress *progressTracker, onAlert func(level, message string)) tea.Cmd {
+func runIndexRefreshCmd(ctx context.Context, s *settings.Settings, progress *progressTracker, onAlert func(level, message string), logger *logging.Logger) tea.Cmd {
 	return func() tea.Msg {
+		defer logPanic(logger, "indexrefresh")
+		logger.Info().Str("torrentFile", s.TorrentFile).Str("indexDir", s.IndexDir).Msg("starting index refresh")
+
 		var buf bytes.Buffer
-		n, err := collection.BootstrapIndexes(s.TorrentFile, s.IndexDir, s.UpdatesDir, s.Flags&settings.FlagKeepSeeding != 0, onAlert, progress.report)
-		if err != nil {
+		n, err := collection.BootstrapIndexes(ctx, s.TorrentFile, s.IndexDir, s.UpdatesDir, s.Flags&settings.FlagKeepSeeding != 0, onAlert, progress.report)
+		switch {
+		case errors.Is(err, context.Canceled):
+			fmt.Fprintf(&buf, "cancelled - %d new/updated index file(s) already saved\n", n)
+			logger.Info().Int("downloaded", n).Msg("index refresh cancelled")
+			return welcomeDownloadDoneMsg{log: logLines(&buf)}
+		case err != nil:
 			fmt.Fprintf(&buf, "error refreshing indexes: %v\n", err)
-		} else {
+			logger.Error().Err(err).Msg("index refresh failed")
+		default:
 			fmt.Fprintf(&buf, "downloaded %d new/updated index file(s)\n", n)
+			logger.Info().Int("downloaded", n).Msg("index refresh complete")
 		}
 		return welcomeDownloadDoneMsg{log: logLines(&buf), isErr: err != nil}
 	}
@@ -1250,14 +1357,28 @@ func runIndexRefreshCmd(s *settings.Settings, progress *progressTracker, onAlert
 // large network operation, run as a background tea.Cmd like install
 // so the UI stays responsive. progress receives live byte-level
 // status for the Downloading screen.
-func runWelcomeDownloadCmd(s *settings.Settings, filter update.DriverPackFilter, progress *progressTracker, onAlert func(level, message string)) tea.Cmd {
+func runWelcomeDownloadCmd(ctx context.Context, s *settings.Settings, filter update.DriverPackFilter, progress *progressTracker, onAlert func(level, message string), logger *logging.Logger) tea.Cmd {
 	return func() tea.Msg {
+		defer logPanic(logger, "welcomedownload")
+		logger.Info().Str("torrentFile", s.TorrentFile).Str("drpDir", s.DrpDir).Msg("starting driver-pack download")
+
 		var buf bytes.Buffer
-		n, err := update.DownloadDriverPacks(s, onAlert, filter, &buf, 2*time.Hour, progress.report)
-		if err != nil {
+		n, err := update.DownloadDriverPacks(ctx, s, onAlert, filter, &buf, 2*time.Hour, progress.report)
+		switch {
+		case err == nil && ctx.Err() != nil:
+			// DownloadDriverPacks treats a cancel as a graceful partial
+			// run (see its own doc comment) and returns a nil error, so
+			// the cancellation itself is only visible via ctx.Err() here.
+			logger.Info().Int("downloaded", n).Msg("driver-pack download cancelled")
+			return welcomeDownloadDoneMsg{log: logLines(&buf)}
+		case err != nil:
 			fmt.Fprintf(&buf, "error: %v\n", err)
-		} else if n == 0 {
+			logger.Error().Err(err).Msg("driver-pack download failed")
+		case n == 0:
 			fmt.Fprintf(&buf, "nothing new to download - already up to date\n")
+			logger.Info().Msg("driver-pack download: nothing new")
+		default:
+			logger.Info().Int("downloaded", n).Msg("driver-pack download complete")
 		}
 		return welcomeDownloadDoneMsg{log: logLines(&buf), isErr: err != nil}
 	}
@@ -1299,12 +1420,31 @@ func (m model) View() string {
 	return m.tableView()
 }
 
-// maxActiveDownloadLines caps how many in-progress files
-// downloadStatusView lists individually - "Download All Driver Packs"
-// selects 100+ files at once, more than a terminal screen can show one
-// line each, so only the closest-to-done ones are shown and the rest
-// are summarized as a count.
-const maxActiveDownloadLines = 8
+// maxActiveDownloadLines is the fallback cap on how many in-progress
+// files downloadStatusView lists individually, used only before the
+// terminal's real size is known (m.height<=0) - see
+// activeFileLinesBudget for the normal, height-aware sizing.
+// "Download All Driver Packs" selects 100+ files at once, so on a
+// reasonably tall terminal most of that fits at once rather than
+// always truncating to a small fixed handful.
+const maxActiveDownloadLines = 20
+
+// activeFileLinesBudget returns how many in-progress files
+// activeFileLines should list individually, sized to the terminal's
+// actual height (minus the handful of lines downloadStatusView's own
+// header/percent/summary text always takes) instead of a small fixed
+// cap - a taller terminal should show more of a large batch, not the
+// same truncated handful every time.
+func (m model) activeFileLinesBudget() int {
+	if m.height <= 0 {
+		return maxActiveDownloadLines
+	}
+	const reservedLines = 8 // header, blank line, percent/label, "N/M complete", "...and N more", margin
+	if budget := m.height - reservedLines; budget > 5 {
+		return budget
+	}
+	return 5
+}
 
 // splashBanner is the ASCII-art title screenSplash shows for
 // splashDuration on startup - "GO FORTH" in block letters, this
@@ -1378,7 +1518,14 @@ func (m model) scanningView() string {
 // finish and start, so each file still in progress gets its own line
 // too (nearest-to-done first).
 func (m model) downloadStatusView(verb string) string {
-	header := verb + " - please wait, this may take a while.\n\n"
+	cancelHint := ""
+	if m.dlCancel != nil {
+		cancelHint = " - esc: stop"
+	}
+	header := verb + cancelHint + " - please wait, this may take a while.\n\n"
+	if m.dlCancelling {
+		header = verb + " - stopping, please wait...\n\n"
+	}
 	if m.dlProgress == nil {
 		return header
 	}
@@ -1400,17 +1547,18 @@ func (m model) downloadStatusView(verb string) string {
 	b.WriteString(header)
 	b.WriteString(line)
 	b.WriteString("\n")
-	b.WriteString(activeFileLines(files))
+	b.WriteString(activeFileLines(files, m.activeFileLinesBudget()))
 	return b.String()
 }
 
 // activeFileLines renders one line per file still short of 100%,
-// nearest-to-done first, capped at maxActiveDownloadLines with the
-// remainder summarized as a count - the per-file breakdown
-// downloadStatusView shows alongside its own overall percent. Returns
-// "" for a single-file download (its own line already says the same
-// thing as the overall percent).
-func activeFileLines(files []update.FileProgress) string {
+// nearest-to-done first, capped at maxLines with the remainder
+// summarized as a count - the per-file breakdown downloadStatusView
+// shows alongside its own overall percent (see activeFileLinesBudget
+// for how maxLines is normally chosen). Returns "" for a single-file
+// download (its own line already says the same thing as the overall
+// percent).
+func activeFileLines(files []update.FileProgress, maxLines int) string {
 	if len(files) < 2 {
 		return ""
 	}
@@ -1428,8 +1576,8 @@ func activeFileLines(files []update.FileProgress) string {
 	var b strings.Builder
 	fmt.Fprintf(&b, "\n%d/%d files complete\n", done, len(files))
 	shown := active
-	if len(shown) > maxActiveDownloadLines {
-		shown = shown[:maxActiveDownloadLines]
+	if len(shown) > maxLines {
+		shown = shown[:maxLines]
 	}
 	for _, f := range shown {
 		fmt.Fprintf(&b, "  %-3d%% %s (%s/%s)\n", f.Percent(), filepath.Base(f.Path),
@@ -1977,20 +2125,39 @@ func sdiGo(args []string) int {
 		}
 	}()
 
-	// This logger exists only for -torrentalerts (see alertLogger) -
 	// console is always nil since the TUI owns the whole terminal via
 	// bubbletea's alternate screen, and -nogui's own output already
 	// goes through fmt.Fprint*/report.Print directly, not this logger.
 	// -nologfile skips Start entirely rather than opening a file and
 	// discarding writes some other way, so "don't write a log file" is
-	// literally true, not just unused.
-	logger := logging.New(zerolog.WarnLevel, nil)
+	// literally true, not just unused. InfoLevel (not WarnLevel) so the
+	// operational trail every background command now writes (scan,
+	// install, download start/complete/failure, recovered panics -
+	// see logPanic) actually reaches the file: a WarnLevel logger was
+	// found live to produce a file with nothing in it but the start
+	// marker even through a real crash, since every one of those calls
+	// is Info-level.
+	logger := logging.New(zerolog.InfoLevel, nil)
 	if s.Flags&settings.FlagNoLogFile == 0 {
 		if err := logger.Start(s.LogDir, logging.Timestamp()); err != nil {
 			fmt.Fprintln(os.Stderr, "warning: starting log file:", err)
 		}
 	}
 	defer logger.Stop()
+	// Covers a panic anywhere in sdiGo's own synchronous code (notably
+	// the whole -nogui path, which never reaches bubbletea/logPanic's
+	// per-command recovery at all) - logged before re-panicking so the
+	// log file still has it even though a -nogui panic already prints
+	// its own stack trace to stderr, unlike the TUI's alt-screen case.
+	defer func() {
+		if r := recover(); r != nil {
+			logger.Error().
+				Interface("panic", r).
+				Str("stack", string(debug.Stack())).
+				Msg("recovered panic in sdiGo")
+			panic(r)
+		}
+	}()
 	alertLogger := func(level, message string) {
 		if s.Flags&settings.FlagTorrentAlerts != 0 {
 			logger.Warn().Str("level", level).Msg(message)
@@ -2032,6 +2199,12 @@ func sdiGo(args []string) int {
 	p := tea.NewProgram(newModel(s, resumeSelected, logger), tea.WithAltScreen())
 	final, err := p.Run()
 	if err != nil {
+		// Covers a panic bubbletea's own recovery caught (see logPanic's
+		// doc comment for why that alone isn't enough to diagnose one) as
+		// well as any other way the program loop itself failed - either
+		// way, the log file is the only place this is guaranteed to still
+		// be readable once the terminal's been restored.
+		logger.Error().Err(err).Msg("program exited with an error")
 		fmt.Fprintln(os.Stderr, "error:", err)
 		return 1
 	}

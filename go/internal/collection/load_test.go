@@ -38,6 +38,34 @@ func realIndexDirCopy(t *testing.T, realIndexDir string) string {
 	return dst
 }
 
+// wantPendingPacks independently recomputes, straight from the
+// filesystem, which real .7z filenames SHOULD be pending in
+// driverpackDir/indexDir right now: every underscore-prefixed
+// placeholder index whose corresponding real .7z doesn't exist yet.
+// Used instead of a hardcoded snapshot of specific filenames - both
+// TestLoadOnlineIndexesRealInstallation and
+// TestLoadCollectionIncludesPendingPacks used to pin the 3 packs that
+// happened to be pending when they were written
+// (DP_CardReader_26072.7z and two others), and broke the next time
+// those exact packs were downloaded onto the same real, shared
+// machine by an unrelated test run - a live installation's pending
+// set is real, mutable state, not a fixed fact to freeze into a test.
+func wantPendingPacks(t *testing.T, driverpackDir, indexDir string) map[string]bool {
+	t.Helper()
+	placeholders, err := filepath.Glob(filepath.Join(indexDir, "_*.bin"))
+	if err != nil {
+		t.Fatalf("globbing %s: %v", indexDir, err)
+	}
+	want := map[string]bool{}
+	for _, p := range placeholders {
+		packFilename := expectedPackFilename(filepath.Base(p))
+		if _, err := os.Stat(filepath.Join(driverpackDir, packFilename)); err != nil {
+			want[packFilename] = true
+		}
+	}
+	return want
+}
+
 func TestIndexFilename(t *testing.T) {
 	cases := []struct{ in, want string }{
 		{"DP_Ports_SDIO01_26083.7z", "DP_Ports_SDIO01_26083.bin"},
@@ -63,12 +91,11 @@ func TestExpectedPackFilename(t *testing.T) {
 }
 
 // TestLoadOnlineIndexesRealInstallation confirms LoadOnlineIndexes
-// against a real installation known (by direct inspection) to have
-// 104 underscore-prefixed placeholder index files, of which 101
-// already have a locally-downloaded .7z (stale placeholders, skipped)
-// and 3 genuinely don't (DP_CardReader_26072, DP_Video_nVIDIA_
-// Server_26040, DP_Videos_AMD_Server_26040 - all Server-only/legacy
-// variants, plausibly excluded from the pre-downloaded set).
+// against a real installation's underscore-prefixed placeholder index
+// files: some already have a locally-downloaded .7z (stale
+// placeholders, correctly skipped) and some genuinely don't (real
+// pending packs) - see wantPendingPacks for how the expected set is
+// derived instead of pinned to specific filenames.
 func TestLoadOnlineIndexesRealInstallation(t *testing.T) {
 	const driverpackDir = "/mnt/d/OneDrive/Desktop/Reinstall/DriverInstaller/drivers"
 	const indexDir = "/mnt/d/OneDrive/Desktop/Reinstall/DriverInstaller/indexes/SDI"
@@ -92,10 +119,9 @@ func TestLoadOnlineIndexesRealInstallation(t *testing.T) {
 		t.Fatalf("LoadOnlineIndexes() error: %v", err)
 	}
 
-	wantPending := map[string]bool{
-		"DP_CardReader_26072.7z":          true,
-		"DP_Video_nVIDIA_Server_26040.7z": true,
-		"DP_Videos_AMD_Server_26040.7z":   true,
+	wantPending := wantPendingPacks(t, driverpackDir, indexDir)
+	if len(wantPending) == 0 {
+		t.Skip("no genuinely pending packs on this real installation right now - every placeholder's .7z is already downloaded, nothing left for this test to check")
 	}
 	if len(pending) != len(wantPending) {
 		var got []string
@@ -118,24 +144,30 @@ func TestLoadOnlineIndexesRealInstallation(t *testing.T) {
 }
 
 // TestLoadCollectionIncludesPendingPacks confirms LoadCollection
-// itself (not just LoadOnlineIndexes directly) surfaces the same 3
-// pending packs, with Path set so a caller could locate where the
-// download should land.
+// itself (not just LoadOnlineIndexes directly) surfaces the same
+// pending packs wantPendingPacks independently derives, with Path set
+// so a caller could locate where the download should land.
 func TestLoadCollectionIncludesPendingPacks(t *testing.T) {
 	const driverpackDir = "/mnt/d/OneDrive/Desktop/Reinstall/DriverInstaller/drivers"
-	indexDir := realIndexDirCopy(t, "/mnt/d/OneDrive/Desktop/Reinstall/DriverInstaller/indexes/SDI")
+	const realIndexDir = "/mnt/d/OneDrive/Desktop/Reinstall/DriverInstaller/indexes/SDI"
+	indexDir := realIndexDirCopy(t, realIndexDir)
+
+	want := wantPendingPacks(t, driverpackDir, realIndexDir)
+	if len(want) == 0 {
+		t.Skip("no genuinely pending packs on this real installation right now - every placeholder's .7z is already downloaded, nothing left for this test to check")
+	}
 
 	result, err := LoadCollection(driverpackDir, indexDir, false, false, nil)
 	if err != nil {
 		t.Skipf("no real installation available: %v", err)
 	}
 
-	pendingCount := 0
+	got := map[string]bool{}
 	for _, p := range result.Packs {
 		if !p.Pending {
 			continue
 		}
-		pendingCount++
+		got[p.Filename] = true
 		if p.Path != driverpackDir {
 			t.Errorf("%s: Path = %q, want %q", p.Filename, p.Path, driverpackDir)
 		}
@@ -143,8 +175,13 @@ func TestLoadCollectionIncludesPendingPacks(t *testing.T) {
 			t.Errorf("%s: expected a .7z filename", p.Filename)
 		}
 	}
-	if pendingCount != 3 {
-		t.Errorf("got %d pending packs via LoadCollection, want 3", pendingCount)
+	if len(got) != len(want) {
+		t.Errorf("got %d pending packs via LoadCollection %v, want %d: %v", len(got), got, len(want), want)
+	}
+	for f := range want {
+		if !got[f] {
+			t.Errorf("LoadCollection did not report %q as pending", f)
+		}
 	}
 }
 

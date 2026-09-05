@@ -43,8 +43,10 @@ func placeholderIndexFilename(properBinName string) string {
 // download resumes instead of restarting from zero next run.
 // onProgress, if non-nil, is called with live byte-level progress.
 // onAlert, if non-nil, is called for the torrent client's own
-// Warning-or-higher events (see update.Config.OnAlert).
-func BootstrapIndexes(torrentFile, indexDir, updatesDir string, seed bool, onAlert func(level, message string), onProgress update.ProgressFunc) (int, error) {
+// Warning-or-higher events (see update.Config.OnAlert). ctx cancels
+// the operation early (e.g. a user-requested stop) - already-completed
+// index files are still saved rather than discarded.
+func BootstrapIndexes(ctx context.Context, torrentFile, indexDir, updatesDir string, seed bool, onAlert func(level, message string), onProgress update.ProgressFunc) (int, error) {
 	if torrentFile == "" {
 		return 0, fmt.Errorf("no torrent source configured")
 	}
@@ -66,9 +68,9 @@ func BootstrapIndexes(torrentFile, indexDir, updatesDir string, seed bool, onAle
 		return 0, fmt.Errorf("adding torrent %s: %w", torrentFile, err)
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	infoCtx, cancel := context.WithTimeout(ctx, 30*time.Second)
 	defer cancel()
-	if err := t.WaitInfo(ctx); err != nil {
+	if err := t.WaitInfo(infoCtx); err != nil {
 		return 0, fmt.Errorf("reading torrent metadata: %w", err)
 	}
 
@@ -98,7 +100,7 @@ func BootstrapIndexes(torrentFile, indexDir, updatesDir string, seed bool, onAle
 	}
 
 	selected := t.SelectFiles(need)
-	dlCtx, dlCancel := context.WithTimeout(context.Background(), 10*time.Minute)
+	dlCtx, dlCancel := context.WithTimeout(ctx, 10*time.Minute)
 	defer dlCancel()
 	label := fmt.Sprintf("%d index file(s)", len(selected))
 	waitErr := t.WaitDownload(dlCtx, selected, 10*time.Minute, label, onProgress)

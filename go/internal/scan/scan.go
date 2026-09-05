@@ -4,6 +4,7 @@
 package scan
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"sort"
@@ -285,7 +286,7 @@ func Run(s *settings.Settings) (Result, error) {
 	var indexesDownloaded int
 	var bootstrapErr error
 	if s.TorrentFile != "" && (p.FirstRun || s.Flags&settings.FlagCheckUpdates != 0) {
-		indexesDownloaded, bootstrapErr = collection.BootstrapIndexes(s.TorrentFile, s.IndexDir, s.UpdatesDir, s.Flags&settings.FlagKeepSeeding != 0, nil, nil)
+		indexesDownloaded, bootstrapErr = collection.BootstrapIndexes(context.Background(), s.TorrentFile, s.IndexDir, s.UpdatesDir, s.Flags&settings.FlagKeepSeeding != 0, nil, nil)
 	}
 
 	res, err := MatchWithCollection(s, p, nil)
