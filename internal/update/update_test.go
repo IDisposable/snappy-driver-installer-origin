@@ -8,6 +8,8 @@ import (
 	"testing"
 	"time"
 
+	"sdio"
+
 	"github.com/anacrolix/torrent"
 )
 
@@ -18,15 +20,8 @@ import (
 // synthetic single-file torrent.
 const realTorrentPath = "/mnt/d/OneDrive/Desktop/Reinstall/DriverInstaller/torrent/SDIO_Update.torrent"
 
-// sharedTorrent is built once via TestMain and reused by every test in
-// this file that only reads metadata (file list/lengths). Building one
-// torrent.Client per test - each adding the same real, ~400-file
-// torrent - was observed to make the process hang on exit (the test
-// binary never returns after the last test completes, requiring a
-// SIGTERM); a single shared instance avoids whatever cross-instance
-// contention causes that, and building it once instead of per-test is
-// the right call anyway (real metainfo parsing over ~400 files isn't
-// free).
+// sharedTorrent is built once from the embedded metadata and reused by
+// metadata-only tests. Real-installation torrent tests remain opt-in.
 var sharedTorrent *Torrent
 
 func TestMain(m *testing.M) {
@@ -51,13 +46,10 @@ func TestMain(m *testing.M) {
 	}
 	c := &Client{cl: cl}
 
-	tr, err := c.AddFromFile(realTorrentPath)
+	tr, err := c.AddFromBytes(sdio.EmbeddedTorrent)
 	if err == nil {
 		sharedTorrent = tr
 	}
-	// If the real torrent file isn't present (no reference installation
-	// on this machine), sharedTorrent stays nil and every test using it
-	// skips - see requireSharedTorrent.
 
 	code := m.Run()
 	c.Close()
@@ -68,7 +60,7 @@ func TestMain(m *testing.M) {
 func requireSharedTorrent(t *testing.T) *Torrent {
 	t.Helper()
 	if sharedTorrent == nil {
-		t.Skipf("real torrent file not available at %s", realTorrentPath)
+		t.Fatal("embedded torrent metadata could not be loaded")
 	}
 	return sharedTorrent
 }

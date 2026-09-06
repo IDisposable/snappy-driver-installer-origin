@@ -18,7 +18,7 @@ import (
 func torrentTest(args []string) int {
 	fs := flag.NewFlagSet("torrenttest", flag.ContinueOnError)
 	torrentFile := fs.String("torrent", "", "path to a .torrent metadata file (required)")
-	dataDir := fs.String("data-dir", "", "directory to download into (required)")
+	storageDir := fs.String("storage-dir", "", "torrent storage directory (required)")
 	files := fs.String("files", "", "comma-separated file paths (as shown by -list) to download")
 	list := fs.Bool("list", false, "list every file in the torrent and exit")
 	timeout := fs.Duration("timeout", 2*time.Minute, "how long to wait for the selected files to complete")
@@ -26,13 +26,13 @@ func torrentTest(args []string) int {
 		return 2
 	}
 
-	if *torrentFile == "" || *dataDir == "" {
-		fmt.Fprintln(os.Stderr, "usage: sdigo torrenttest -torrent=<path> -data-dir=<dir> [-list] [-files=a,b,c]")
+	if *torrentFile == "" || *storageDir == "" {
+		fmt.Fprintln(os.Stderr, "usage: sdigo torrenttest -torrent=<path> -storage-dir=<dir> [-list] [-files=a,b,c]")
 		fs.PrintDefaults()
 		return 2
 	}
 
-	if err := torrenttestRun(*torrentFile, *dataDir, *files, *list, *timeout); err != nil {
+	if err := torrenttestRun(*torrentFile, *storageDir, *files, *list, *timeout); err != nil {
 		fmt.Fprintln(os.Stderr, "error:", err)
 		return 1
 	}
@@ -40,7 +40,7 @@ func torrentTest(args []string) int {
 }
 
 func torrenttestRun(torrentFile, dataDir, files string, list bool, timeout time.Duration) error {
-	c, err := update.NewClient(update.Config{DataDir: dataDir})
+	c, err := update.NewClient(update.Config{StorageDir: dataDir})
 	if err != nil {
 		return err
 	}

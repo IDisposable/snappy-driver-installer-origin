@@ -63,7 +63,7 @@ func BootstrapIndexes(ctx context.Context, torrentFile, indexDir, updatesDir str
 		return 0, fmt.Errorf("creating %s: %w", updatesDir, err)
 	}
 
-	c, err := update.NewClient(update.Config{DataDir: updatesDir, Seed: seed, OnAlert: onAlert})
+	c, err := update.NewClient(update.Config{StorageDir: updatesDir, Seed: seed, OnAlert: onAlert})
 	if err != nil {
 		return 0, fmt.Errorf("starting torrent client: %w", err)
 	}

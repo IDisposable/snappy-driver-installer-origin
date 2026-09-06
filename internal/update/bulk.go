@@ -110,7 +110,7 @@ func DownloadDriverPacks(ctx context.Context, s *settings.Settings, onAlert func
 		return 0, err
 	}
 
-	c, err := NewClient(Config{DataDir: s.UpdatesDir, Seed: s.Flags&settings.FlagKeepSeeding != 0, OnAlert: onAlert})
+	c, err := NewClient(Config{StorageDir: s.UpdatesDir, Seed: s.Flags&settings.FlagKeepSeeding != 0, OnAlert: onAlert})
 	if err != nil {
 		return 0, fmt.Errorf("starting torrent client: %w", err)
 	}

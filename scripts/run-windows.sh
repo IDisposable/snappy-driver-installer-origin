@@ -9,7 +9,7 @@
 #   ./scripts/run-windows.sh
 #   ./scripts/run-windows.sh -nogui -drp-dir='D:\drivers' -index-dir='D:\indexes'
 #   ./scripts/run-windows.sh hwdump
-#   ./scripts/run-windows.sh torrenttest -torrent='D:\SDIO_Update.torrent' -data-dir=D:\tmp -list
+#   ./scripts/run-windows.sh torrenttest -torrent='D:\SDIO_Update.torrent' -storage-dir=D:\tmp -list
 #
 # cmd/sdigo is a full-screen interactive TUI by default (-nogui for a
 # plain report): run this script directly in a real WSL terminal (not

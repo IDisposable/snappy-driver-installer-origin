@@ -93,6 +93,13 @@ func TestParseUnknownFlagErrors(t *testing.T) {
 	}
 }
 
+func TestToolsDataDirFlagRemoved(t *testing.T) {
+	s := New()
+	if err := s.Parse([]string{"-data-dir", `tools\SDIO`}); err == nil {
+		t.Fatal("expected -data-dir to be removed")
+	}
+}
+
 func TestParseExpandsLogDir(t *testing.T) {
 	s := New()
 	t.Setenv("SDIO_TEST_LOGROOT", "C:\\logs")

@@ -47,7 +47,7 @@ import (
 // per-torrent connection limits aren't represented - anacrolix/torrent
 // manages both internally.
 type Config struct {
-	DataDir      string // where downloaded file data lands (torrent_save_path's role)
+	StorageDir   string // torrent payloads and client state, including .torrent.db
 	ListenPort   int    // 0 lets anacrolix/torrent pick a default
 	DownloadKBps int    // 0 = unlimited
 	UploadKBps   int    // 0 = unlimited
@@ -71,7 +71,7 @@ type Client struct {
 // NewClient starts a torrent client with the given configuration.
 func NewClient(cfg Config) (*Client, error) {
 	tc := torrent.NewDefaultClientConfig()
-	tc.DataDir = cfg.DataDir
+	tc.DataDir = cfg.StorageDir
 	if cfg.ListenPort != 0 {
 		tc.ListenPort = cfg.ListenPort
 	}

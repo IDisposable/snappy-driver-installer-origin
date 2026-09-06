@@ -127,7 +127,6 @@ func (s *Settings) FlagSet(name string) *flag.FlagSet {
 	fs.StringVar(&s.DrpDir, "drp-dir", s.DrpDir, "driver pack directory")
 	fs.StringVar(&s.IndexDir, "index-dir", s.IndexDir, "index directory")
 	fs.StringVar(&s.OutputDir, "output-dir", s.OutputDir, "text index output directory")
-	fs.StringVar(&s.DataDir, "data-dir", s.DataDir, "SDIO tools data directory")
 	fs.StringVar(&s.UpdatesDir, "updates-dir", s.UpdatesDir, "staging directory for in-progress torrent downloads")
 	fs.StringVar(&s.LogDirRaw, "log-dir", s.LogDirRaw, "log directory (may contain %VAR% references)")
 	fs.StringVar(&s.DeviceListFilename, "device-list", s.DeviceListFilename, "write a device list to this file")

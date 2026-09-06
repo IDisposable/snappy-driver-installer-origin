@@ -28,7 +28,6 @@ type Settings struct {
 	IndexDir  string
 	OutputDir string
 	DrpExtDir string
-	DataDir   string
 	// UpdatesDir is where a torrent download's file data lands while
 	// in progress, before a completed file is moved into DrpDir/
 	// IndexDir - the original engine used a dedicated "updates"
@@ -105,7 +104,6 @@ func New() *Settings {
 		DrpDir:               "drivers",
 		IndexDir:             "indexes",
 		OutputDir:            filepath.Join("indexes", "txt"),
-		DataDir:              filepath.Join("tools", "SDIO"),
 		UpdatesDir:           "updates",
 		LogDirRaw:            "logs",
 		ExtractDirRaw:        `%TEMP%\SDIO`,
@@ -123,7 +121,6 @@ func (s *Settings) MarshalZerologObject(e *zerolog.Event) {
 	e.Str("drp_dir", s.DrpDir).
 		Str("index_dir", s.IndexDir).
 		Str("output_dir", s.OutputDir).
-		Str("data_dir", s.DataDir).
 		Str("updates_dir", s.UpdatesDir).
 		Str("log_dir", s.LogDir).
 		Uint64("filters", uint64(s.Filters)).

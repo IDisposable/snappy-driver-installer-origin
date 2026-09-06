@@ -76,7 +76,6 @@ func (s *Settings) Save(filename string) error {
 	writeStr("drp-dir", s.DrpDir)
 	writeStr("index-dir", s.IndexDir)
 	writeStr("output-dir", s.OutputDir)
-	writeStr("data-dir", s.DataDir)
 	writeStr("updates-dir", s.UpdatesDir)
 	writeStr("log-dir", s.LogDirRaw)
 	writeStr("torrent-file", s.TorrentFile)

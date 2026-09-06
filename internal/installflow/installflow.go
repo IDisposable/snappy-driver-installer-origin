@@ -143,7 +143,7 @@ func DownloadPending(s *settings.Settings, pending []Pending, out io.Writer, onA
 		return err
 	}
 
-	c, err := update.NewClient(update.Config{DataDir: s.UpdatesDir, Seed: s.Flags&settings.FlagKeepSeeding != 0, OnAlert: onAlert})
+	c, err := update.NewClient(update.Config{StorageDir: s.UpdatesDir, Seed: s.Flags&settings.FlagKeepSeeding != 0, OnAlert: onAlert})
 	if err != nil {
 		return fmt.Errorf("starting torrent client: %w", err)
 	}
