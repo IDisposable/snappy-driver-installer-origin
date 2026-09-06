@@ -51,7 +51,11 @@ func RemoveExtraInfs(infPath string) error {
 		return fmt.Errorf("reading %s: %w", dir, err)
 	}
 
-	lowerInfPath := strings.ToLower(infPath)
+	lowerInfPath, err := filepath.Abs(infPath)
+	if err != nil {
+		return fmt.Errorf("resolving %s: %w", infPath, err)
+	}
+	lowerInfPath = strings.ToLower(filepath.Clean(lowerInfPath))
 	for _, e := range entries {
 		if e.IsDir() {
 			continue
@@ -60,7 +64,11 @@ func RemoveExtraInfs(infPath string) error {
 		if !strings.EqualFold(filepath.Ext(name), ".inf") {
 			continue
 		}
-		if strings.Contains(lowerInfPath, strings.ToLower(name)) {
+		candidate, err := filepath.Abs(filepath.Join(dir, name))
+		if err != nil {
+			return fmt.Errorf("resolving %s: %w", name, err)
+		}
+		if strings.EqualFold(filepath.Clean(candidate), lowerInfPath) {
 			continue // this is (or matches) the inf actually being installed
 		}
 		if err := os.Remove(filepath.Join(dir, name)); err != nil {

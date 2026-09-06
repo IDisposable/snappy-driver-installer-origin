@@ -880,32 +880,12 @@ func TestWelcomeDownloadDoneRescans(t *testing.T) {
 	}
 }
 
-// TestWelcomeRequiresTorrentFile confirms selecting a download option
-// with no -torrent-file configured reports the problem instead of
-// silently doing nothing or crashing trying to reach a torrent that
-// was never configured.
-func TestWelcomeRequiresTorrentFile(t *testing.T) {
-	s := settings.New()
-	s.TorrentFile = "" // override the real default - this test wants the unconfigured case
-	m := newTestModel(scan.Result{}, s, nil)
-	m.screen = screenWelcome
-
-	mm, _ := m.Update(tea.KeyMsg{Type: tea.KeyEnter})
-	m = mm.(model)
-	if m.screen != screenInstallLog {
-		t.Fatalf("screen = %v, want screenInstallLog (the no-torrent-file message)", m.screen)
-	}
-	if len(m.opLog) == 0 || !strings.Contains(m.opLog[0], "torrent-file") {
-		t.Errorf("opLog = %v, want a message mentioning -torrent-file", m.opLog)
-	}
-}
-
 // TestWelcomeAllDriverPacksNeedsConfirmation confirms the "Download
 // All Driver Packs" item goes through a confirm screen rather than
 // starting a large download on a single keypress.
 func TestWelcomeAllDriverPacksNeedsConfirmation(t *testing.T) {
 	s := settings.New()
-	s.TorrentFile = "dummy.torrent" // just needs to be non-empty for this check
+	s.TorrentFile = "dummy.torrent"
 	m := newTestModel(scan.Result{}, s, nil)
 	m.screen = screenWelcome
 	m.welcomeIndex = welcomeItemAll
@@ -1428,7 +1408,7 @@ func TestLogPanicLogsBeforeRePanicking(t *testing.T) {
 
 // TestRunIndexRefreshCmdLogsFailure confirms a real (not mocked)
 // failure from a background command - here BootstrapIndexes given no
-// torrent source at all - produces a log entry, not just the
+	// invalid torrent source - produces a log entry, not just the
 // message returned to Update. Run synchronously (calling the returned
 // tea.Cmd directly) rather than through the full bubbletea runtime,
 // same as exercising any other tea.Cmd in isolation.
@@ -1436,7 +1416,7 @@ func TestRunIndexRefreshCmdLogsFailure(t *testing.T) {
 	var buf bytes.Buffer
 	logger := logging.New(zerolog.InfoLevel, &buf)
 	s := settings.New()
-	s.TorrentFile = ""
+	s.TorrentFile = "missing.torrent"
 
 	msg := runIndexRefreshCmd(context.Background(), s, &progressTracker{}, nil, logger)()
 	wd, ok := msg.(welcomeDownloadDoneMsg)

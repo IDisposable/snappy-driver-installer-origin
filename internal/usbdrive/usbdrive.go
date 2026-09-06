@@ -3,10 +3,9 @@
 // USBWizard (usbwizard.cpp). USBWizard::QuickFormatTarget (opens
 // Windows' own SHFormatDrive dialog) and its recursive delete-
 // existing-files step are deliberately not ported: formatting/erasing
-// a drive is a real destructive action this rewrite hasn't built
-// (or had reviewed) a safe confirmation flow for yet. Preparing an
-// empty destination is left to the user; this package only ever adds
-// files, never removes or overwrites the drive's own filesystem.
+// a drive is a real destructive action this rewrite has not built a
+// safe confirmation flow for yet. Copying overwrites files with the
+// same destination path, but does not remove unrelated files.
 package usbdrive
 
 // Drive describes one removable drive found by ListRemovable.

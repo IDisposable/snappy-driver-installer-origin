@@ -9,20 +9,14 @@ import (
 )
 
 // DefaultCfgFilename is the config file every run loads by default,
-// matching the hardcoded L"sdigo.cfg" in main()'s startup sequence. The
-// original also supports a "-cfg:<path>" switch to load an alternate
-// file instead (found via a separate pre-scan of the raw command
-// line, before the main flag parse); that override isn't replicated
-// here.
+// matching the hardcoded "sdigo.cfg" startup sequence.
 const DefaultCfgFilename = "sdigo.cfg"
 
 // LoadDefaultCfg loads DefaultCfgFilename if present, silently doing
 // nothing if it doesn't exist - matching the original, where a
 // missing sdigo.cfg is the normal first-run case, not an error. Callers
 // should call this before parsing command-line flags, so a config
-// file provides defaults that command-line switches can still
-// override (main()'s Settings.load(L"sdigo.cfg") followed by
-// Settings.parse(GetCommandLineW(),1)).
+// file provides defaults that command-line switches can still override.
 func (s *Settings) LoadDefaultCfg() error {
 	err := s.LoadFile(DefaultCfgFilename)
 	if err != nil && os.IsNotExist(err) {
@@ -31,11 +25,9 @@ func (s *Settings) LoadDefaultCfg() error {
 	return err
 }
 
-// LoadFile reads switches from a config file (one or more per line, in
-// either this rewrite's "-flag=value" syntax or the original engine's
-// "-flag:value" syntax, so an existing sdio.cfg keeps working) and
-// applies them, then loads the per-host ignore list. filename may
-// contain %VAR% references.
+// LoadFile reads current-format switches from a config file and applies
+// them, then loads the per-host ignore list. filename may contain
+// %VAR% references.
 func (s *Settings) LoadFile(filename string) error {
 	data, err := os.ReadFile(expandWindowsEnv(filename))
 	if err != nil {
@@ -56,12 +48,7 @@ func (s *Settings) LoadFile(filename string) error {
 		return err
 	}
 
-	var args []string
-	for _, tok := range splitArgLine(sb.String()) {
-		if translated, keep := translateLegacyArg(tok); keep {
-			args = append(args, translated)
-		}
-	}
+	args := splitArgLine(sb.String())
 
 	if err := s.Parse(args); err != nil {
 		return err
@@ -92,11 +79,7 @@ func (s *Settings) Save(filename string) error {
 	writeStr("data-dir", s.DataDir)
 	writeStr("updates-dir", s.UpdatesDir)
 	writeStr("log-dir", s.LogDirRaw)
-	sb.WriteByte('\n')
-
-	writeStr("finish-cmd", s.FinishCmd)
-	writeStr("finish-reboot-cmd", s.FinishRebootCmd)
-	writeStr("finish-update-cmd", s.FinishUpdateCmd)
+	writeStr("torrent-file", s.TorrentFile)
 	sb.WriteByte('\n')
 
 	fmt.Fprintf(&sb, "-filters=%d\n\n", s.Filters)

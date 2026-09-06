@@ -27,6 +27,12 @@ type Reader struct {
 	rc *sevenzip.ReadCloser
 }
 
+// ExtractOptions limits the amount of data extracted from one archive.
+type ExtractOptions struct {
+	MaxFileBytes  uint64
+	MaxTotalBytes uint64
+}
+
 // Open opens a driver-pack .7z archive for reading.
 func Open(path string) (*Reader, error) {
 	rc, err := sevenzip.OpenReader(path)
@@ -91,13 +97,30 @@ func (r *Reader) Extract(name string) ([]byte, error) {
 // it, not just the .inf itself. Returns the number of files
 // extracted.
 func (r *Reader) ExtractPrefix(prefix, destDir string) (int, error) {
+	return r.ExtractPrefixWithOptions(prefix, destDir, ExtractOptions{})
+}
+
+// ExtractPrefixWithOptions extracts files while enforcing path containment
+// and optional per-file and total byte limits.
+func (r *Reader) ExtractPrefixWithOptions(prefix, destDir string, options ExtractOptions) (int, error) {
 	n := 0
+	var totalBytes uint64
 	for _, f := range r.rc.File {
 		if f.FileInfo().IsDir() || !strings.HasPrefix(f.Name, prefix) {
 			continue
 		}
 		rel := strings.TrimPrefix(f.Name, prefix)
-		dest := filepath.Join(destDir, filepath.FromSlash(rel))
+		rel = filepath.Clean(filepath.FromSlash(rel))
+		if rel == "." || rel == ".." || strings.HasPrefix(rel, ".."+string(filepath.Separator)) || filepath.IsAbs(rel) {
+			return n, fmt.Errorf("unsafe archive path %q", f.Name)
+		}
+		dest := filepath.Join(destDir, rel)
+		if options.MaxFileBytes > 0 && f.UncompressedSize > options.MaxFileBytes {
+			return n, fmt.Errorf("archive file %s exceeds the %d-byte limit", f.Name, options.MaxFileBytes)
+		}
+		if options.MaxTotalBytes > 0 && (f.UncompressedSize > options.MaxTotalBytes || totalBytes > options.MaxTotalBytes-f.UncompressedSize) {
+			return n, fmt.Errorf("archive extraction exceeds the %d-byte limit", options.MaxTotalBytes)
+		}
 
 		if err := os.MkdirAll(filepath.Dir(dest), 0o755); err != nil {
 			return n, fmt.Errorf("creating %s: %w", filepath.Dir(dest), err)
@@ -107,20 +130,40 @@ func (r *Reader) ExtractPrefix(prefix, destDir string) (int, error) {
 		if err != nil {
 			return n, fmt.Errorf("opening %s in archive: %w", f.Name, err)
 		}
-		out, err := os.Create(dest)
+		tmp, err := os.CreateTemp(filepath.Dir(dest), ".sdio-extract-*")
 		if err != nil {
 			rc.Close()
 			return n, fmt.Errorf("creating %s: %w", dest, err)
 		}
-		_, copyErr := io.Copy(out, rc)
+		var source io.Reader = rc
+		if options.MaxFileBytes > 0 {
+			source = io.LimitReader(rc, int64(options.MaxFileBytes)+1)
+		}
+		_, copyErr := io.Copy(tmp, source)
 		rc.Close()
-		closeErr := out.Close()
+		closeErr := tmp.Close()
 		if copyErr != nil {
+			os.Remove(tmp.Name())
 			return n, fmt.Errorf("writing %s: %w", dest, copyErr)
 		}
 		if closeErr != nil {
+			os.Remove(tmp.Name())
 			return n, fmt.Errorf("closing %s: %w", dest, closeErr)
 		}
+		if options.MaxFileBytes > 0 {
+			if info, err := os.Stat(tmp.Name()); err != nil {
+				os.Remove(tmp.Name())
+				return n, fmt.Errorf("checking %s: %w", dest, err)
+			} else if uint64(info.Size()) > options.MaxFileBytes {
+				os.Remove(tmp.Name())
+				return n, fmt.Errorf("archive file %s exceeds the %d-byte limit", f.Name, options.MaxFileBytes)
+			}
+		}
+		if err := os.Rename(tmp.Name(), dest); err != nil {
+			os.Remove(tmp.Name())
+			return n, fmt.Errorf("placing %s: %w", dest, err)
+		}
+		totalBytes += f.UncompressedSize
 		n++
 	}
 	if n == 0 {

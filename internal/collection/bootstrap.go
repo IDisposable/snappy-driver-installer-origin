@@ -11,6 +11,8 @@ import (
 
 	"sdio/internal/logging"
 	"sdio/internal/update"
+
+	"github.com/rs/zerolog"
 )
 
 // placeholderIndexFilename computes the underscore-prefixed pending
@@ -51,8 +53,8 @@ func placeholderIndexFilename(properBinName string) string {
 // structured start/complete/failure entry for every individual index
 // file, not just an overall summary.
 func BootstrapIndexes(ctx context.Context, torrentFile, indexDir, updatesDir string, seed bool, onAlert func(level, message string), onProgress update.ProgressFunc, logger *logging.Logger) (int, error) {
-	if torrentFile == "" {
-		return 0, fmt.Errorf("no torrent source configured")
+	if logger == nil {
+		logger = logging.New(zerolog.Disabled, nil)
 	}
 	if err := os.MkdirAll(indexDir, 0o755); err != nil {
 		return 0, fmt.Errorf("creating %s: %w", indexDir, err)
@@ -71,6 +73,7 @@ func BootstrapIndexes(ctx context.Context, torrentFile, indexDir, updatesDir str
 	if err != nil {
 		return 0, fmt.Errorf("adding torrent %s: %w", torrentFile, err)
 	}
+	logger.Info().Str("source", torrentFile).Str("index_dir", indexDir).Msg("index bootstrap source loaded")
 
 	infoCtx, cancel := context.WithTimeout(ctx, 30*time.Second)
 	defer cancel()
@@ -100,6 +103,7 @@ func BootstrapIndexes(ctx context.Context, torrentFile, indexDir, updatesDir str
 		nameByPath[f.Path] = placeholder
 	}
 	if len(need) == 0 {
+		logger.Info().Msg("index bootstrap has no new files")
 		return 0, nil
 	}
 
@@ -131,6 +135,9 @@ func BootstrapIndexes(ctx context.Context, torrentFile, indexDir, updatesDir str
 		}
 		base := filepath.Base(fi.Path)
 		src := filepath.Join(updatesDir, filepath.FromSlash(fi.Path))
+		if !fi.Complete() {
+			continue
+		}
 		if _, err := os.Stat(src); err != nil {
 			continue // never completed
 		}
@@ -145,5 +152,6 @@ func BootstrapIndexes(ctx context.Context, torrentFile, indexDir, updatesDir str
 	if waitErr != nil {
 		return count, fmt.Errorf("downloading indexes: %w (%d of %d completed and saved)", waitErr, count, len(selected))
 	}
+	logger.Info().Int("saved", count).Int("selected", len(selected)).Msg("index bootstrap complete")
 	return count, nil
 }

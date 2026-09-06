@@ -1,26 +1,20 @@
-# On-disk compatibility
+# Current data contract
 
-Users must not have to rebuild their existing driver-pack collection or
-lose existing config/state files. Concretely:
+The Go rewrite uses its own current configuration format. It does not
+read the original SDIO configuration format.
 
-- **`sdio.cfg`**: the original engine used colon-glued, underscored
-  switches (`-drp_dir:value`). This rewrite uses the standard library
-  `flag` package with idiomatic syntax (`-drp-dir=value`) for actual
-  command-line parsing, but `Settings.LoadFile` translates an existing
-  file's old-style switches on read (`internal/settings/compat.go`), so
-  nothing needs to be hand-edited. `Settings.Save` always writes the new
-  syntax.
-- **Filter bits**: `-filters:N` is persisted as a raw integer. Its bit
-  positions in `internal/settings/filters.go` intentionally match the
-  original's GUI-menu-item-ID-based numbering rather than being cleaned
-  up, so existing values decode correctly.
+- **`sdigo.cfg`** uses standard Go flag syntax such as
+  `-drp-dir="drivers"` and `-filters=1062`. The program writes this file
+  when settings change. Command-line values override file values.
+- **Filter bits**: `-filters=N` is persisted as a raw integer. Bits use
+  the declaration order in `internal/settings/filters.go`.
+- **Torrent source**: the embedded torrent metadata is the default.
+  `-torrent-file=*` selects the mutable project seed and another
+  `-torrent-file` value selects a user source.
 - **Binary index files** (`indexes/**/*.bin`): these use an `"SDW"` +
-  LZMA container format (see below). Reading and writing them must stay
-  byte-compatible once `indexing.cpp` is ported, so existing indexed
-  driver packs don't need to be rebuilt. State snapshots (`logs/*.snp`)
-  use the same container but live under the log directory, which is not
-  required to match - `model.cpp`'s State::save/load can be freely
-  redesigned.
+  LZMA container format (see below). Reading and writing them stays
+  byte-compatible with existing indexed driver packs. State snapshots
+  (`logs/*.snp`) use the same container but contain a Go-native payload.
 
 ## The SDW container format
 

@@ -28,19 +28,20 @@ therefore produces a binary without the embedded manifest/version
 resource; only a release build goes through `./scripts/release.sh`.
 
 `.github/workflows/release.yml` runs this same script on a `v*.*.*` tag
-push and attaches the resulting `sdigo.exe` to a GitHub Release. Not
-yet run for real - review before pushing the first tag.
+push and attaches the resulting `sdigo.exe` to a GitHub Release.
 
 ## Driver-pack bootstrap torrent
 
-Not yet implemented. The plan is to host the bootstrap `.torrent` file
-(what a fresh install's Welcome screen downloads the initial index
-catalog/driver packs from) on this project's own GitHub release page,
-independent of local-cache/offline operation. The original project's
-`../trackers.txt` is a maintained list of public BitTorrent tracker
-announce URLs used when building its own update torrent - copied here
-as `release/trackers.txt` for whichever tool ends up generating ours,
-since tracker health matters for peer discovery and needs occasional
-rotation the same way upstream's does. Nothing in this repo currently
-creates a `.torrent` file; `internal/update` only consumes one already
-built elsewhere.
+The 1.36 MB `seed/SDIO_Update.torrent` metadata is embedded in the
+executable. It describes the mutable driver and index collection, but it
+does not contain the driver-pack payloads.
+
+The embedded metadata is the default. `-torrent-file=*` fetches the
+current metadata from the mutable `main` seed. Another `-torrent-file`
+value accepts a
+user-selected local file, magnet URI, or HTTPS URL and overrides both
+defaults.
+
+The project may update the seed and tracker list without rebuilding older
+executables. Older executables keep their embedded metadata unless the
+user selects `-torrent-file=*` or another source.

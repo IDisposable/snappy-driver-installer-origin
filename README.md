@@ -19,9 +19,8 @@ Installer Origin engine, replacing the C++Builder/VCL codebase under
   (`gui.cpp`/`draw.cpp`/`theme*.cpp`) entirely rather than porting it;
   matching the old GUI's look is explicitly not a goal.
 
-See [docs/COMPATIBILITY.md](docs/COMPATIBILITY.md) for the on-disk
-compatibility contract this rewrite has to honor (config file syntax,
-filter bit layout, index/snapshot file format), and
+See [docs/COMPATIBILITY.md](docs/COMPATIBILITY.md) for the current
+on-disk data contract (filter bit layout and index/snapshot file format), and
 [docs/PORTING_NOTES.md](docs/PORTING_NOTES.md) for module-by-module
 traceability back to the original C++ source.
 
@@ -50,5 +49,18 @@ scripts/run-windows.sh hwdump
 ```bat
 scripts\run-windows.cmd -nogui -drp-dir=D:\drivers -index-dir=D:\indexes
 ```
+
+The default update source is the embedded `seed/SDIO_Update.torrent`
+metadata. Use `-torrent-file=*` to fetch the current mutable seed from
+the project `main` branch. Use `-torrent-file=<path-or-URL>` to select a
+local torrent, magnet URI, or HTTPS torrent URL. A user-selected source
+overrides both built-in choices.
+
+Settings use the current `sdigo.cfg` syntax written by the program. The
+old SDIO configuration format is not supported.
+
+`-device-list=<path>` writes a tab-separated device report after scanning.
+Add `-device-list-json` to write the structured JSON form. `-finish-reboot`
+requests a Windows reboot after a successful `-install` run.
 
 See [docs/RELEASE.md](docs/RELEASE.md) for building the release binary.

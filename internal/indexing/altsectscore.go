@@ -39,13 +39,17 @@ func (ctx MatchContext) ArchForMarker() int {
 // from its filename (e.g. "..._16074.7z" -> 16074: the first
 // underscore followed by a digit, parsed with atoi's leading-digits
 // convention). Returns 0 if no such suffix is found.
-func packVersionNumber(filename string) int {
+func PackVersionNumber(filename string) int {
 	for i := 0; i+1 < len(filename); i++ {
 		if filename[i] == '_' && filename[i+1] >= '0' && filename[i+1] <= '9' {
 			return atoiPrefix(filename[i+1:])
 		}
 	}
 	return 0
+}
+
+func packVersionNumber(filename string) int {
+	return PackVersionNumber(filename)
 }
 
 // PickCat returns which catalog-file field slot (see the Field*

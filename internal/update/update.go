@@ -8,7 +8,7 @@
 // or by a private config not present in this source snapshot. This
 // package therefore does not hardcode any tracker, webseed, or
 // metadata-fetch URL: callers supply a torrent source (a local
-// .torrent file, a magnet URI, or an http(s):// URL to fetch a
+// .torrent file, a magnet URI, or an HTTPS URL to fetch a
 // .torrent file from) via AddFromSpec.
 //
 // The core behavior this package exists to preserve is the selective
@@ -24,14 +24,18 @@
 package update
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"io"
 	"net/http"
+	urlpkg "net/url"
 	"os"
 	"path/filepath"
 	"strings"
 	"time"
+
+	"sdio"
 
 	alog "github.com/anacrolix/log"
 	"github.com/anacrolix/torrent"
@@ -117,6 +121,19 @@ func (c *Client) AddFromFile(path string) (*Torrent, error) {
 	return &Torrent{t: t}, nil
 }
 
+// AddFromBytes adds torrent metadata held in memory.
+func (c *Client) AddFromBytes(data []byte) (*Torrent, error) {
+	mi, err := metainfo.Load(bytes.NewReader(data))
+	if err != nil {
+		return nil, fmt.Errorf("parsing embedded torrent: %w", err)
+	}
+	t, err := c.cl.AddTorrent(mi)
+	if err != nil {
+		return nil, fmt.Errorf("adding embedded torrent: %w", err)
+	}
+	return &Torrent{t: t}, nil
+}
+
 // AddFromMagnet adds a torrent from a magnet URI. Its file list isn't
 // available until WaitInfo returns (the magnet URI alone doesn't carry
 // the file list - that comes from peers/trackers).
@@ -129,14 +146,19 @@ func (c *Client) AddFromMagnet(uri string) (*Torrent, error) {
 }
 
 // AddFromURL adds a torrent from a .torrent metadata file fetched over
-// HTTP(S), such as one published on a GitHub Pages/raw.githubusercontent.com
+// HTTPS, such as one published on a GitHub Pages/raw.githubusercontent.com
 // URL - the way this rewrite points a fresh machine at a torrent source
 // without shipping the .torrent file alongside the binary or requiring
 // a magnet link. Its file list is available immediately, same as
 // AddFromFile, since the whole .torrent is fetched up front rather
 // than resolved from peers/trackers.
 func (c *Client) AddFromURL(url string) (*Torrent, error) {
-	resp, err := http.Get(url)
+	u, err := urlpkg.Parse(url)
+	if err != nil || u.Scheme != "https" || u.Host == "" {
+		return nil, fmt.Errorf("torrent URL must use https")
+	}
+	client := &http.Client{Timeout: time.Minute}
+	resp, err := client.Get(u.String())
 	if err != nil {
 		return nil, fmt.Errorf("fetching torrent %s: %w", url, err)
 	}
@@ -145,7 +167,14 @@ func (c *Client) AddFromURL(url string) (*Torrent, error) {
 		return nil, fmt.Errorf("fetching torrent %s: %s", url, resp.Status)
 	}
 
-	mi, err := metainfo.Load(resp.Body)
+	data, err := io.ReadAll(io.LimitReader(resp.Body, 64<<20+1))
+	if err != nil {
+		return nil, fmt.Errorf("reading torrent %s: %w", url, err)
+	}
+	if len(data) > 64<<20 {
+		return nil, fmt.Errorf("torrent %s exceeds the 64 MiB metadata limit", url)
+	}
+	mi, err := metainfo.Load(bytes.NewReader(data))
 	if err != nil {
 		return nil, fmt.Errorf("parsing torrent %s: %w", url, err)
 	}
@@ -156,14 +185,12 @@ func (c *Client) AddFromURL(url string) (*Torrent, error) {
 	return &Torrent{t: t}, nil
 }
 
-// AddFromSpec adds a torrent from spec, dispatching on its form: a
-// magnet: URI (AddFromMagnet), an http(s):// URL (AddFromURL), or
-// otherwise a local .torrent file path (AddFromFile) - the single
-// place every Settings.TorrentFile-driven call site should resolve a
-// torrent source through, so the three forms stay in sync instead of
-// each caller repeating its own prefix check.
+// AddFromSpec adds a torrent from a magnet URI, HTTPS URL, local file,
+// or the embedded torrent when spec is empty.
 func (c *Client) AddFromSpec(spec string) (*Torrent, error) {
 	switch {
+	case spec == "":
+		return c.AddFromBytes(sdio.EmbeddedTorrent)
 	case strings.HasPrefix(spec, "magnet:"):
 		return c.AddFromMagnet(spec)
 	case strings.HasPrefix(spec, "http://"), strings.HasPrefix(spec, "https://"):
@@ -208,6 +235,11 @@ type FileInfo struct {
 // BytesCompleted returns how much of this file has downloaded so far.
 func (f FileInfo) BytesCompleted() int64 {
 	return f.file.BytesCompleted()
+}
+
+// Complete reports whether the torrent has verified every byte of a file.
+func (f FileInfo) Complete() bool {
+	return f.Length == 0 || f.BytesCompleted() >= f.Length
 }
 
 // Download marks this file for download.
@@ -381,7 +413,7 @@ func SaveFile(src, dest string) error {
 
 	var renameErr error
 	for i := 0; i < saveFileRetries; i++ {
-		if renameErr = os.Rename(src, dest); renameErr == nil {
+		if renameErr = replaceFile(src, dest); renameErr == nil {
 			return nil
 		}
 		if i < saveFileRetries-1 {
@@ -404,15 +436,23 @@ func SaveFile(src, dest string) error {
 	}
 	defer in.Close()
 
-	out, err := os.Create(dest)
+	tmp, err := os.CreateTemp(filepath.Dir(dest), ".sdio-save-*")
 	if err != nil {
 		return err
 	}
-	if _, err := io.Copy(out, in); err != nil {
-		out.Close()
+	defer os.Remove(tmp.Name())
+	if _, err := io.Copy(tmp, in); err != nil {
+		tmp.Close()
 		return err
 	}
-	if err := out.Close(); err != nil {
+	if err := tmp.Sync(); err != nil {
+		tmp.Close()
+		return err
+	}
+	if err := tmp.Close(); err != nil {
+		return err
+	}
+	if err := replaceFile(tmp.Name(), dest); err != nil {
 		return err
 	}
 	return os.Remove(src)

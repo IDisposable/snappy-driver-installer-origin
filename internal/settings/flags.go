@@ -25,6 +25,7 @@ const (
 	FlagKeepSeeding
 	FlagNoStop
 	FlagExtractOnly
+	FlagFinishReboot
 )
 
 // boolFlagDef ties a command-line flag name to a Flags bit, and records
@@ -40,18 +41,11 @@ type boolFlagDef struct {
 // boolFlagDefs is the single source of truth for both flag registration
 // and saving, replacing the original's two independently-maintained
 // if-chains in parse() and save() (which had already drifted apart).
-// Several of these are registered (and so round-trip through sdio.cfg
-// and show up as options-screen checkboxes) but have no wired effect
-// yet, each for its own reason - see the "(not implemented...)" note
-// on each. They're kept registered rather than removed so an existing
-// cfg file's setting isn't silently dropped, and so the gap is visible
-// instead of the option quietly vanishing. Found via a forensic pass
-// over every flag against the original's FLAG_* semantics
-// (source/settings.cpp/update.cpp/manager.cpp); see the go-rewrite
-// branch history for the full per-flag audit.
+// These definitions are the single source for command-line parsing,
+// persistence, and the options screen.
 var boolFlagDefs = []boolFlagDef{
 	{"checkupdates", "check for driver pack updates", FlagCheckUpdates, true},
-	{"onlyupdates", "only fetch driver packs newer than what's on disk (not implemented - the original's revision-comparison filter isn't ported)", FlagOnlyUpdates, true},
+	{"onlyupdates", "only fetch newer revisions of driver packs already on disk", FlagOnlyUpdates, true},
 	{"torrentalerts", "log torrent alert events", FlagTorrentAlerts, true},
 	{"keepseeding", "keep seeding driver packs to other peers after download completes", FlagKeepSeeding, true},
 	{"norestorepnt", "don't create a system restore point", FlagNoRestorePoint, true},
@@ -59,11 +53,12 @@ var boolFlagDefs = []boolFlagDef{
 	{"preservecfg", "don't overwrite sdio.cfg on exit", FlagPreserveCfg, false},
 	{"nogui", "run headless, without an interactive front end", FlagNoGUI, false},
 	{"autoclose", "exit automatically once an install or download finishes", FlagAutoClose, false},
+	{"finish-reboot", "reboot Windows after a successful install", FlagFinishReboot, false},
 	{"autoupdate", "download every driver pack automatically, once, right after the first scan", FlagAutoUpdate, false},
 	{"nostop", "install anyway if creating a restore point fails (default: abort the install)", FlagNoStop, false},
 	{"disableinstall", "scan and match only: never install, and never create a restore point", FlagDisableInstall, false},
 	{"delextrainfs", "delete extra .inf files after install", FlagDelExtraInfs, false},
-	{"nologfile", "don't write a log file (not implemented - no log-file writer exists yet)", FlagNoLogFile, false},
+	{"nologfile", "don't write a log file", FlagNoLogFile, false},
 	{"nosnapshot", "don't save a system snapshot (logs/*.snp) after scanning", FlagNoSnapshot, false},
 	{"reindex", "rebuild every driver pack's index from its own .7z, even if a valid one already exists", FlagForceReindexing, false},
 	{"index-hr", "also write a human-readable text index alongside any index (re)built this run", FlagPrintIndex, false},

@@ -6,14 +6,54 @@
 package report
 
 import (
+	"encoding/csv"
 	"encoding/json"
 	"fmt"
 	"io"
+	"strings"
 
 	"sdio/internal/hardware"
 	"sdio/internal/installflow"
 	"sdio/internal/scan"
 )
+
+// WriteDeviceList writes one stable tab-separated row per scanned device.
+func WriteDeviceList(w io.Writer, result scan.Result) error {
+	csvWriter := csv.NewWriter(w)
+	csvWriter.Comma = '\t'
+	if err := csvWriter.Write([]string{"status", "description", "instance_id", "hardware_ids", "installed_provider", "installed_version", "installed_inf", "candidate_pack", "candidate_section", "candidate_version", "needs_download"}); err != nil {
+		return err
+	}
+	for _, device := range result.Devices {
+		best := device.Best()
+		status := scan.StatusLabel(device.Status)
+		if best != nil {
+			status = scan.MatchLabel(best)
+		}
+		row := []string{status, device.Device.Description, device.Device.InstanceID, strings.Join(device.Device.HardwareIDs, "|")}
+		if device.Installed != nil {
+			row = append(row, device.Installed.ProviderName, device.Installed.Version.String(), device.Installed.InfPath)
+		} else {
+			row = append(row, "", "", "")
+		}
+		if best != nil {
+			row = append(row, best.Driverpack.Filename, best.Result.Section, best.Result.DriverVersion.String(), fmt.Sprint(best.Driverpack.Pending))
+		} else {
+			row = append(row, "", "", "", "false")
+		}
+		if err := csvWriter.Write(row); err != nil {
+			return err
+		}
+	}
+	csvWriter.Flush()
+	return csvWriter.Error()
+}
+
+// WriteDeviceListJSON writes the same structured JSON shape as -json.
+func WriteDeviceListJSON(w io.Writer, result scan.Result) error {
+	_, err := PrintJSON(w, result)
+	return err
+}
 
 // Print writes a plain-text report of result to w, and returns every
 // device with an actionable best candidate as an installflow.Pending

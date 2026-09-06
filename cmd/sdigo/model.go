@@ -12,6 +12,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 
+	"sdio/internal/install"
 	"sdio/internal/logging"
 	"sdio/internal/scan"
 	"sdio/internal/settings"
@@ -361,7 +362,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		var cmd tea.Cmd
 		switch {
-		case m.s.TorrentFile != "" && m.s.Flags&settings.FlagCheckUpdates != 0:
+		case m.s.Flags&settings.FlagCheckUpdates != 0:
 			// Ported from -checkupdates' documented purpose ("check for
 			// driver pack updates") - runs as its own background step
 			// after the table's first render instead of blocking it, the
@@ -377,7 +378,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.screen = screenWelcomeDownloading
 			m.opLogReturnScreen = screenTable
 			ctx := m.startDownload()
-			cmd = tea.Batch(runWelcomeDownloadCmd(ctx, m.s, update.AllDriverPacks, m.dlProgress, m.alertLogger(), m.logger), tickProgressCmd())
+			cmd = tea.Batch(runWelcomeDownloadCmd(ctx, m.s, m.downloadFilter(update.AllDriverPacks), m.dlProgress, m.alertLogger(), m.logger), tickProgressCmd())
 		}
 		if len(m.pendingResumeSelected) > 0 {
 			// An elevation relaunch resuming a confirmed selection wins
@@ -412,6 +413,12 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			// Skipped on failure - -autoclose means "close once done," not
 			// "close and hide that it failed."
 			return m, tea.Quit
+		}
+		if m.s.Flags&settings.FlagFinishReboot != 0 && !msg.isErr {
+			if err := install.Reboot(); err != nil {
+				m.opLog = append(m.opLog, fmt.Sprintf("error: rebooting after install: %v", err))
+				m.opLogIsError = true
+			}
 		}
 		return m, nil
 

@@ -25,6 +25,7 @@ package main
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 	"runtime/debug"
 	"strings"
 
@@ -73,6 +74,7 @@ func sdiGo(args []string) int {
 	fs := s.FlagSet("sdigo")
 	doInstall := fs.Bool("install", false, "with -nogui, install matched drivers (modifies the system; without this flag, only scan and report)")
 	doJSON := fs.Bool("json", false, "with -nogui, report as JSON instead of plain text (for scripts/CI)")
+	deviceListJSON := fs.Bool("device-list-json", false, "write -device-list as JSON instead of tab-separated text")
 	resumeFile := fs.String("elevated-resume", "", "internal use only: set by sdigo's own elevation relaunch to restore the device selection confirmed before elevating")
 	if err := fs.Parse(args); err != nil {
 		return 2
@@ -87,8 +89,10 @@ func sdiGo(args []string) int {
 	// this time, so a failed relaunch doesn't leave it behind.
 	var resumeSelected map[string]bool
 	if *resumeFile != "" {
-		resumeSelected = readResumeFile(*resumeFile)
-		os.Remove(*resumeFile)
+		if isResumeFilePath(*resumeFile) {
+			resumeSelected = readResumeFile(*resumeFile)
+			os.Remove(*resumeFile)
+		}
 	}
 
 	// Persists on exit even on an error return, so switches given on
@@ -162,6 +166,12 @@ func sdiGo(args []string) int {
 		} else {
 			pending = report.Print(os.Stdout, result)
 		}
+		if s.DeviceListFilename != "" {
+			if err := writeDeviceList(s.DeviceListFilename, *deviceListJSON, result); err != nil {
+				fmt.Fprintln(os.Stderr, "error writing device list:", err)
+				return 1
+			}
+		}
 		if *doInstall && len(pending) > 0 {
 			if !install.IsElevated() {
 				return relaunchElevated(s, cfgPath, args)
@@ -169,6 +179,16 @@ func sdiGo(args []string) int {
 			if !installflow.Run(s, pending, os.Stdout, alertLogger, nil, logger) {
 				return 1
 			}
+			if s.Flags&settings.FlagFinishReboot != 0 {
+				if err := install.Reboot(); err != nil {
+					fmt.Fprintln(os.Stderr, "error: rebooting after install:", err)
+					return 1
+				}
+			}
+		}
+		if s.Flags&settings.FlagFinishReboot != 0 && !*doInstall {
+			fmt.Fprintln(os.Stderr, "error: -finish-reboot requires -install")
+			return 2
 		}
 		return 0
 	}
@@ -189,6 +209,34 @@ func sdiGo(args []string) int {
 		return relaunchElevated(s, cfgPath, append(append([]string{}, args...), "-elevated-resume", writeResumeFile(fm.relaunchInstanceIDs)))
 	}
 	return 0
+}
+
+func writeDeviceList(filename string, asJSON bool, result scan.Result) error {
+	if err := os.MkdirAll(filepath.Dir(filename), 0o755); err != nil && filepath.Dir(filename) != "." {
+		return err
+	}
+	f, err := os.Create(filename)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+	if asJSON {
+		return report.WriteDeviceListJSON(f, result)
+	}
+	return report.WriteDeviceList(f, result)
+}
+
+func isResumeFilePath(path string) bool {
+	absPath, err := filepath.Abs(path)
+	if err != nil {
+		return false
+	}
+	tempPath, err := filepath.Abs(os.TempDir())
+	if err != nil {
+		return false
+	}
+	rel, err := filepath.Rel(tempPath, absPath)
+	return err == nil && rel != "." && rel != ".." && !strings.HasPrefix(rel, ".."+string(filepath.Separator)) && strings.HasPrefix(filepath.Base(absPath), "sdigo-resume-")
 }
 
 // relaunchElevated saves the current settings (so the elevated copy

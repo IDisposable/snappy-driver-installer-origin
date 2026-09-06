@@ -76,13 +76,6 @@ func (m model) updateWelcome(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			m.screen = screenTable
 			return m, nil
 		}
-		if m.s.TorrentFile == "" {
-			m.opLog = []string{"No -torrent-file configured - nothing to download from."}
-			m.opLogIsError = true
-			m.opLogReturnScreen = screenWelcome
-			m.screen = screenInstallLog
-			return m, nil
-		}
 		switch m.welcomeIndex {
 		case welcomeItemIndexes:
 			m.screen = screenWelcomeDownloading
@@ -93,12 +86,12 @@ func (m model) updateWelcome(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			m.screen = screenWelcomeDownloading
 			m.opLogReturnScreen = screenWelcome
 			ctx := m.startDownload()
-			return m, tea.Batch(runWelcomeDownloadCmd(ctx, m.s, update.NetworkDriverPacks, m.dlProgress, m.alertLogger(), m.logger), tickProgressCmd())
+			return m, tea.Batch(runWelcomeDownloadCmd(ctx, m.s, m.downloadFilter(update.NetworkDriverPacks), m.dlProgress, m.alertLogger(), m.logger), tickProgressCmd())
 		case welcomeItemThisMachine:
 			m.screen = screenWelcomeDownloading
 			m.opLogReturnScreen = screenWelcome
 			ctx := m.startDownload()
-			return m, tea.Batch(runWelcomeDownloadCmd(ctx, m.s, m.thisMachineDriverPacksFilter(), m.dlProgress, m.alertLogger(), m.logger), tickProgressCmd())
+			return m, tea.Batch(runWelcomeDownloadCmd(ctx, m.s, m.downloadFilter(m.thisMachineDriverPacksFilter()), m.dlProgress, m.alertLogger(), m.logger), tickProgressCmd())
 		case welcomeItemAll:
 			m.screen = screenWelcomeConfirmAll
 			return m, nil
@@ -117,7 +110,7 @@ func (m model) updateWelcomeConfirmAll(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		m.screen = screenWelcomeDownloading
 		m.opLogReturnScreen = screenWelcome
 		ctx := m.startDownload()
-		return m, tea.Batch(runWelcomeDownloadCmd(ctx, m.s, update.AllDriverPacks, m.dlProgress, m.alertLogger(), m.logger), tickProgressCmd())
+		return m, tea.Batch(runWelcomeDownloadCmd(ctx, m.s, m.downloadFilter(update.AllDriverPacks), m.dlProgress, m.alertLogger(), m.logger), tickProgressCmd())
 	case "ctrl+c":
 		return m, tea.Quit
 	case "n", "q", "esc":
@@ -125,6 +118,16 @@ func (m model) updateWelcomeConfirmAll(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return m, nil
 	}
 	return m, nil
+}
+
+func (m model) downloadFilter(category update.DriverPackFilter) update.DriverPackFilter {
+	if m.s.Flags&settings.FlagOnlyUpdates == 0 {
+		return category
+	}
+	newer := update.OnlyUpdates(m.s.DrpDir)
+	return func(filename string) bool {
+		return category(filename) && newer(filename)
+	}
 }
 
 // welcomeDownloadDoneMsg carries a Welcome-screen download's captured
@@ -145,10 +148,10 @@ type welcomeDownloadDoneMsg struct {
 func runIndexRefreshCmd(ctx context.Context, s *settings.Settings, progress *progressTracker, onAlert func(level, message string), logger *logging.Logger) tea.Cmd {
 	return func() tea.Msg {
 		defer logPanic(logger, "indexrefresh")
-		logger.Info().Str("torrentFile", s.TorrentFile).Str("indexDir", s.IndexDir).Msg("starting index refresh")
+		logger.Info().Str("torrent_source", s.TorrentSourceKind()).Str("indexDir", s.IndexDir).Msg("starting index refresh")
 
 		var buf bytes.Buffer
-		n, err := collection.BootstrapIndexes(ctx, s.TorrentFile, s.IndexDir, s.UpdatesDir, s.Flags&settings.FlagKeepSeeding != 0, onAlert, progress.report, logger)
+		n, err := collection.BootstrapIndexes(ctx, s.TorrentSource(), s.IndexDir, s.UpdatesDir, s.Flags&settings.FlagKeepSeeding != 0, onAlert, progress.report, logger)
 		switch {
 		case errors.Is(err, context.Canceled):
 			fmt.Fprintf(&buf, "cancelled - %d new/updated index file(s) already saved\n", n)
@@ -174,7 +177,7 @@ func runIndexRefreshCmd(ctx context.Context, s *settings.Settings, progress *pro
 func runWelcomeDownloadCmd(ctx context.Context, s *settings.Settings, filter update.DriverPackFilter, progress *progressTracker, onAlert func(level, message string), logger *logging.Logger) tea.Cmd {
 	return func() tea.Msg {
 		defer logPanic(logger, "welcomedownload")
-		logger.Info().Str("torrentFile", s.TorrentFile).Str("drpDir", s.DrpDir).Msg("starting driver-pack download")
+		logger.Info().Str("torrent_source", s.TorrentSourceKind()).Str("drpDir", s.DrpDir).Msg("starting driver-pack download")
 
 		var buf bytes.Buffer
 		n, err := update.DownloadDriverPacks(ctx, s, onAlert, filter, &buf, 2*time.Hour, progress.report, logger)
@@ -201,9 +204,6 @@ func runWelcomeDownloadCmd(ctx context.Context, s *settings.Settings, filter upd
 func (m model) welcomeView() string {
 	var b strings.Builder
 	b.WriteString("Download Menu - up/down: move, enter/space: select, q/esc/w: back\n\n")
-	if m.s.TorrentFile == "" {
-		b.WriteString("No -torrent-file is configured, so none of these can fetch anything yet.\n\n")
-	}
 	for i, item := range welcomeItems {
 		cursor := "  "
 		if i == m.welcomeIndex {

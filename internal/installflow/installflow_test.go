@@ -120,6 +120,29 @@ func TestInstallOneNormalModeReachesInstallDriver(t *testing.T) {
 	}
 }
 
+func TestCleanupExtractDirRemovesInstallFiles(t *testing.T) {
+	dir := t.TempDir()
+	if err := os.WriteFile(filepath.Join(dir, "driver.inf"), []byte("x"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := cleanupExtractDir(dir); err != nil {
+		t.Fatalf("cleanupExtractDir() error: %v", err)
+	}
+	if _, err := os.Stat(dir); !os.IsNotExist(err) {
+		t.Fatalf("extract directory still exists, stat error = %v", err)
+	}
+}
+
+func TestCleanupExtractDirKeepsDirectoryWhenRequested(t *testing.T) {
+	dir := t.TempDir()
+	if err := cleanupExtractDirWhen(dir, false); err != nil {
+		t.Fatalf("cleanupExtractDirWhen() error: %v", err)
+	}
+	if _, err := os.Stat(dir); err != nil {
+		t.Fatalf("extract directory was removed: %v", err)
+	}
+}
+
 // TestRunAbortsWhenRestorePointFailsAndNotNoStop confirms Run refuses
 // to install anything if the restore point it attempted failed,
 // ported from install.cpp's "if restore point was selected and failed

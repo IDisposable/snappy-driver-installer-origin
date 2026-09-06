@@ -308,8 +308,8 @@ func Run(s *settings.Settings, logger *logging.Logger) (Result, error) {
 	// with whatever collection is already present locally.
 	var indexesDownloaded int
 	var bootstrapErr error
-	if s.TorrentFile != "" && (p.FirstRun || s.Flags&settings.FlagCheckUpdates != 0) {
-		indexesDownloaded, bootstrapErr = collection.BootstrapIndexes(context.Background(), s.TorrentFile, s.IndexDir, s.UpdatesDir, s.Flags&settings.FlagKeepSeeding != 0, nil, nil, logger)
+	if s.HasTorrentSource() && (p.FirstRun || s.Flags&settings.FlagCheckUpdates != 0) {
+		indexesDownloaded, bootstrapErr = collection.BootstrapIndexes(context.Background(), s.TorrentSource(), s.IndexDir, s.UpdatesDir, s.Flags&settings.FlagKeepSeeding != 0, nil, nil, logger)
 	}
 
 	res, err := MatchWithCollection(s, p, nil)

@@ -37,18 +37,16 @@ type Settings struct {
 	// restarting from zero next run (the torrent client verifies
 	// already-written pieces against the torrent's own metainfo,
 	// which a fresh directory can never have).
-	UpdatesDir    string
-	LogDirRaw     string // as configured, may contain %VAR% references
-	LogDir        string // LogDirRaw with environment variables expanded
-	ExtractDirRaw string // as configured, may contain %VAR% references
-	ExtractDir    string // ExtractDirRaw with environment variables expanded
+	UpdatesDir           string
+	LogDirRaw            string // as configured, may contain %VAR% references
+	LogDir               string // LogDirRaw with environment variables expanded
+	ExtractDirRaw        string // as configured, may contain %VAR% references
+	ExtractDir           string // ExtractDirRaw with environment variables expanded
+	MaxExtractFileBytes  uint64
+	MaxExtractTotalBytes uint64
 
 	StateFile          string
 	DeviceListFilename string
-
-	FinishCmd       string
-	FinishRebootCmd string
-	FinishUpdateCmd string
 
 	Flags   Flags
 	Filters FilterShow
@@ -66,42 +64,56 @@ type Settings struct {
 
 	IgnoreList []string
 
-	// TorrentFile is a local .torrent file path, a magnet URI, or an
-	// http(s):// URL to fetch a .torrent file from (e.g. one published
-	// on a GitHub Pages/raw.githubusercontent.com page) - see
-	// update.Client.AddFromSpec, collection.LoadOnlineIndexes, and
-	// docs/PORTING_NOTES.md's update.cpp entry. Defaults to
-	// DefaultTorrentFile; -torrent-file/a config file can still override
-	// it, including back to "" to disable torrent downloads entirely.
+	// TorrentFile is a user-selected local .torrent path, magnet URI, or
+	// HTTPS URL. An empty value selects the embedded torrent.
 	TorrentFile string
 }
 
-// DefaultTorrentFile is Settings.TorrentFile's out-of-the-box value:
-// this fork's own GitHub-hosted copy of the SDIO update torrent (the
-// original never hardcoded one - see update.h's undefined torrent_url/
-// torrent2_url, docs/PORTING_NOTES.md's update.cpp entry - since no
-// real URL existed in that source snapshot). Unlike the upstream
-// project, this rewrite has one real distribution to point at, so a
-// fresh install bootstraps its index/driver-pack catalog with no
-// configuration at all instead of silently doing nothing until a user
-// finds and sets -torrent-file themselves.
-const DefaultTorrentFile = "https://github.com/IDisposable/snappy-driver-installer-origin/raw/refs/heads/main/seed/SDIO_Update.torrent"
+// DynamicTorrentURL is the mutable torrent source selected by -torrent-file=*.
+const DynamicTorrentURL = "https://github.com/IDisposable/snappy-driver-installer-origin/raw/refs/heads/main/seed/SDIO_Update.torrent"
+
+// TorrentSource returns a user-selected source, the dynamic source for
+// a literal "*", or an empty string for the embedded torrent.
+func (s *Settings) TorrentSource() string {
+	if s.TorrentFile == "*" {
+		return DynamicTorrentURL
+	}
+	if s.TorrentFile != "" {
+		return s.TorrentFile
+	}
+	return ""
+}
+
+// TorrentSourceKind identifies the selected torrent source for logs.
+func (s *Settings) TorrentSourceKind() string {
+	if s.TorrentFile == "*" {
+		return "dynamic"
+	}
+	if s.TorrentFile != "" {
+		return "user"
+	}
+	return "embedded"
+}
+
+// HasTorrentSource reports that the embedded torrent is always available.
+func (s *Settings) HasTorrentSource() bool { return true }
 
 // New returns Settings populated with the same defaults as the original
 // Settings_t constructor.
 func New() *Settings {
 	return &Settings{
-		DrpDir:        "drivers",
-		IndexDir:      "indexes",
-		OutputDir:     filepath.Join("indexes", "txt"),
-		DataDir:       filepath.Join("tools", "SDIO"),
-		UpdatesDir:    "updates",
-		LogDirRaw:     "logs",
-		ExtractDirRaw: `%TEMP%\SDIO`,
-		StateFile:     "untitled.snp",
-		StateMode:     StateModeReal,
-		Filters:       DefaultFilters,
-		TorrentFile:   DefaultTorrentFile,
+		DrpDir:               "drivers",
+		IndexDir:             "indexes",
+		OutputDir:            filepath.Join("indexes", "txt"),
+		DataDir:              filepath.Join("tools", "SDIO"),
+		UpdatesDir:           "updates",
+		LogDirRaw:            "logs",
+		ExtractDirRaw:        `%TEMP%\SDIO`,
+		MaxExtractFileBytes:  512 << 20,
+		MaxExtractTotalBytes: 4 << 30,
+		StateFile:            "untitled.snp",
+		StateMode:            StateModeReal,
+		Filters:              DefaultFilters,
 	}
 }
 

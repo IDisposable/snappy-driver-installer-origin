@@ -12,14 +12,51 @@ import (
 	"time"
 
 	"sdio/internal/common"
+	"sdio/internal/indexing"
 	"sdio/internal/logging"
 	"sdio/internal/settings"
+
+	"github.com/rs/zerolog"
 )
 
 // DriverPackFilter reports whether a driver-pack filename (just the
 // base name, e.g. "DP_LAN_Realtek-NT_26081.7z") belongs to a download
 // category.
 type DriverPackFilter func(filename string) bool
+
+// OnlyUpdates returns a filter that accepts a pack only when a lower
+// revision with the same base name already exists in dir.
+func OnlyUpdates(dir string) DriverPackFilter {
+	return func(filename string) bool {
+		newVersion := indexing.PackVersionNumber(filename)
+		if newVersion == 0 {
+			return false
+		}
+		stem := packStem(filename)
+		entries, err := os.ReadDir(dir)
+		if err != nil {
+			return false
+		}
+		for _, entry := range entries {
+			if entry.IsDir() || !strings.EqualFold(filepath.Ext(entry.Name()), ".7z") || packStem(entry.Name()) != stem {
+				continue
+			}
+			if oldVersion := indexing.PackVersionNumber(entry.Name()); oldVersion > 0 && oldVersion < newVersion {
+				return true
+			}
+		}
+		return false
+	}
+}
+
+func packStem(filename string) string {
+	for i := 0; i+1 < len(filename); i++ {
+		if filename[i] == '_' && filename[i+1] >= '0' && filename[i+1] <= '9' {
+			return strings.ToLower(filename[:i])
+		}
+	}
+	return strings.ToLower(strings.TrimSuffix(filename, filepath.Ext(filename)))
+}
 
 // AllDriverPacks matches every driver-pack file (the index half of a
 // full download is collection.BootstrapIndexes).
@@ -60,6 +97,12 @@ func NetworkDriverPacks(filename string) bool {
 // overall summary), the specific per-file visibility reported missing
 // when diagnosing a stalled/crashed download.
 func DownloadDriverPacks(ctx context.Context, s *settings.Settings, onAlert func(level, message string), filter DriverPackFilter, out io.Writer, timeout time.Duration, onProgress ProgressFunc, logger *logging.Logger) (int, error) {
+	if filter == nil {
+		filter = AllDriverPacks
+	}
+	if logger == nil {
+		logger = logging.New(zerolog.Disabled, nil)
+	}
 	if err := os.MkdirAll(s.DrpDir, 0o755); err != nil {
 		return 0, err
 	}
@@ -73,9 +116,11 @@ func DownloadDriverPacks(ctx context.Context, s *settings.Settings, onAlert func
 	}
 	defer c.Close()
 
-	t, err := c.AddFromSpec(s.TorrentFile)
+	torrentSource := s.TorrentSource()
+	logger.Info().Str("source", torrentSource).Str("source_kind", s.TorrentSourceKind()).Str("driver_dir", s.DrpDir).Msg("driver-pack download source loaded")
+	t, err := c.AddFromSpec(torrentSource)
 	if err != nil {
-		return 0, fmt.Errorf("adding torrent %s: %w", s.TorrentFile, err)
+		return 0, fmt.Errorf("adding torrent %s: %w", torrentSource, err)
 	}
 
 	infoCtx, cancel := context.WithTimeout(ctx, 30*time.Second)
@@ -96,6 +141,7 @@ func DownloadDriverPacks(ctx context.Context, s *settings.Settings, onAlert func
 		names = append(names, f.Path)
 	}
 	if len(names) == 0 {
+		logger.Info().Msg("driver-pack download has no new files")
 		return 0, nil
 	}
 
@@ -136,6 +182,9 @@ func DownloadDriverPacks(ctx context.Context, s *settings.Settings, onAlert func
 	for _, f := range selected {
 		base := path.Base(filepath.ToSlash(f.Path))
 		src := filepath.Join(s.UpdatesDir, filepath.FromSlash(f.Path))
+		if !f.Complete() {
+			continue
+		}
 		if _, err := os.Stat(src); err != nil {
 			continue // never completed, already reported above
 		}
@@ -153,5 +202,6 @@ func DownloadDriverPacks(ctx context.Context, s *settings.Settings, onAlert func
 		logger.Info().Str("file", base).Msg("driver pack download complete")
 		downloaded++
 	}
+	logger.Info().Int("downloaded", downloaded).Int("selected", len(selected)).Msg("driver-pack download complete")
 	return downloaded, nil
 }

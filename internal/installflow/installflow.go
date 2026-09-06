@@ -14,6 +14,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/rs/zerolog"
 	"sdio/internal/archive"
 	"sdio/internal/collection"
 	"sdio/internal/install"
@@ -50,6 +51,10 @@ type Pending struct {
 // act on (e.g. cmd/sdigo's TUI won't let a quick "enter" dismiss the
 // log screen unread, -nogui exits non-zero) without re-parsing text.
 func Run(s *settings.Settings, pending []Pending, out io.Writer, onAlert func(level, message string), onProgress update.ProgressFunc, logger *logging.Logger) bool {
+	if logger == nil {
+		logger = logging.New(zerolog.Disabled, nil)
+	}
+	logger.Info().Int("pending", len(pending)).Str("torrent_source", s.TorrentSourceKind()).Msg("install run starting")
 	ok := true
 	if err := DownloadPending(s, pending, out, onAlert, onProgress, logger); err != nil {
 		fmt.Fprintf(out, "warning: downloading pending driver packs: %v\n", err)
@@ -94,11 +99,16 @@ func Run(s *settings.Settings, pending []Pending, out io.Writer, onAlert func(le
 	}
 
 	for _, p := range pending {
+		logger.Info().Str("description", p.Description).Str("pack", p.Candidate.Driverpack.Filename).Msg("driver install starting")
 		if err := InstallOne(s, p, out); err != nil {
+			logger.Error().Err(err).Str("description", p.Description).Msg("driver install failed")
 			fmt.Fprintf(out, "install %s: %v\n", p.Description, err)
 			ok = false
+			continue
 		}
+		logger.Info().Str("description", p.Description).Msg("driver install complete")
 	}
+	logger.Info().Bool("success", ok).Msg("install run complete")
 	return ok
 }
 
@@ -124,10 +134,6 @@ func DownloadPending(s *settings.Settings, pending []Pending, out io.Writer, onA
 	if len(need) == 0 {
 		return nil
 	}
-	if s.TorrentFile == "" {
-		return fmt.Errorf("%d driver pack(s) need downloading but no torrent source is configured (-torrent-file)", len(need))
-	}
-
 	// UpdatesDir persists across runs (unlike a temp directory that
 	// would be removed here) so a download interrupted mid-file
 	// resumes instead of restarting from zero next time - the torrent
@@ -143,9 +149,10 @@ func DownloadPending(s *settings.Settings, pending []Pending, out io.Writer, onA
 	}
 	defer c.Close()
 
-	t, err := c.AddFromSpec(s.TorrentFile)
+	torrentSource := s.TorrentSource()
+	t, err := c.AddFromSpec(torrentSource)
 	if err != nil {
-		return fmt.Errorf("adding torrent %s: %w", s.TorrentFile, err)
+		return fmt.Errorf("adding torrent %s: %w", torrentSource, err)
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
@@ -188,6 +195,11 @@ func DownloadPending(s *settings.Settings, pending []Pending, out io.Writer, onA
 		if err != nil {
 			fmt.Fprintf(out, "warning: downloading %s: %v\n", drp.Filename, err)
 			logger.Error().Err(err).Str("file", drp.Filename).Msg("pending driver pack download failed")
+			continue
+		}
+		if len(selected) != 1 || !selected[0].Complete() {
+			fmt.Fprintf(out, "warning: downloading %s did not produce a complete verified file\n", drp.Filename)
+			logger.Error().Str("file", drp.Filename).Msg("pending driver pack download incomplete")
 			continue
 		}
 
@@ -237,7 +249,9 @@ func InstallOne(s *settings.Settings, p Pending, out io.Writer) error {
 	defer r.Close()
 
 	destDir := filepath.Join(s.ExtractDir, filepath.FromSlash(strings.TrimSuffix(prefix, "/")))
-	if _, err := r.ExtractPrefix(prefix, destDir); err != nil {
+	if _, err := r.ExtractPrefixWithOptions(prefix, destDir, archive.ExtractOptions{
+		MaxFileBytes: s.MaxExtractFileBytes, MaxTotalBytes: s.MaxExtractTotalBytes,
+	}); err != nil {
 		return fmt.Errorf("extracting %s: %w", prefix, err)
 	}
 	extractedInf := filepath.Join(destDir, infName)
@@ -264,6 +278,11 @@ func InstallOne(s *settings.Settings, p Pending, out io.Writer) error {
 		fmt.Fprintf(out, "EXTRACTED %-50s -> %s (extract-only mode, not installing)\n", p.Description, destDir)
 		return nil
 	}
+	defer func() {
+		if err := cleanupExtractDir(s.ExtractDir); err != nil {
+			fmt.Fprintf(out, "warning: removing extracted driver files: %v\n", err)
+		}
+	}()
 
 	res, err := install.Driver(0, p.Candidate.Result.HWID, extractedInf)
 	if err != nil {
@@ -275,4 +294,15 @@ func InstallOne(s *settings.Settings, p Pending, out io.Writer) error {
 	}
 	fmt.Fprintf(out, "INSTALLED %-50s%s\n", p.Description, reboot)
 	return nil
+}
+
+func cleanupExtractDir(path string) error {
+	return cleanupExtractDirWhen(path, true)
+}
+
+func cleanupExtractDirWhen(path string, remove bool) error {
+	if !remove {
+		return nil
+	}
+	return os.RemoveAll(path)
 }

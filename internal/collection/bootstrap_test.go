@@ -38,9 +38,9 @@ func TestPlaceholderIndexFilename(t *testing.T) {
 	}
 }
 
-func TestBootstrapIndexesNoTorrentConfigured(t *testing.T) {
-	if _, err := BootstrapIndexes(context.Background(), "", t.TempDir(), t.TempDir(), false, nil, nil, testLogger); err == nil {
-		t.Fatal("expected an error with no torrent source configured")
+func TestBootstrapIndexesInvalidTorrentPath(t *testing.T) {
+	if _, err := BootstrapIndexes(context.Background(), filepath.Join(t.TempDir(), "missing.torrent"), t.TempDir(), t.TempDir(), false, nil, nil, testLogger); err == nil {
+		t.Fatal("expected an error with an invalid torrent source")
 	}
 }
 
