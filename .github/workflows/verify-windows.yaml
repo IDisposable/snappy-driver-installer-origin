@@ -1,0 +1,93 @@
+name: Verify Windows
+
+on:
+  workflow_dispatch:
+    inputs:
+      run_scan:
+        description: Run the real Windows -nogui scan and device-list checks
+        required: true
+        default: false
+        type: boolean
+      install_confirmation:
+        description: Type I_UNDERSTAND_THIS_MODIFIES_RUNNER to attempt driver installation
+        required: true
+        default: NO
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  verify-windows:
+    runs-on: windows-latest
+    timeout-minutes: 60
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Run Windows tests
+        shell: pwsh
+        run: go test ./... -count=1 -timeout=2m
+
+      - name: Run Windows vet
+        shell: pwsh
+        run: go vet ./...
+
+      - name: Build Windows executable
+        shell: pwsh
+        run: go build -o sdigo.exe ./cmd/sdigo
+
+      - name: Run hardware diagnostics
+        shell: pwsh
+        run: .\sdigo.exe hwdump *> hwdump.txt
+
+      - name: Run headless USB copy
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path drivers, indexes | Out-Null
+          $usbRoot = Join-Path $env:RUNNER_TEMP "sdigo-usb"
+          New-Item -ItemType Directory -Force -Path $usbRoot | Out-Null
+          .\sdigo.exe -nogui -usb=$usbRoot *> usb-copy.txt
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          if (-not (Test-Path (Join-Path $usbRoot "sdigo.exe"))) { throw "USB copy did not copy sdigo.exe" }
+          if (-not (Test-Path (Join-Path $usbRoot "drivers"))) { throw "USB copy did not copy drivers" }
+          if (-not (Test-Path (Join-Path $usbRoot "indexes"))) { throw "USB copy did not copy indexes" }
+
+      - name: Run opt-in Windows scan
+        if: ${{ inputs.run_scan }}
+        shell: pwsh
+        run: |
+          $deviceList = Join-Path $env:RUNNER_TEMP "device-list.json"
+          .\sdigo.exe -nogui -json "-device-list=$deviceList" "-torrent-file=*" *> scan.txt
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          if (-not (Test-Path $deviceList)) { throw "Scan did not create the JSON device list" }
+
+      - name: Run opt-in driver installation
+        if: ${{ inputs.install_confirmation == 'I_UNDERSTAND_THIS_MODIFIES_RUNNER' }}
+        shell: pwsh
+        run: |
+          $deviceList = Join-Path $env:RUNNER_TEMP "device-list-install.json"
+          .\sdigo.exe -nogui -json -install "-device-list=$deviceList" "-torrent-file=*" *> install.txt
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          if (-not (Test-Path $deviceList)) { throw "Install run did not create the JSON device list" }
+
+      - name: Upload Windows verification files
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: sdigo-windows-verification
+          path: |
+            hwdump.txt
+            usb-copy.txt
+            scan.txt
+            install.txt
+            ${{ runner.temp }}\device-list.json
+            ${{ runner.temp }}\device-list-install.json
+          if-no-files-found: ignore

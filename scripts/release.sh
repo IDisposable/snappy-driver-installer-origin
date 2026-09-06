@@ -20,6 +20,9 @@ version="${1:-git-tag}"
 echo "Running tests..." >&2
 go test ./...
 
+echo "Running vet..." >&2
+go vet ./...
+
 winres="$(command -v go-winres || true)"
 if [ -z "$winres" ]; then
 	gobin="$(go env GOPATH)/bin"

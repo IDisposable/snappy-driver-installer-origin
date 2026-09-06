@@ -1,0 +1,54 @@
+name: Verify
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+      - go-rewrite
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Run tests
+        run: go test ./... -count=1 -timeout=2m
+
+      - name: Run vet
+        run: go vet ./...
+
+      - name: Check release script syntax
+        run: bash -n scripts/release.sh
+
+      - name: Check embedded torrent seed
+        run: test -s seed/SDIO_Update.torrent
+
+      - name: Build Windows executable
+        run: GOOS=windows GOARCH=amd64 go build -o sdigo-verify.exe ./cmd/sdigo
+
+      - name: Compute executable checksum
+        run: sha256sum sdigo-verify.exe | tee sdigo-verify.exe.sha256
+
+      - name: Upload Windows verification artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: sdigo-windows-verify
+          path: |
+            sdigo-verify.exe
+            sdigo-verify.exe.sha256
+          if-no-files-found: error
