@@ -86,16 +86,16 @@ func runUSBCopyCmd(s *settings.Settings, destRoot string, logger *logging.Logger
 		if err != nil {
 			fmt.Fprintf(&buf, "error: %v\n", err)
 			logger.Error().Err(err).Msg("resolving paths to copy for USB drive failed")
-			return welcomeDownloadDoneMsg{log: logLines(&buf), isErr: true}
+			return downloadDoneMsg{log: logLines(&buf), isErr: true}
 		}
 		if err := usbdrive.CopyPortable(destRoot, paths, &buf); err != nil {
 			fmt.Fprintf(&buf, "error: %v\n", err)
 			logger.Error().Err(err).Str("dest", destRoot).Msg("USB drive copy failed")
-			return welcomeDownloadDoneMsg{log: logLines(&buf), isErr: true}
+			return downloadDoneMsg{log: logLines(&buf), isErr: true}
 		}
 		fmt.Fprintf(&buf, "done - copied to %s\n", destRoot)
 		logger.Info().Str("dest", destRoot).Msg("USB drive copy complete")
-		return welcomeDownloadDoneMsg{log: logLines(&buf)}
+		return downloadDoneMsg{log: logLines(&buf)}
 	}
 }
 

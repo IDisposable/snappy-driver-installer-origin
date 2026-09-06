@@ -40,8 +40,7 @@ const (
 	screenInstallLog
 	screenAbout
 	screenWelcome
-	screenWelcomeConfirmAll
-	screenWelcomeDownloading
+	screenDownloading
 	screenUSBDrive
 	screenUSBDriveConfirm
 	screenUSBDriveCopying
@@ -52,7 +51,7 @@ type model struct {
 	result scan.Result
 
 	// prepared caches scan.Prepare's hardware-detection output so a
-	// rescan after a background download (welcomeDownloadDoneMsg/
+	// rescan after a background download (downloadDoneMsg/
 	// installDoneMsg) only has to redo collection loading and matching,
 	// not device enumeration.
 	prepared scan.Prepared
@@ -112,13 +111,13 @@ type model struct {
 	// dropping back to the driver list.
 	opLogReturnScreen screen
 
-	// dlProgress is set whenever screenInstalling/screenWelcomeDownloading
+	// dlProgress is set whenever screenInstalling/screenDownloading
 	// starts a background download, so their View can poll it for a
 	// live percent/bytes/speed readout instead of a static message.
 	dlProgress *progressTracker
 
-	// dlCancel stops a screenWelcomeDownloading run early (see
-	// startDownload/"esc" in updateTable's screenWelcomeDownloading
+	// dlCancel stops a screenDownloading run early (see
+	// startDownload/"esc" in updateTable's screenDownloading
 	// case) - scoped to Welcome-screen downloads only, not
 	// screenInstalling, since interrupting an in-progress driver
 	// install (rather than just a download feeding it) risks leaving a
@@ -145,7 +144,7 @@ type model struct {
 	// default io.Discard sink instead of a file.
 	logger *logging.Logger
 
-	welcomeIndex int
+	downloadIndex int
 
 	usbDrives     []usbdrive.Drive
 	usbDriveIndex int
@@ -221,9 +220,9 @@ func (m model) alertLogger() func(level, message string) {
 	}
 }
 
-// startDownload prepares model state for a screenWelcomeDownloading
+// startDownload prepares model state for a screenDownloading
 // run - a fresh progress tracker and a cancelable context, so "esc"
-// can stop the operation early (see updateTable's screenWelcomeDownloading
+// can stop the operation early (see updateTable's screenDownloading
 // case) rather than the only way out being to force-kill the whole
 // process, which was observed to leave the torrent client's on-disk
 // state in a shape that crashed on the next resume. Returns the
@@ -313,7 +312,7 @@ func (m model) Init() tea.Cmd {
 
 // applyResult populates the model from a fresh scan.Result - the
 // initial scan, or a rescan after a background download may have
-// changed what's on disk (see welcomeDownloadDoneMsg/installDoneMsg).
+// changed what's on disk (see downloadDoneMsg/installDoneMsg).
 func (m *model) applyResult(result scan.Result) {
 	m.result = result
 	m.matched, m.missing = 0, 0
@@ -367,7 +366,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			// driver pack updates") - runs as its own background step
 			// after the table's first render instead of blocking it, the
 			// way the original's launch-time bootstrap did.
-			m.screen = screenWelcomeDownloading
+			m.screen = screenDownloading
 			m.opLogReturnScreen = screenTable
 			ctx := m.startDownload()
 			cmd = tea.Batch(runIndexRefreshCmd(ctx, m.s, m.dlProgress, m.alertLogger(), m.logger), tickProgressCmd())
@@ -375,10 +374,10 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			// Ported from the "-autoupdate command line parameter" launch-
 			// time auto-trigger (update.cpp) - fires once, right after the
 			// first scan.
-			m.screen = screenWelcomeDownloading
+			m.screen = screenDownloading
 			m.opLogReturnScreen = screenTable
 			ctx := m.startDownload()
-			cmd = tea.Batch(runWelcomeDownloadCmd(ctx, m.s, m.downloadFilter(update.AllDriverPacks), m.dlProgress, m.alertLogger(), m.logger), tickProgressCmd())
+			cmd = tea.Batch(runDownloadCmd(ctx, m.s, m.downloadFilter(update.AllDriverPacks), m.dlProgress, m.alertLogger(), m.logger), tickProgressCmd())
 		}
 		if len(m.pendingResumeSelected) > 0 {
 			// An elevation relaunch resuming a confirmed selection wins
@@ -422,7 +421,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 		return m, nil
 
-	case welcomeDownloadDoneMsg:
+	case downloadDoneMsg:
 		m.opLog = msg.log
 		m.opLogIsError = msg.isErr
 		m.screen = screenInstallLog
@@ -452,7 +451,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		// active - a tick delivered after the operation finished and
 		// the screen already moved on would otherwise keep ticking
 		// forever.
-		if m.screen == screenInstalling || m.screen == screenWelcomeDownloading || m.screen == screenScanning {
+		if m.screen == screenInstalling || m.screen == screenDownloading || m.screen == screenScanning {
 			return m, tickProgressCmd()
 		}
 		return m, nil
@@ -515,15 +514,13 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 			return m, nil
 		case screenWelcome:
-			return m.updateWelcome(msg)
-		case screenWelcomeConfirmAll:
-			return m.updateWelcomeConfirmAll(msg)
-		case screenWelcomeDownloading:
+			return m.updateDownload(msg)
+		case screenDownloading:
 			switch msg.String() {
 			case "esc", "ctrl+c":
 				// Only stop the operation, not the whole process - the
 				// running command still finishes on its own (see
-				// welcomeDownloadDoneMsg) once WaitDownload notices ctx is
+				// downloadDoneMsg) once WaitDownload notices ctx is
 				// done, saving whatever completed first rather than
 				// discarding it. m.dlCancel is nil once already called
 				// (or if somehow reached with nothing running), so a
@@ -579,10 +576,8 @@ func (m model) View() string {
 	case screenAbout:
 		return aboutView
 	case screenWelcome:
-		return m.welcomeView()
-	case screenWelcomeConfirmAll:
-		return m.welcomeConfirmAllView()
-	case screenWelcomeDownloading:
+		return m.downloadView()
+	case screenDownloading:
 		return m.downloadStatusView("Downloading")
 	case screenUSBDrive:
 		return m.usbDriveView()

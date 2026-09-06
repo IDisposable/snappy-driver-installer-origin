@@ -15,7 +15,7 @@ import (
 )
 
 // progressTracker is mutex-guarded download progress published by a
-// background download goroutine (runInstallCmd/runWelcomeDownloadCmd/
+// background download goroutine (runInstallCmd/runDownloadCmd/
 // runIndexRefreshCmd, via update.ProgressFunc) and read by the TUI's
 // tick loop, so the Installing/Downloading screens can show the same
 // kind of live percent/bytes/speed readout update.cpp's ShowProgress

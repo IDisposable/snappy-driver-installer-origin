@@ -16,13 +16,13 @@ import (
 	"sdio/internal/update"
 )
 
-// welcomeItems is the download menu's task list - "indexes, network
+// downloadItems is the download menu's task list - "indexes, network
 // drivers, this machine's drivers, all drivers, and quit". Indexes is
 // an on-demand refresh rather than a first-run necessity: scan.Run
 // already fetches the index catalog automatically the first time it
 // finds none locally (see scan.Result.FirstRun/this screen's own
 // auto-jump on it).
-var welcomeItems = []string{
+var downloadItems = []string{
 	"Indexes (refresh the driver-pack catalog)",
 	"Network Drivers (Net/LAN/WLAN/WWAN - get this PC online quickly)",
 	"This Machine's Drivers (only what the scanned devices need)",
@@ -31,11 +31,11 @@ var welcomeItems = []string{
 }
 
 const (
-	welcomeItemIndexes = iota
-	welcomeItemNetwork
-	welcomeItemThisMachine
-	welcomeItemAll
-	welcomeItemQuit
+	downloadItemIndexes = iota
+	downloadItemNetwork
+	downloadItemThisMachine
+	downloadItemAll
+	downloadItemQuit
 )
 
 // thisMachineDriverPacksFilter matches only the driver-pack files the
@@ -55,67 +55,49 @@ func (m model) thisMachineDriverPacksFilter() update.DriverPackFilter {
 	}
 }
 
-// updateWelcome handles key input on the download menu.
-func (m model) updateWelcome(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
+// updateDownload handles key input on the download menu.
+func (m model) updateDownload(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	switch msg.String() {
 	case "ctrl+c":
 		return m, tea.Quit
-	case "q", "esc", "w":
+	case "q", "esc", "d":
 		m.screen = screenTable
 		return m, nil
 	case "up", "k":
-		if m.welcomeIndex > 0 {
-			m.welcomeIndex--
+		if m.downloadIndex > 0 {
+			m.downloadIndex--
 		}
 	case "down", "j":
-		if m.welcomeIndex < len(welcomeItems)-1 {
-			m.welcomeIndex++
+		if m.downloadIndex < len(downloadItems)-1 {
+			m.downloadIndex++
 		}
 	case "enter", " ":
-		if m.welcomeIndex == welcomeItemQuit {
+		if m.downloadIndex == downloadItemQuit {
 			m.screen = screenTable
 			return m, nil
 		}
-		switch m.welcomeIndex {
-		case welcomeItemIndexes:
-			m.screen = screenWelcomeDownloading
+		switch m.downloadIndex {
+		case downloadItemIndexes:
+			m.screen = screenDownloading
 			m.opLogReturnScreen = screenWelcome
 			ctx := m.startDownload()
 			return m, tea.Batch(runIndexRefreshCmd(ctx, m.s, m.dlProgress, m.alertLogger(), m.logger), tickProgressCmd())
-		case welcomeItemNetwork:
-			m.screen = screenWelcomeDownloading
+		case downloadItemNetwork:
+			m.screen = screenDownloading
 			m.opLogReturnScreen = screenWelcome
 			ctx := m.startDownload()
-			return m, tea.Batch(runWelcomeDownloadCmd(ctx, m.s, m.downloadFilter(update.NetworkDriverPacks), m.dlProgress, m.alertLogger(), m.logger), tickProgressCmd())
-		case welcomeItemThisMachine:
-			m.screen = screenWelcomeDownloading
+			return m, tea.Batch(runDownloadCmd(ctx, m.s, m.downloadFilter(update.NetworkDriverPacks), m.dlProgress, m.alertLogger(), m.logger), tickProgressCmd())
+		case downloadItemThisMachine:
+			m.screen = screenDownloading
 			m.opLogReturnScreen = screenWelcome
 			ctx := m.startDownload()
-			return m, tea.Batch(runWelcomeDownloadCmd(ctx, m.s, m.downloadFilter(m.thisMachineDriverPacksFilter()), m.dlProgress, m.alertLogger(), m.logger), tickProgressCmd())
-		case welcomeItemAll:
-			m.screen = screenWelcomeConfirmAll
-			return m, nil
+			return m, tea.Batch(runDownloadCmd(ctx, m.s, m.downloadFilter(m.thisMachineDriverPacksFilter()), m.dlProgress, m.alertLogger(), m.logger), tickProgressCmd())
+		case downloadItemAll:
+			m.screen = screenDownloading
+			m.opLogReturnScreen = screenWelcome
+			ctx := m.startDownload()
+			return m, tea.Batch(runDownloadCmd(ctx, m.s, m.downloadFilter(update.AllDriverPacks), m.dlProgress, m.alertLogger(), m.logger), tickProgressCmd())
 		}
-	}
-	return m, nil
-}
-
-// updateWelcomeConfirmAll confirms before downloading the entire
-// driver-pack collection - unlike a single pending candidate's ~tens
-// of MB, this is a real, possibly multi-GB, multi-hour operation the
-// original's own Welcome dialog warns about too.
-func (m model) updateWelcomeConfirmAll(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
-	switch msg.String() {
-	case "y", "enter":
-		m.screen = screenWelcomeDownloading
-		m.opLogReturnScreen = screenWelcome
-		ctx := m.startDownload()
-		return m, tea.Batch(runWelcomeDownloadCmd(ctx, m.s, m.downloadFilter(update.AllDriverPacks), m.dlProgress, m.alertLogger(), m.logger), tickProgressCmd())
-	case "ctrl+c":
-		return m, tea.Quit
-	case "n", "q", "esc":
-		m.screen = screenWelcome
-		return m, nil
 	}
 	return m, nil
 }
@@ -130,12 +112,12 @@ func (m model) downloadFilter(category update.DriverPackFilter) update.DriverPac
 	}
 }
 
-// welcomeDownloadDoneMsg carries a Welcome-screen download's captured
+// downloadDoneMsg carries a download-menu operation's captured
 // output back to Update once it finishes. isErr is set from the real
 // error the download command got (not sniffed from the log text), so
 // screenInstallLog can refuse to let "enter" dismiss a failure the
 // user hasn't had a chance to read yet - see model.opLogIsError.
-type welcomeDownloadDoneMsg struct {
+type downloadDoneMsg struct {
 	log   []string
 	isErr bool
 }
@@ -156,7 +138,7 @@ func runIndexRefreshCmd(ctx context.Context, s *settings.Settings, progress *pro
 		case errors.Is(err, context.Canceled):
 			fmt.Fprintf(&buf, "cancelled - %d new/updated index file(s) already saved\n", n)
 			logger.Info().Int("downloaded", n).Msg("index refresh cancelled")
-			return welcomeDownloadDoneMsg{log: logLines(&buf)}
+			return downloadDoneMsg{log: logLines(&buf)}
 		case err != nil:
 			fmt.Fprintf(&buf, "error refreshing indexes: %v\n", err)
 			logger.Error().Err(err).Msg("index refresh failed")
@@ -164,19 +146,19 @@ func runIndexRefreshCmd(ctx context.Context, s *settings.Settings, progress *pro
 			fmt.Fprintf(&buf, "downloaded %d new/updated index file(s)\n", n)
 			logger.Info().Int("downloaded", n).Msg("index refresh complete")
 		}
-		return welcomeDownloadDoneMsg{log: logLines(&buf), isErr: err != nil}
+		return downloadDoneMsg{log: logLines(&buf), isErr: err != nil}
 	}
 }
 
-// runWelcomeDownloadCmd downloads every driver pack filter matches
+// runDownloadCmd downloads every driver pack filter matches
 // and isn't already present, for the Welcome screen's "Download
 // Network Drivers"/"Download All Driver Packs" - a real, potentially
 // large network operation, run as a background tea.Cmd like install
 // so the UI stays responsive. progress receives live byte-level
 // status for the Downloading screen.
-func runWelcomeDownloadCmd(ctx context.Context, s *settings.Settings, filter update.DriverPackFilter, progress *progressTracker, onAlert func(level, message string), logger *logging.Logger) tea.Cmd {
+func runDownloadCmd(ctx context.Context, s *settings.Settings, filter update.DriverPackFilter, progress *progressTracker, onAlert func(level, message string), logger *logging.Logger) tea.Cmd {
 	return func() tea.Msg {
-		defer logPanic(logger, "welcomedownload")
+		defer logPanic(logger, "download")
 		logger.Info().Str("torrent_source", s.TorrentSourceKind()).Str("drpDir", s.DrpDir).Msg("starting driver-pack download")
 
 		var buf bytes.Buffer
@@ -187,7 +169,7 @@ func runWelcomeDownloadCmd(ctx context.Context, s *settings.Settings, filter upd
 			// run (see its own doc comment) and returns a nil error, so
 			// the cancellation itself is only visible via ctx.Err() here.
 			logger.Info().Int("downloaded", n).Msg("driver-pack download cancelled")
-			return welcomeDownloadDoneMsg{log: logLines(&buf)}
+			return downloadDoneMsg{log: logLines(&buf)}
 		case err != nil:
 			fmt.Fprintf(&buf, "error: %v\n", err)
 			logger.Error().Err(err).Msg("driver-pack download failed")
@@ -197,27 +179,19 @@ func runWelcomeDownloadCmd(ctx context.Context, s *settings.Settings, filter upd
 		default:
 			logger.Info().Int("downloaded", n).Msg("driver-pack download complete")
 		}
-		return welcomeDownloadDoneMsg{log: logLines(&buf), isErr: err != nil}
+		return downloadDoneMsg{log: logLines(&buf), isErr: err != nil}
 	}
 }
 
-func (m model) welcomeView() string {
+func (m model) downloadView() string {
 	var b strings.Builder
-	b.WriteString("Download Menu - up/down: move, enter/space: select, q/esc/w: back\n\n")
-	for i, item := range welcomeItems {
+	b.WriteString("Download Menu - up/down: move, enter/space: select, q/esc/d: back\n\n")
+	for i, item := range downloadItems {
 		cursor := "  "
-		if i == m.welcomeIndex {
+		if i == m.downloadIndex {
 			cursor = "> "
 		}
 		fmt.Fprintf(&b, "%s%s\n", cursor, item)
 	}
 	return b.String()
-}
-
-func (m model) welcomeConfirmAllView() string {
-	return fmt.Sprintf("Download the entire driver-pack collection? This can be several\n"+
-		"gigabytes and take anywhere from an hour to a day depending on\n"+
-		"availability and connection speed.\n\n"+
-		"Destination: %s\n\n"+
-		"y/enter: download, n/esc/q: cancel\n", m.s.DrpDir)
 }

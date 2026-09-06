@@ -220,9 +220,9 @@ func (m model) updateTable(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	case "?":
 		m.screen = screenAbout
 		return m, nil
-	case "w":
+	case "d":
 		m.screen = screenWelcome
-		m.welcomeIndex = 0
+		m.downloadIndex = 0
 		return m, nil
 	case "u":
 		drives, err := usbdrive.ListRemovable()
@@ -303,7 +303,7 @@ func (m model) tableView() string {
 	footer := fmt.Sprintf("\n%d matched, %d missing/no better driver, %d selected for install\n"+
 		"Newer/Older/Better all outrank the installed driver - Newer/Older also means\n"+
 		"its own release date is newer/older (enter for the full comparison)\n"+
-		"space: tick, a: select all, n: select none, enter: details, i: install, o: options, f: filters, w: downloads, u: usb drive, ?: about, q: quit\n",
+		"space: tick, a: select all, n: select none, enter: details, i: install, o: options, f: filters, d: downloads, u: usb drive, ?: about, q: quit\n",
 		m.matched, m.missing, len(m.pendingSelected()))
 	return header + m.table.View() + footer
 }

@@ -161,6 +161,15 @@ func TestTableKeysOpenOptionsAndFilters(t *testing.T) {
 	}
 }
 
+func TestTableKeyDOpensDownloadMenu(t *testing.T) {
+	m := newTestModel(scan.Result{}, settings.New(), nil)
+
+	mm, _ := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'d'}})
+	if mm.(model).screen != screenWelcome {
+		t.Errorf("screen = %v after \"d\", want screenWelcome", mm.(model).screen)
+	}
+}
+
 // TestOptionsAndFiltersCrossNavigate confirms each screen's own
 // opening key also jumps directly to the other, without detouring
 // back through the device table.
@@ -804,7 +813,7 @@ func TestScanDoneReportsError(t *testing.T) {
 
 // TestScanDoneTriggersCheckUpdatesDownload confirms -checkupdates
 // auto-starts an index refresh right after the first scan, as its own
-// background step (screenWelcomeDownloading) rather than blocking the
+// background step (screenDownloading) rather than blocking the
 // scan itself the way the original's launch-time bootstrap did.
 func TestScanDoneTriggersCheckUpdatesDownload(t *testing.T) {
 	s := settings.New()
@@ -814,8 +823,8 @@ func TestScanDoneTriggersCheckUpdatesDownload(t *testing.T) {
 
 	mm, cmd := m.Update(scanDoneMsg{result: scan.Result{}})
 	m = mm.(model)
-	if m.screen != screenWelcomeDownloading {
-		t.Fatalf("screen = %v, want screenWelcomeDownloading", m.screen)
+	if m.screen != screenDownloading {
+		t.Fatalf("screen = %v, want screenDownloading", m.screen)
 	}
 	if cmd == nil {
 		t.Error("Update(scanDoneMsg) cmd = nil, want the background download command")
@@ -832,8 +841,8 @@ func TestScanDoneTriggersAutoUpdateDownload(t *testing.T) {
 
 	mm, cmd := m.Update(scanDoneMsg{result: scan.Result{}})
 	m = mm.(model)
-	if m.screen != screenWelcomeDownloading {
-		t.Fatalf("screen = %v, want screenWelcomeDownloading", m.screen)
+	if m.screen != screenDownloading {
+		t.Fatalf("screen = %v, want screenDownloading", m.screen)
 	}
 	if cmd == nil {
 		t.Error("Update(scanDoneMsg) cmd = nil, want the background download command")
@@ -873,33 +882,29 @@ func TestWelcomeDownloadDoneRescans(t *testing.T) {
 		t.Fatal("test setup: expected the initial result to have at least one device")
 	}
 
-	mm, _ := m.Update(welcomeDownloadDoneMsg{log: []string{"done"}})
+	mm, _ := m.Update(downloadDoneMsg{log: []string{"done"}})
 	m = mm.(model)
 	if m.matched != 0 || m.missing != 0 {
 		t.Errorf("matched/missing = %d/%d, want 0/0 after rescanning an empty collection with no prepared devices", m.matched, m.missing)
 	}
 }
 
-// TestWelcomeAllDriverPacksNeedsConfirmation confirms the "Download
-// All Driver Packs" item goes through a confirm screen rather than
-// starting a large download on a single keypress.
-func TestWelcomeAllDriverPacksNeedsConfirmation(t *testing.T) {
+// TestDownloadAllDriverPacksStartsImmediately confirms the explicit
+// "Download All Driver Packs" action starts without another prompt.
+func TestDownloadAllDriverPacksStartsImmediately(t *testing.T) {
 	s := settings.New()
 	s.TorrentFile = "dummy.torrent"
 	m := newTestModel(scan.Result{}, s, nil)
 	m.screen = screenWelcome
-	m.welcomeIndex = welcomeItemAll
+	m.downloadIndex = downloadItemAll
 
-	mm, _ := m.Update(tea.KeyMsg{Type: tea.KeyEnter})
+	mm, cmd := m.Update(tea.KeyMsg{Type: tea.KeyEnter})
 	m = mm.(model)
-	if m.screen != screenWelcomeConfirmAll {
-		t.Fatalf("screen = %v, want screenWelcomeConfirmAll", m.screen)
+	if m.screen != screenDownloading {
+		t.Fatalf("screen = %v, want screenDownloading", m.screen)
 	}
-
-	mm, _ = m.Update(tea.KeyMsg{Type: tea.KeyEsc})
-	m = mm.(model)
-	if m.screen != screenWelcome {
-		t.Fatalf("screen = %v after esc, want screenWelcome (cancel, not download)", m.screen)
+	if cmd == nil {
+		t.Fatal("Update() returned nil command, want the full download command")
 	}
 }
 
@@ -912,7 +917,7 @@ func TestWelcomeQuitReturnsToTable(t *testing.T) {
 	s.TorrentFile = "dummy.torrent"
 	m := newTestModel(scan.Result{}, s, nil)
 	m.screen = screenWelcome
-	m.welcomeIndex = welcomeItemQuit
+	m.downloadIndex = downloadItemQuit
 
 	mm, _ := m.Update(tea.KeyMsg{Type: tea.KeyEnter})
 	m = mm.(model)
@@ -930,15 +935,15 @@ func TestWelcomeMenuTaskReturnsToMenuWhenDone(t *testing.T) {
 	s.TorrentFile = "dummy.torrent"
 	m := newTestModel(scan.Result{}, s, nil)
 	m.screen = screenWelcome
-	m.welcomeIndex = welcomeItemNetwork
+	m.downloadIndex = downloadItemNetwork
 
 	mm, _ := m.Update(tea.KeyMsg{Type: tea.KeyEnter})
 	m = mm.(model)
-	if m.screen != screenWelcomeDownloading {
-		t.Fatalf("screen = %v, want screenWelcomeDownloading", m.screen)
+	if m.screen != screenDownloading {
+		t.Fatalf("screen = %v, want screenDownloading", m.screen)
 	}
 
-	mm, _ = m.Update(welcomeDownloadDoneMsg{log: []string{"done"}})
+	mm, _ = m.Update(downloadDoneMsg{log: []string{"done"}})
 	m = mm.(model)
 	if m.screen != screenInstallLog {
 		t.Fatalf("screen = %v, want screenInstallLog", m.screen)
@@ -1006,20 +1011,20 @@ func TestThisMachineDriverPacksFilterMatchesOnlyNeededPacks(t *testing.T) {
 // that crashed on the next resume.
 func TestEscOnWelcomeDownloadingCancelsTheRunningOperation(t *testing.T) {
 	m := newTestModel(scan.Result{}, settings.New(), nil)
-	m.screen = screenWelcomeDownloading
+	m.screen = screenDownloading
 	called := false
 	m.dlCancel = func() { called = true }
 
 	mm, _ := m.Update(tea.KeyMsg{Type: tea.KeyEsc})
 	m = mm.(model)
 	if !called {
-		t.Error("esc on screenWelcomeDownloading did not call dlCancel")
+		t.Error("esc on screenDownloading did not call dlCancel")
 	}
 	if !m.dlCancelling {
 		t.Error("dlCancelling = false after esc, want true")
 	}
-	if m.screen != screenWelcomeDownloading {
-		t.Errorf("screen = %v after esc, want screenWelcomeDownloading unchanged (the running command finishes on its own)", m.screen)
+	if m.screen != screenDownloading {
+		t.Errorf("screen = %v after esc, want screenDownloading unchanged (the running command finishes on its own)", m.screen)
 	}
 }
 
@@ -1028,11 +1033,11 @@ func TestEscOnWelcomeDownloadingCancelsTheRunningOperation(t *testing.T) {
 // a defensive case, not one the normal flow should hit.
 func TestEscOnWelcomeDownloadingWithNoCancelIsANoOp(t *testing.T) {
 	m := newTestModel(scan.Result{}, settings.New(), nil)
-	m.screen = screenWelcomeDownloading
+	m.screen = screenDownloading
 
 	mm, _ := m.Update(tea.KeyMsg{Type: tea.KeyEsc})
-	if mm.(model).screen != screenWelcomeDownloading {
-		t.Errorf("screen = %v, want screenWelcomeDownloading unchanged", mm.(model).screen)
+	if mm.(model).screen != screenDownloading {
+		t.Errorf("screen = %v, want screenDownloading unchanged", mm.(model).screen)
 	}
 }
 
@@ -1077,12 +1082,12 @@ func TestWelcomeDownloadDoneQuitsWhenAutoCloseSet(t *testing.T) {
 	s.Flags |= settings.FlagAutoClose
 	m := newTestModel(scan.Result{}, s, nil)
 
-	_, cmd := m.Update(welcomeDownloadDoneMsg{log: []string{"done"}})
+	_, cmd := m.Update(downloadDoneMsg{log: []string{"done"}})
 	if cmd == nil {
-		t.Fatal("Update(welcomeDownloadDoneMsg) returned a nil cmd, want tea.Quit")
+		t.Fatal("Update(downloadDoneMsg) returned a nil cmd, want tea.Quit")
 	}
 	if _, ok := cmd().(tea.QuitMsg); !ok {
-		t.Errorf("Update(welcomeDownloadDoneMsg) cmd = %T, want tea.QuitMsg", cmd())
+		t.Errorf("Update(downloadDoneMsg) cmd = %T, want tea.QuitMsg", cmd())
 	}
 }
 
@@ -1095,10 +1100,10 @@ func TestWelcomeDownloadDoneDoesNotQuitOnErrorEvenWithAutoClose(t *testing.T) {
 	s.Flags |= settings.FlagAutoClose
 	m := newTestModel(scan.Result{}, s, nil)
 
-	mm, cmd := m.Update(welcomeDownloadDoneMsg{log: []string{"error: boom"}, isErr: true})
+	mm, cmd := m.Update(downloadDoneMsg{log: []string{"error: boom"}, isErr: true})
 	if cmd != nil {
 		if _, ok := cmd().(tea.QuitMsg); ok {
-			t.Error("Update(welcomeDownloadDoneMsg{isErr: true}) quit despite -autoclose being for success, not failure")
+			t.Error("Update(downloadDoneMsg{isErr: true}) quit despite -autoclose being for success, not failure")
 		}
 	}
 	m = mm.(model)
@@ -1422,7 +1427,7 @@ func TestLogPanicLogsBeforeRePanicking(t *testing.T) {
 
 // TestRunIndexRefreshCmdLogsFailure confirms a real (not mocked)
 // failure from a background command - here BootstrapIndexes given no
-	// invalid torrent source - produces a log entry, not just the
+// invalid torrent source - produces a log entry, not just the
 // message returned to Update. Run synchronously (calling the returned
 // tea.Cmd directly) rather than through the full bubbletea runtime,
 // same as exercising any other tea.Cmd in isolation.
@@ -1433,9 +1438,9 @@ func TestRunIndexRefreshCmdLogsFailure(t *testing.T) {
 	s.TorrentFile = "missing.torrent"
 
 	msg := runIndexRefreshCmd(context.Background(), s, &progressTracker{}, nil, logger)()
-	wd, ok := msg.(welcomeDownloadDoneMsg)
+	wd, ok := msg.(downloadDoneMsg)
 	if !ok || !wd.isErr {
-		t.Fatalf("cmd() = %#v, want a welcomeDownloadDoneMsg with isErr=true", msg)
+		t.Fatalf("cmd() = %#v, want a downloadDoneMsg with isErr=true", msg)
 	}
 	if !strings.Contains(buf.String(), "index refresh failed") {
 		t.Errorf("log output = %q, want a line reporting the index refresh failure", buf.String())
