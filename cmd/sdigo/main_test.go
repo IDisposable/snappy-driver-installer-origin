@@ -1164,6 +1164,20 @@ func TestUSBDriveKeyReportsUnsupportedPlatform(t *testing.T) {
 	}
 }
 
+func TestUSBPortablePathsIncludesExecutableAndCollections(t *testing.T) {
+	s := settings.New()
+	paths, err := usbPortablePaths(s)
+	if err != nil {
+		t.Fatalf("usbPortablePaths() error: %v", err)
+	}
+	if len(paths) != 3 {
+		t.Fatalf("usbPortablePaths() returned %d paths, want 3", len(paths))
+	}
+	if paths[0] == "" || paths[1] != s.DrpDir || paths[2] != s.IndexDir {
+		t.Errorf("usbPortablePaths() = %v, want executable, %q, %q", paths, s.DrpDir, s.IndexDir)
+	}
+}
+
 // TestUpdateUSBDriveNavigationAndConfirm confirms up/down move the
 // cursor within bounds and enter opens the confirm screen without
 // starting a copy, using synthetic drives (no real hardware needed).

@@ -74,7 +74,7 @@ func sdiGo(args []string) int {
 	fs := s.FlagSet("sdigo")
 	doInstall := fs.Bool("install", false, "with -nogui, install matched drivers (modifies the system; without this flag, only scan and report)")
 	doJSON := fs.Bool("json", false, "with -nogui, report as JSON instead of plain text (for scripts/CI)")
-	deviceListJSON := fs.Bool("device-list-json", false, "write -device-list as JSON instead of tab-separated text")
+	usbDestination := fs.String("usb", "", "with -nogui, copy the executable, driver packs, and indexes to this destination")
 	resumeFile := fs.String("elevated-resume", "", "internal use only: set by sdigo's own elevation relaunch to restore the device selection confirmed before elevating")
 	if err := fs.Parse(args); err != nil {
 		return 2
@@ -144,6 +144,22 @@ func sdiGo(args []string) int {
 			logger.Warn().Str("level", level).Msg(message)
 		}
 	}
+	if *usbDestination != "" && s.Flags&settings.FlagNoGUI == 0 {
+		fmt.Fprintln(os.Stderr, "error: -usb requires -nogui")
+		return 2
+	}
+	if *usbDestination != "" {
+		if *doInstall {
+			fmt.Fprintln(os.Stderr, "error: -usb cannot be combined with -install")
+			return 2
+		}
+		if err := copyUSBHeadless(s, *usbDestination, os.Stdout, logger); err != nil {
+			fmt.Fprintln(os.Stderr, "error copying USB files:", err)
+			return 1
+		}
+		fmt.Fprintf(os.Stdout, "done - copied to %s\n", *usbDestination)
+		return 0
+	}
 
 	// -nogui prints a scan report instead of launching the interactive
 	// table - plain text by default, or JSON with -json for scripts/CI
@@ -167,7 +183,7 @@ func sdiGo(args []string) int {
 			pending = report.Print(os.Stdout, result)
 		}
 		if s.DeviceListFilename != "" {
-			if err := writeDeviceList(s.DeviceListFilename, *deviceListJSON, result); err != nil {
+			if err := writeDeviceList(s.DeviceListFilename, *doJSON, result); err != nil {
 				fmt.Fprintln(os.Stderr, "error writing device list:", err)
 				return 1
 			}

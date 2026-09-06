@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"fmt"
+	"io"
 	"os"
 	"strings"
 
@@ -96,6 +97,20 @@ func runUSBCopyCmd(s *settings.Settings, destRoot string, logger *logging.Logger
 		logger.Info().Str("dest", destRoot).Msg("USB drive copy complete")
 		return welcomeDownloadDoneMsg{log: logLines(&buf)}
 	}
+}
+
+func copyUSBHeadless(s *settings.Settings, destRoot string, out io.Writer, logger *logging.Logger) error {
+	paths, err := usbPortablePaths(s)
+	if err != nil {
+		return err
+	}
+	logger.Info().Str("dest", destRoot).Msg("starting headless USB drive copy")
+	if err := usbdrive.CopyPortable(destRoot, paths, out); err != nil {
+		logger.Error().Err(err).Str("dest", destRoot).Msg("headless USB drive copy failed")
+		return err
+	}
+	logger.Info().Str("dest", destRoot).Msg("headless USB drive copy complete")
+	return nil
 }
 
 func (m model) usbDriveView() string {
