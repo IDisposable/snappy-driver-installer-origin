@@ -224,7 +224,7 @@ func (m model) updateTable(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return m, nil
 	case "d":
 		m.logger.Info().Msg("download menu opened")
-		m.screen = screenWelcome
+		m.screen = screenDownloadMenu
 		m.downloadIndex = 0
 		return m, nil
 	case "u":

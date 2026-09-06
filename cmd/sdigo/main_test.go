@@ -5,6 +5,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"strings"
@@ -165,8 +166,8 @@ func TestTableKeyDOpensDownloadMenu(t *testing.T) {
 	m := newTestModel(scan.Result{}, settings.New(), nil)
 
 	mm, _ := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'d'}})
-	if mm.(model).screen != screenWelcome {
-		t.Errorf("screen = %v after \"d\", want screenWelcome", mm.(model).screen)
+	if mm.(model).screen != screenDownloadMenu {
+		t.Errorf("screen = %v after \"d\", want screenDownloadMenu", mm.(model).screen)
 	}
 }
 
@@ -726,12 +727,12 @@ func TestAboutScreenNavigation(t *testing.T) {
 	}
 }
 
-// TestNewModelOpensWelcomeOnFirstRun confirms scan.Result.FirstRun
-// controls whether the TUI opens straight to the Welcome screen,
+// TestNewModelOpensDownloadMenuOnFirstRun confirms scan.Result.FirstRun
+// controls whether the TUI opens straight to the DownloadMenu screen,
 // without needing an interactive keypress to get there.
-func TestNewModelOpensWelcomeOnFirstRun(t *testing.T) {
-	if m := newTestModel(scan.Result{FirstRun: true}, settings.New(), nil); m.screen != screenWelcome {
-		t.Errorf("screen = %v with FirstRun=true, want screenWelcome", m.screen)
+func TestNewModelOpensDownloadMenuOnFirstRun(t *testing.T) {
+	if m := newTestModel(scan.Result{FirstRun: true}, settings.New(), nil); m.screen != screenDownloadMenu {
+		t.Errorf("screen = %v with FirstRun=true, want screenDownloadMenu", m.screen)
 	}
 	if m := newTestModel(scan.Result{FirstRun: false}, settings.New(), nil); m.screen != screenTable {
 		t.Errorf("screen = %v with FirstRun=false, want screenTable", m.screen)
@@ -779,7 +780,7 @@ func TestSplashDoneAdvancesToScanning(t *testing.T) {
 
 // TestSplashDoneIgnoredOnceScanFinished confirms a stale splashDoneMsg
 // arriving after the background scan already finished (and moved
-// m.screen on to screenTable/screenWelcome/screenInstallLog) doesn't
+// m.screen on to screenTable/screenDownloadMenu/screenInstallLog) doesn't
 // knock the screen back to screenScanning.
 func TestSplashDoneIgnoredOnceScanFinished(t *testing.T) {
 	m := newTestModel(scan.Result{}, settings.New(), nil)
@@ -869,12 +870,12 @@ func TestScanDoneResumeSelectedWinsOverAutoTrigger(t *testing.T) {
 	}
 }
 
-// TestWelcomeDownloadDoneRescans confirms a completed download
+// TestDownloadMenuDownloadDoneRescans confirms a completed download
 // reloads the collection and rematches instead of leaving the table
 // showing pre-download data - real directories (empty) so
 // scan.MatchWithCollection actually runs instead of erroring on a
 // nonexistent path.
-func TestWelcomeDownloadDoneRescans(t *testing.T) {
+func TestDownloadMenuDownloadDoneRescans(t *testing.T) {
 	s := settings.New()
 	s.DrpDir, s.IndexDir = t.TempDir(), t.TempDir()
 	m := newTestModel(scan.Result{Devices: []scan.DeviceResult{{}}}, s, nil)
@@ -895,7 +896,7 @@ func TestDownloadAllDriverPacksStartsImmediately(t *testing.T) {
 	s := settings.New()
 	s.TorrentFile = "dummy.torrent"
 	m := newTestModel(scan.Result{}, s, nil)
-	m.screen = screenWelcome
+	m.screen = screenDownloadMenu
 	m.downloadIndex = downloadItemAll
 
 	mm, cmd := m.Update(tea.KeyMsg{Type: tea.KeyEnter})
@@ -908,15 +909,15 @@ func TestDownloadAllDriverPacksStartsImmediately(t *testing.T) {
 	}
 }
 
-// TestWelcomeQuitReturnsToTable confirms the menu's explicit "Quit"
+// TestDownloadMenuQuitReturnsToTable confirms the menu's explicit "Quit"
 // item behaves like q/esc/w rather than trying to download anything -
 // it sits at the same index the confirm-gated "All Driver Packs" used
 // to occupy, so this also guards against that mixup.
-func TestWelcomeQuitReturnsToTable(t *testing.T) {
+func TestDownloadMenuQuitReturnsToTable(t *testing.T) {
 	s := settings.New()
 	s.TorrentFile = "dummy.torrent"
 	m := newTestModel(scan.Result{}, s, nil)
-	m.screen = screenWelcome
+	m.screen = screenDownloadMenu
 	m.downloadIndex = downloadItemQuit
 
 	mm, _ := m.Update(tea.KeyMsg{Type: tea.KeyEnter})
@@ -926,15 +927,15 @@ func TestWelcomeQuitReturnsToTable(t *testing.T) {
 	}
 }
 
-// TestWelcomeMenuTaskReturnsToMenuWhenDone confirms dismissing a
+// TestDownloadMenuMenuTaskReturnsToMenuWhenDone confirms dismissing a
 // completed menu-launched download (via screenInstallLog) goes back to
 // the download menu, not the driver table - "have each of the tasks
 // return to the menu when completed".
-func TestWelcomeMenuTaskReturnsToMenuWhenDone(t *testing.T) {
+func TestDownloadMenuMenuTaskReturnsToMenuWhenDone(t *testing.T) {
 	s := settings.New()
 	s.TorrentFile = "dummy.torrent"
 	m := newTestModel(scan.Result{}, s, nil)
-	m.screen = screenWelcome
+	m.screen = screenDownloadMenu
 	m.downloadIndex = downloadItemNetwork
 
 	mm, _ := m.Update(tea.KeyMsg{Type: tea.KeyEnter})
@@ -951,8 +952,8 @@ func TestWelcomeMenuTaskReturnsToMenuWhenDone(t *testing.T) {
 
 	mm, _ = m.Update(tea.KeyMsg{Type: tea.KeyEsc})
 	m = mm.(model)
-	if m.screen != screenWelcome {
-		t.Fatalf("screen = %v after dismissing the log, want screenWelcome (return to the menu)", m.screen)
+	if m.screen != screenDownloadMenu {
+		t.Fatalf("screen = %v after dismissing the log, want screenDownloadMenu (return to the menu)", m.screen)
 	}
 }
 
@@ -1002,14 +1003,14 @@ func TestThisMachineDriverPacksFilterMatchesOnlyNeededPacks(t *testing.T) {
 	}
 }
 
-// TestEscOnWelcomeDownloadingCancelsTheRunningOperation confirms "esc"
-// while a Welcome-screen download is in flight calls the context
+// TestEscOnDownloadMenuDownloadingCancelsTheRunningOperation confirms "esc"
+// while a DownloadMenu-screen download is in flight calls the context
 // cancel function startDownload wired up, rather than being ignored
 // like every other key on this screen - the only way to stop a
 // download used to be force-killing the whole process, which was
 // observed to leave the torrent client's on-disk state in a shape
 // that crashed on the next resume.
-func TestEscOnWelcomeDownloadingCancelsTheRunningOperation(t *testing.T) {
+func TestEscOnDownloadMenuDownloadingCancelsTheRunningOperation(t *testing.T) {
 	m := newTestModel(scan.Result{}, settings.New(), nil)
 	m.screen = screenDownloading
 	called := false
@@ -1028,10 +1029,10 @@ func TestEscOnWelcomeDownloadingCancelsTheRunningOperation(t *testing.T) {
 	}
 }
 
-// TestEscOnWelcomeDownloadingWithNoCancelIsANoOp confirms esc doesn't
+// TestEscOnDownloadMenuDownloadingWithNoCancelIsANoOp confirms esc doesn't
 // panic when reached with nothing running to cancel (m.dlCancel nil) -
 // a defensive case, not one the normal flow should hit.
-func TestEscOnWelcomeDownloadingWithNoCancelIsANoOp(t *testing.T) {
+func TestEscOnDownloadMenuDownloadingWithNoCancelIsANoOp(t *testing.T) {
 	m := newTestModel(scan.Result{}, settings.New(), nil)
 	m.screen = screenDownloading
 
@@ -1073,11 +1074,11 @@ func TestInstallDoneDoesNotQuitByDefault(t *testing.T) {
 	}
 }
 
-// TestWelcomeDownloadDoneQuitsWhenAutoCloseSet confirms -autoclose
-// also exits after a Welcome-screen download, ported from Updater_t's
+// TestDownloadMenuDownloadDoneQuitsWhenAutoCloseSet confirms -autoclose
+// also exits after a DownloadMenu-screen download, ported from Updater_t's
 // "Torrent finished" auto-exit (update.cpp) - unconditional here since
 // this rewrite has no -autoinstall to chain into afterward.
-func TestWelcomeDownloadDoneQuitsWhenAutoCloseSet(t *testing.T) {
+func TestDownloadMenuDownloadDoneQuitsWhenAutoCloseSet(t *testing.T) {
 	s := settings.New()
 	s.Flags |= settings.FlagAutoClose
 	m := newTestModel(scan.Result{}, s, nil)
@@ -1091,11 +1092,11 @@ func TestWelcomeDownloadDoneQuitsWhenAutoCloseSet(t *testing.T) {
 	}
 }
 
-// TestWelcomeDownloadDoneDoesNotQuitOnErrorEvenWithAutoClose confirms
+// TestDownloadMenuDownloadDoneDoesNotQuitOnErrorEvenWithAutoClose confirms
 // -autoclose means "close once done," not "close and hide that it
 // failed" - a failed download must leave the error log up regardless,
 // the same reasoning as screenInstallLog refusing "enter" on error.
-func TestWelcomeDownloadDoneDoesNotQuitOnErrorEvenWithAutoClose(t *testing.T) {
+func TestDownloadMenuDownloadDoneDoesNotQuitOnErrorEvenWithAutoClose(t *testing.T) {
 	s := settings.New()
 	s.Flags |= settings.FlagAutoClose
 	m := newTestModel(scan.Result{}, s, nil)
@@ -1116,7 +1117,7 @@ func TestWelcomeDownloadDoneDoesNotQuitOnErrorEvenWithAutoClose(t *testing.T) {
 }
 
 // TestInstallDoneDoesNotQuitOnErrorEvenWithAutoClose is
-// TestWelcomeDownloadDoneDoesNotQuitOnErrorEvenWithAutoClose's
+// TestDownloadMenuDownloadDoneDoesNotQuitOnErrorEvenWithAutoClose's
 // installDoneMsg counterpart.
 func TestInstallDoneDoesNotQuitOnErrorEvenWithAutoClose(t *testing.T) {
 	s := settings.New()
@@ -1180,6 +1181,22 @@ func TestUSBPortablePathsIncludesExecutableAndCollections(t *testing.T) {
 	}
 	if paths[0] == "" || paths[1] != s.DrpDir || paths[2] != s.IndexDir {
 		t.Errorf("usbPortablePaths() = %v, want executable, %q, %q", paths, s.DrpDir, s.IndexDir)
+	}
+}
+
+func TestCopyUSBHeadlessCopiesPortableTree(t *testing.T) {
+	s := settings.New()
+	s.DrpDir = t.TempDir()
+	s.IndexDir = t.TempDir()
+	if err := os.WriteFile(filepath.Join(s.DrpDir, "DP_Test.7z"), []byte("pack"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	dest := t.TempDir()
+	if err := copyUSBHeadless(s, dest, io.Discard, testLogger); err != nil {
+		t.Fatalf("copyUSBHeadless() error: %v", err)
+	}
+	if _, err := os.Stat(filepath.Join(dest, filepath.Base(s.DrpDir), "DP_Test.7z")); err != nil {
+		t.Fatalf("copied driver pack missing: %v", err)
 	}
 }
 

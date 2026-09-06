@@ -76,7 +76,7 @@ func usbPortablePaths(s *settings.Settings) ([]string, error) {
 
 // runUSBCopyCmd copies usbPortablePaths onto destRoot in the
 // background, matching the async pattern every other real
-// system-modifying action in this TUI uses (installflow.Run, Welcome
+// system-modifying action in this TUI uses (installflow.Run, DownloadMenu
 // downloads) so the UI stays responsive.
 func runUSBCopyCmd(s *settings.Settings, destRoot string, logger *logging.Logger) tea.Cmd {
 	return func() tea.Msg {

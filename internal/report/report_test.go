@@ -92,6 +92,34 @@ func TestPrintJSONReportsFoundAndMissingDevices(t *testing.T) {
 	}
 }
 
+func TestWriteDeviceListFormatsTextAndJSON(t *testing.T) {
+	drp := &indexing.Driverpack{Filename: "DP_Test_SDIO01_1.7z"}
+	result := scan.Result{Devices: []scan.DeviceResult{{
+		Device:     hardware.Device{Description: "Widget Controller", InstanceID: "DEV1", HardwareIDs: []string{"PCI\\VEN_1234"}},
+		Candidates: []collection.Candidate{{Driverpack: drp, Result: matcher.Result{AltSectScore: 2, DecorScore: 1, Status: matcher.StatusBetter}}},
+	}}}
+
+	var text bytes.Buffer
+	if err := WriteDeviceList(&text, result); err != nil {
+		t.Fatalf("WriteDeviceList() error: %v", err)
+	}
+	if !strings.Contains(text.String(), "status\tdescription\t") || !strings.Contains(text.String(), "Better match\tWidget Controller") {
+		t.Errorf("WriteDeviceList() output = %q", text.String())
+	}
+
+	var jsonOut bytes.Buffer
+	if err := WriteDeviceListJSON(&jsonOut, result); err != nil {
+		t.Fatalf("WriteDeviceListJSON() error: %v", err)
+	}
+	var report JSONReport
+	if err := json.Unmarshal(jsonOut.Bytes(), &report); err != nil {
+		t.Fatalf("WriteDeviceListJSON() invalid JSON: %v", err)
+	}
+	if len(report.Devices) != 1 || report.Devices[0].Description != "Widget Controller" {
+		t.Errorf("WriteDeviceListJSON() report = %+v", report)
+	}
+}
+
 // TestPrintExcludesMicrosoftDriverFromPending confirms a matched
 // device whose currently installed driver is Microsoft-provided is
 // still reported as matched (with a note explaining why), but left

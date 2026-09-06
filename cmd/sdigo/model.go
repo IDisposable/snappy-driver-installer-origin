@@ -39,7 +39,7 @@ const (
 	screenInstalling
 	screenInstallLog
 	screenAbout
-	screenWelcome
+	screenDownloadMenu
 	screenDownloading
 	screenUSBDrive
 	screenUSBDriveConfirm
@@ -88,7 +88,7 @@ type model struct {
 	filterIndex   int
 
 	// opLog holds the captured output of whichever background
-	// operation last ran (install or a Welcome-screen download) -
+	// operation last ran (install or a DownloadMenu-screen download) -
 	// screenInstallLog renders it regardless of which one produced it.
 	opLog []string
 
@@ -96,7 +96,7 @@ type model struct {
 	// completed operation - screenInstallLog then refuses to treat
 	// "enter" as a dismiss key (see updateTable's screenInstallLog
 	// case), only "esc"/"q". A real download failure was observed to
-	// flash by unread: "enter" both confirms a Welcome-screen menu
+	// flash by unread: "enter" both confirms a DownloadMenu-screen menu
 	// choice and dismisses the log screen that immediately follows a
 	// fast failure, so an ordinary press-and-release (or a repeated
 	// keypress out of habit) can blow straight through an error message
@@ -106,7 +106,7 @@ type model struct {
 	// opLogReturnScreen is where "q"/"esc"/"enter" sends the user once
 	// they dismiss screenInstallLog - screenTable for anything launched
 	// from the main table (install, USB copy, a startup auto-download),
-	// screenWelcome for a download-menu task, so each menu item returns
+	// screenDownloadMenu for a download-menu task, so each menu item returns
 	// to the menu it came from once it finishes instead of always
 	// dropping back to the driver list.
 	opLogReturnScreen screen
@@ -118,7 +118,7 @@ type model struct {
 
 	// dlCancel stops a screenDownloading run early (see
 	// startDownload/"esc" in updateTable's screenDownloading
-	// case) - scoped to Welcome-screen downloads only, not
+	// case) - scoped to DownloadMenu-screen downloads only, not
 	// screenInstalling, since interrupting an in-progress driver
 	// install (rather than just a download feeding it) risks leaving a
 	// device half-configured. Already-completed files are still saved,
@@ -356,7 +356,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.applyResult(msg.result)
 		m.screen = screenTable
 		if msg.result.FirstRun {
-			m.screen = screenWelcome
+			m.screen = screenDownloadMenu
 		}
 
 		var cmd tea.Cmd
@@ -458,7 +458,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case splashDoneMsg:
 		// Only advance if still on the splash - a scan that finished
-		// first already moved m.screen on to screenTable/screenWelcome/
+		// first already moved m.screen on to screenTable/screenDownloadMenu/
 		// screenInstallLog, and this stale timer firing after that must
 		// not knock it back to screenScanning.
 		if m.screen == screenSplash {
@@ -513,7 +513,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				return m, nil
 			}
 			return m, nil
-		case screenWelcome:
+		case screenDownloadMenu:
 			return m.updateDownload(msg)
 		case screenDownloading:
 			switch msg.String() {
@@ -575,7 +575,7 @@ func (m model) View() string {
 		return m.opLogView()
 	case screenAbout:
 		return aboutView
-	case screenWelcome:
+	case screenDownloadMenu:
 		return m.downloadView()
 	case screenDownloading:
 		return m.downloadStatusView("Downloading")
@@ -626,7 +626,7 @@ esc/q/?: back
 
 func (m model) opLogView() string {
 	dest := "device list"
-	if m.opLogReturnScreen == screenWelcome {
+	if m.opLogReturnScreen == screenDownloadMenu {
 		dest = "download menu"
 	}
 	var b strings.Builder

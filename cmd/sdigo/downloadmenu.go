@@ -80,22 +80,22 @@ func (m model) updateDownload(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		switch m.downloadIndex {
 		case downloadItemIndexes:
 			m.screen = screenDownloading
-			m.opLogReturnScreen = screenWelcome
+			m.opLogReturnScreen = screenDownloadMenu
 			ctx := m.startDownload()
 			return m, tea.Batch(runIndexRefreshCmd(ctx, m.s, m.dlProgress, m.alertLogger(), m.logger), tickProgressCmd())
 		case downloadItemNetwork:
 			m.screen = screenDownloading
-			m.opLogReturnScreen = screenWelcome
+			m.opLogReturnScreen = screenDownloadMenu
 			ctx := m.startDownload()
 			return m, tea.Batch(runDownloadCmd(ctx, m.s, m.downloadFilter(update.NetworkDriverPacks), m.dlProgress, m.alertLogger(), m.logger), tickProgressCmd())
 		case downloadItemThisMachine:
 			m.screen = screenDownloading
-			m.opLogReturnScreen = screenWelcome
+			m.opLogReturnScreen = screenDownloadMenu
 			ctx := m.startDownload()
 			return m, tea.Batch(runDownloadCmd(ctx, m.s, m.downloadFilter(m.thisMachineDriverPacksFilter()), m.dlProgress, m.alertLogger(), m.logger), tickProgressCmd())
 		case downloadItemAll:
 			m.screen = screenDownloading
-			m.opLogReturnScreen = screenWelcome
+			m.opLogReturnScreen = screenDownloadMenu
 			ctx := m.startDownload()
 			return m, tea.Batch(runDownloadCmd(ctx, m.s, m.downloadFilter(update.AllDriverPacks), m.dlProgress, m.alertLogger(), m.logger), tickProgressCmd())
 		}
@@ -124,7 +124,7 @@ type downloadDoneMsg struct {
 }
 
 // runIndexRefreshCmd re-runs collection.BootstrapIndexes on request
-// (the Welcome screen's "Download Indexes" - scan.Run already does
+// (the DownloadMenu screen's "Download Indexes" - scan.Run already does
 // this automatically for a genuinely empty index directory, so this
 // path matters for an on-demand refresh of an existing catalog).
 // progress receives live byte-level status for the Downloading screen.
@@ -152,7 +152,7 @@ func runIndexRefreshCmd(ctx context.Context, s *settings.Settings, progress *pro
 }
 
 // runDownloadCmd downloads every driver pack filter matches
-// and isn't already present, for the Welcome screen's "Download
+// and isn't already present, for the DownloadMenu screen's "Download
 // Network Drivers"/"Download All Driver Packs" - a real, potentially
 // large network operation, run as a background tea.Cmd like install
 // so the UI stays responsive. progress receives live byte-level
