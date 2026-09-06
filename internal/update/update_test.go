@@ -120,29 +120,13 @@ func restrictedClient(t *testing.T) *Client {
 	return c
 }
 
-// TestAddFromURLFetchesRealTorrent confirms AddFromURL correctly
-// fetches and parses a .torrent file served over plain HTTP - the
-// GitHub Pages/raw.githubusercontent.com case AddFromSpec exists to
-// support - by serving the same real SDIO_Update.torrent
-// TestAddFromFileListsRealFiles reads from disk.
-func TestAddFromURLFetchesRealTorrent(t *testing.T) {
-	if _, err := os.Stat(realTorrentPath); err != nil {
-		t.Skipf("real torrent file not available at %s: %v", realTorrentPath, err)
-	}
-
-	srv := httptest.NewServer(http.FileServer(http.Dir(filepath.Dir(realTorrentPath))))
+// TestAddFromURLRejectsHTTP confirms metadata fetches require HTTPS.
+func TestAddFromURLRejectsHTTP(t *testing.T) {
+	srv := httptest.NewServer(http.NotFoundHandler())
 	defer srv.Close()
 
-	c := restrictedClient(t)
-	tr, err := c.AddFromURL(srv.URL + "/" + filepath.Base(realTorrentPath))
-	if err != nil {
-		t.Fatalf("AddFromURL() error: %v", err)
-	}
-	if tr.Name() != "SDIO_Update" {
-		t.Errorf("Name() = %q, want %q", tr.Name(), "SDIO_Update")
-	}
-	if len(tr.Files()) == 0 {
-		t.Error("Files() returned no files")
+	if _, err := restrictedClient(t).AddFromURL(srv.URL + "/seed.torrent"); err == nil {
+		t.Fatal("AddFromURL() accepted an HTTP URL")
 	}
 }
 
@@ -160,16 +144,12 @@ func TestAddFromURLRejectsHTTPError(t *testing.T) {
 	}
 }
 
-// TestAddFromSpecDispatchesOnPrefix confirms AddFromSpec routes each
-// of the three Settings.TorrentFile forms to the right underlying
-// method rather than always falling through to AddFromFile.
+// TestAddFromSpecDispatchesOnPrefix confirms AddFromSpec routes local
+// files, HTTPS URLs, and magnet URIs to the expected handlers.
 func TestAddFromSpecDispatchesOnPrefix(t *testing.T) {
 	if _, err := os.Stat(realTorrentPath); err != nil {
 		t.Skipf("real torrent file not available at %s: %v", realTorrentPath, err)
 	}
-	srv := httptest.NewServer(http.FileServer(http.Dir(filepath.Dir(realTorrentPath))))
-	defer srv.Close()
-
 	t.Run("local file path", func(t *testing.T) {
 		tr, err := restrictedClient(t).AddFromSpec(realTorrentPath)
 		if err != nil {
@@ -180,13 +160,9 @@ func TestAddFromSpecDispatchesOnPrefix(t *testing.T) {
 		}
 	})
 
-	t.Run("http URL", func(t *testing.T) {
-		tr, err := restrictedClient(t).AddFromSpec(srv.URL + "/" + filepath.Base(realTorrentPath))
-		if err != nil {
-			t.Fatalf("AddFromSpec() error: %v", err)
-		}
-		if tr.Name() != "SDIO_Update" {
-			t.Errorf("Name() = %q, want %q", tr.Name(), "SDIO_Update")
+	t.Run("http URL rejected", func(t *testing.T) {
+		if _, err := restrictedClient(t).AddFromSpec("http://127.0.0.1/seed.torrent"); err == nil {
+			t.Fatal("AddFromSpec() accepted an HTTP URL")
 		}
 	})
 
