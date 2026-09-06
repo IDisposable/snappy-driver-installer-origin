@@ -27,21 +27,27 @@ type DriverPackFilter func(filename string) bool
 // OnlyUpdates returns a filter that accepts a pack only when a lower
 // revision with the same base name already exists in dir.
 func OnlyUpdates(dir string) DriverPackFilter {
+	entries, err := os.ReadDir(dir)
+	if err != nil {
+		return func(string) bool { return false }
+	}
+	localStems := make(map[string][]int)
+	for _, entry := range entries {
+		if entry.IsDir() || !strings.EqualFold(filepath.Ext(entry.Name()), ".7z") {
+			continue
+		}
+		if version := indexing.PackVersionNumber(entry.Name()); version > 0 {
+			stem := packStem(entry.Name())
+			localStems[stem] = append(localStems[stem], version)
+		}
+	}
 	return func(filename string) bool {
 		newVersion := indexing.PackVersionNumber(filename)
 		if newVersion == 0 {
 			return false
 		}
-		stem := packStem(filename)
-		entries, err := os.ReadDir(dir)
-		if err != nil {
-			return false
-		}
-		for _, entry := range entries {
-			if entry.IsDir() || !strings.EqualFold(filepath.Ext(entry.Name()), ".7z") || packStem(entry.Name()) != stem {
-				continue
-			}
-			if oldVersion := indexing.PackVersionNumber(entry.Name()); oldVersion > 0 && oldVersion < newVersion {
+		for _, oldVersion := range localStems[packStem(filename)] {
+			if oldVersion < newVersion {
 				return true
 			}
 		}

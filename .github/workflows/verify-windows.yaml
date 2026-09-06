@@ -64,6 +64,7 @@ jobs:
         if: ${{ inputs.run_scan }}
         shell: pwsh
         run: |
+          Write-Host "This scan uses the mutable main-branch torrent seed. Results can change when the seed changes."
           $deviceList = Join-Path $env:RUNNER_TEMP "device-list.json"
           .\sdigo.exe -nogui -json "-device-list=$deviceList" "-torrent-file=*" *> scan.txt
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
@@ -73,6 +74,7 @@ jobs:
         if: ${{ inputs.install_confirmation == 'I_UNDERSTAND_THIS_MODIFIES_RUNNER' }}
         shell: pwsh
         run: |
+          Write-Host "This install uses the mutable main-branch torrent seed. Results can change when the seed changes."
           $deviceList = Join-Path $env:RUNNER_TEMP "device-list-install.json"
           .\sdigo.exe -nogui -json -install "-device-list=$deviceList" "-torrent-file=*" *> install.txt
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }

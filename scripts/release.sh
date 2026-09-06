@@ -39,4 +39,7 @@ echo "Generating Windows app manifest/version resource..." >&2
 echo "Building sdigo.exe for windows/amd64..." >&2
 GOOS=windows GOARCH=amd64 go build -o sdigo.exe ./cmd/sdigo
 
+echo "Computing SHA-256 checksum..." >&2
+sha256sum sdigo.exe > sdigo.exe.sha256
+
 echo "Built sdigo.exe" >&2
