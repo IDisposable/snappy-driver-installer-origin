@@ -24,6 +24,9 @@ on-disk data contract (filter bit layout and index/snapshot file format), and
 [docs/PORTING_NOTES.md](docs/PORTING_NOTES.md) for module-by-module
 traceability back to the original C++ source.
 
+See [docs/REFERENCE-MANUAL.md](docs/REFERENCE-MANUAL.md) for current
+command, configuration, storage, download, and installation behavior.
+
 ## Building and running
 
 ```sh
@@ -46,6 +49,7 @@ Two scripts build and run `cmd/sdigo`, forwarding any arguments as-is:
 scripts/run-windows.sh -nogui -drp-dir=D:\drivers -index-dir=D:\indexes
 scripts/run-windows.sh hwdump
 ```
+
 ```bat
 scripts\run-windows.cmd -nogui -drp-dir=D:\drivers -index-dir=D:\indexes
 ```
@@ -60,7 +64,7 @@ Settings use the current `sdigo.cfg` syntax written by the program. The
 old SDIO configuration format is not supported.
 
 `-device-list=<path>` writes a tab-separated device report after scanning.
-Add `-device-list-json` to write the structured JSON form. `-finish-reboot`
+Use `-json` with it to write the structured JSON form. `-finish-reboot`
 requests a Windows reboot after a successful `-install` run.
 
 See [docs/RELEASE.md](docs/RELEASE.md) for building the release binary.
