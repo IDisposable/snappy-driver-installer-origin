@@ -27,6 +27,96 @@ sdigo.exe -nogui -json
 The main scan does not install drivers. Installation requires `-install` in
 headless mode or an explicit selection in the terminal interface.
 
+## Terminal Interface
+
+The main device table uses these keys:
+
+| Key | Action |
+| --- | --- |
+| `d` | Open the download menu. |
+| `u` | Open the removable-drive USB copy screen. |
+| `o` | Open engine options. |
+| `f` | Open display filters. |
+| `space` | Select or clear the current device. |
+| `enter` | Open device details. |
+| `i` | Start installation for selected devices. |
+| `?` | Open the about screen. |
+| `q` | Quit. |
+
+The download menu contains index refresh, network-driver, machine-driver,
+and full-collection download actions. The full-collection action starts
+immediately because it is an explicit user choice. Use `d`, `esc`, or `q` to
+return to the device table. Use `up` and `down` to move, and `enter` or
+`space` to select.
+
+### Startup
+
+The program shows a short splash screen, then scans hardware and loads the
+driver-pack collection. The scan screen shows collection progress. On a first
+run, the download menu opens after the scan. If `-checkupdates` or
+`-autoupdate` is set, its download starts after the first scan.
+
+### Device Table
+
+The table shows the devices included by the active filters. The Status column
+uses two comparison axes:
+
+| Status | Date axis | Match axis | Meaning |
+| --- | --- | --- | --- |
+| `Newer, better` | Candidate date is newer. | Candidate score is better. | Recommended upgrade with a newer release date. |
+| `Same date, better` | Candidate date is the same. | Candidate score is better. | Recommended upgrade based on catalog, feature, or match quality. |
+| `Older, better` | Candidate date is older. | Candidate score is better. | Recommended because match quality outranks the installed driver. |
+| `Better match` | No installed driver to compare. | Candidate is valid and actionable. | A driver is available for a device without an installed driver. |
+| `No match` | Not applicable. | No actionable candidate. | No valid upgrade is available. |
+
+The date axis compares driver dates. The match axis compares catalog
+validation, feature score, and hardware-ID match quality. The displayed
+driver version is a separate four-part version value and is shown in the
+Version column and detail screen.
+
+The detail screen compares the installed driver and candidate provider, date,
+version, matched ID, INF file, section, and score.
+
+Selections use device instance IDs, so changing filters does not lose a
+selection. `a` selects eligible rows, and `n` clears all selections. Microsoft
+provided drivers are excluded from select-all, but a user can select one row
+manually.
+
+### Options
+
+The options screen contains all registered engine flags. Use `up` and `down`
+to move and `space` or `enter` to toggle. Persistent flags are saved to
+`sdigo.cfg` when the program exits. Most engine flags affect the next scan.
+
+The filters screen is separate from engine options. Filter changes apply to the
+table immediately and are saved through the `-filters` value.
+
+### Downloads
+
+The download screen reports progress for indexes or driver packs. `esc`
+cancels a running download. Files that completed and passed torrent
+verification are retained. A completed download is moved into `indexes` or
+`drivers`, then the collection is loaded again so the table reflects the new
+files.
+
+### Installation Flow
+
+Press `i` in the table after selecting one or more devices. The confirmation
+screen lists every selected candidate. Press `y` or `enter` to continue, or
+`n`, `esc`, or `q` to cancel. The program requests elevation only when the
+installation is confirmed. If elevation is needed, the selection is carried
+to the elevated process.
+
+The operation log remains visible after installation. Press `esc` or `q` to
+dismiss it. Pressing `enter` does not dismiss an unread error log.
+
+### USB Copy Flow
+
+Press `u` to list removable drives. Select a drive, review the available and
+required space, then confirm with `y` or `enter`. The operation copies the
+running executable, driver packs, and indexes. It overwrites files with the
+same destination path and does not format the drive or remove unrelated files.
+
 ## Data Directories
 
 The default portable layout is:
@@ -44,7 +134,7 @@ If the executable is installed without portable markers, the application uses
 directory containing `sdigo.cfg`, `drivers`, or `indexes` selects portable mode.
 
 Completed driver packs and indexes replace files with the same name when a
-newer revision is downloaded. This is expected update behavior.
+newer revision is downloaded.
 
 ## Configuration
 
