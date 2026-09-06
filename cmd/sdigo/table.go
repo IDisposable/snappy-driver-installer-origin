@@ -212,19 +212,23 @@ func (m model) updateTable(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	case "q", "ctrl+c":
 		return m, tea.Quit
 	case "o":
+		m.logger.Info().Msg("options screen opened")
 		m.screen = screenOptions
 		return m, nil
 	case "f":
+		m.logger.Info().Msg("filters screen opened")
 		m.screen = screenFilters
 		return m, nil
 	case "?":
 		m.screen = screenAbout
 		return m, nil
 	case "d":
+		m.logger.Info().Msg("download menu opened")
 		m.screen = screenWelcome
 		m.downloadIndex = 0
 		return m, nil
 	case "u":
+		m.logger.Info().Msg("USB drive screen requested")
 		drives, err := usbdrive.ListRemovable()
 		if err != nil || len(drives) == 0 {
 			msg := "No removable drives found."

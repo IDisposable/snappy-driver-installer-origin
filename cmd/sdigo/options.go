@@ -90,6 +90,7 @@ func (m model) updateOptions(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		}
 	case " ", "enter":
 		m.options[m.optionIndex].toggle(m.s)
+		m.logger.Info().Str("option", m.options[m.optionIndex].name).Bool("enabled", m.options[m.optionIndex].checked(m.s)).Msg("engine option toggled")
 	}
 	return m, nil
 }
@@ -119,6 +120,7 @@ func (m model) updateFilters(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		}
 	case " ", "enter":
 		m.filterOptions[m.filterIndex].toggle(m.s)
+		m.logger.Info().Str("filter", m.filterOptions[m.filterIndex].name).Bool("enabled", m.filterOptions[m.filterIndex].checked(m.s)).Msg("display filter toggled")
 		m.refreshTable()
 	}
 	return m, nil

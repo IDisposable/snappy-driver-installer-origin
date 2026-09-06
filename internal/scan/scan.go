@@ -444,28 +444,23 @@ func scoreInstalledDriver(si hardware.SysInfo, installed *hardware.InstalledDriv
 	}
 }
 
-// MatchLabel renders a short label for a device's best candidate. Only
-// the New/Old/Current bits are checked here - the other six BETTER/
-// SAME/WORSE combinations don't apply, since best is nil unless
-// StatusBetter is already set (see DeviceResult.Best). New/Old/Current
-// is the date-vs-installed axis, independent of the score axis a
-// plain "Found" collapses - sized for a table column, not a sentence.
-// A device with no installed driver to compare dates against at all
-// (first-time install) has neither bit set, so falls through to
-// "Found".
+// MatchLabel renders the two useful status axes in one short label:
+// candidate date versus installed date, and candidate match score versus
+// installed score. A candidate without an installed driver has no date
+// axis, so it uses "Better match".
 func MatchLabel(best *collection.Candidate) string {
 	if best == nil {
-		return "Missing"
+		return "No match"
 	}
 	switch {
 	case best.Result.Status&matcher.StatusNew != 0:
-		return "Newer"
+		return "Newer, better"
 	case best.Result.Status&matcher.StatusOld != 0:
-		return "Older"
+		return "Older, better"
 	case best.Result.Status&matcher.StatusCurrent != 0:
-		return "Better"
+		return "Same date, better"
 	default:
-		return "Found"
+		return "Better match"
 	}
 }
 

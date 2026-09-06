@@ -24,6 +24,7 @@ import (
 func (m model) updateConfirmInstall(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	switch msg.String() {
 	case "y", "enter":
+		m.logger.Info().Int("devices", len(m.pendingSelected())).Msg("install confirmation accepted")
 		if !install.IsElevated() {
 			m.relaunchInstanceIDs = selectedInstanceIDs(m.selected)
 			return m, tea.Quit
@@ -35,6 +36,7 @@ func (m model) updateConfirmInstall(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	case "ctrl+c":
 		return m, tea.Quit
 	case "n", "q", "esc":
+		m.logger.Info().Msg("install confirmation cancelled")
 		m.screen = screenTable
 		return m, nil
 	}

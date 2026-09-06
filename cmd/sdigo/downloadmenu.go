@@ -72,6 +72,7 @@ func (m model) updateDownload(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			m.downloadIndex++
 		}
 	case "enter", " ":
+		m.logger.Info().Str("action", downloadItems[m.downloadIndex]).Msg("download menu action selected")
 		if m.downloadIndex == downloadItemQuit {
 			m.screen = screenTable
 			return m, nil

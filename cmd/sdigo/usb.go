@@ -45,12 +45,14 @@ func (m model) updateUSBDrive(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 func (m model) updateUSBDriveConfirm(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	switch msg.String() {
 	case "y", "enter":
+		m.logger.Info().Str("dest", m.usbDrives[m.usbDriveIndex].Root).Msg("USB copy confirmation accepted")
 		m.screen = screenUSBDriveCopying
 		m.opLogReturnScreen = screenTable
 		return m, runUSBCopyCmd(m.s, m.usbDrives[m.usbDriveIndex].Root, m.logger)
 	case "ctrl+c":
 		return m, tea.Quit
 	case "n", "q", "esc":
+		m.logger.Info().Msg("USB copy confirmation cancelled")
 		m.screen = screenUSBDrive
 		return m, nil
 	}
