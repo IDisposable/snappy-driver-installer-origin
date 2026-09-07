@@ -42,9 +42,8 @@ func versionColumnWidth(header string, devices []scan.DeviceResult, cell func(sc
 }
 
 // layoutColumns sizes the table's columns for the given terminal
-// width and the devices actually being shown, ported from no original
-// equivalent - the original GUI used a fixed-layout window with its
-// own resize handling in draw.cpp; this is this rewrite's own design
+// width and the devices actually being shown. Device and best-match columns
+// stay fixed while version columns adapt to their contents.
 // for a terminal that can be any width. Only the version-like columns
 // grow/shrink with content (see versionColumnWidth); Device and Best
 // match stay fixed since a wider terminal doesn't make device names or
@@ -148,7 +147,7 @@ func deviceRow(dr scan.DeviceResult, selected, showInstalled bool, bestMatchWidt
 		switch {
 		case len(dr.Candidates) == 0:
 			reason = scan.StatusLabel(dr.Status)
-		case dr.Candidates[0].Result.AltSectScore != 0:
+		case dr.Candidates[0].Result.AltSectScore > 0 && dr.Candidates[0].Result.IsDriverValid():
 			reason = "already has an equal or better driver installed"
 		}
 		row = table.Row{sel, scan.MatchLabel(nil), description, reason, ""}

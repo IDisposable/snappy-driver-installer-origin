@@ -27,9 +27,8 @@ func tickSplashCmd() tea.Cmd {
 // splashDuration on startup - "GO FORTH" in block letters, this
 // rewrite's own name (see the About screen and README.md), not a
 // reproduction of the original VCL app's own splash/logo. Every line
-// is exactly 67 runes wide by construction - verified directly rather
-// than assumed, since a ragged block-letter banner reads as broken
-// rather than stylized.
+// uses fixed-width source lines by construction, so the block-letter
+// banner stays aligned in a monospace terminal.
 const splashBanner = ` ██████╗  ██████╗      ███████╗ ██████╗ ██████╗ ████████╗██╗  ██╗
 ██╔════╝ ██╔═══██╗     ██╔════╝██╔═══██╗██╔══██╗╚══██╔══╝██║  ██║
 ██║  ███╗██║   ██║     █████╗  ██║   ██║██████╔╝   ██║   ███████║

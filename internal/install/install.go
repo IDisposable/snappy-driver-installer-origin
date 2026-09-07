@@ -1,19 +1,5 @@
-// Package install performs the actual driver installation, ported
-// from the non-GUI parts of install.cpp/system.cpp's restore-point
-// helpers. Two significant pieces of the original are deliberately not
-// ported:
-//
-//   - The "install64.exe" bundled-helper/WOW64 workaround: the
-//     original shipped a 32-bit main executable (for old-Windows
-//     compatibility) that could not call UpdateDriverForPlugAndPlay
-//     Devices correctly for 64-bit driver packages, so it extracted
-//     and ran a bundled 64-bit helper binary for that case. This
-//     rewrite builds a native amd64 binary, so the problem doesn't
-//     exist.
-//   - The "Autoclicker": a background thread that simulated mouse
-//     clicks to dismiss a driver-signing dialog that could steal
-//     focus during the 32-bit install path. Not needed by the native
-//     64-bit API call either.
+// Package install performs driver installation and restore-point operations
+// through native Windows APIs.
 package install
 
 import (
@@ -29,10 +15,7 @@ type Result struct {
 	NeedsReboot bool
 }
 
-// RestorePointDescription is the description shown for the restore
-// point created before installing drivers - kept as the original
-// tool's exact wording, since it's user-facing text with no reason to
-// change now.
+// RestorePointDescription is the user-facing restore-point description.
 const RestorePointDescription = "Installed drivers"
 
 // RemoveExtraInfs deletes every .inf file (any case) in infPath's
@@ -51,11 +34,11 @@ func RemoveExtraInfs(infPath string) error {
 		return fmt.Errorf("reading %s: %w", dir, err)
 	}
 
-	lowerInfPath, err := filepath.Abs(infPath)
+	normalizedInfPath, err := filepath.Abs(infPath)
 	if err != nil {
 		return fmt.Errorf("resolving %s: %w", infPath, err)
 	}
-	lowerInfPath = strings.ToLower(filepath.Clean(lowerInfPath))
+	normalizedInfPath = filepath.Clean(normalizedInfPath)
 	for _, e := range entries {
 		if e.IsDir() {
 			continue
@@ -68,7 +51,7 @@ func RemoveExtraInfs(infPath string) error {
 		if err != nil {
 			return fmt.Errorf("resolving %s: %w", name, err)
 		}
-		if strings.EqualFold(filepath.Clean(candidate), lowerInfPath) {
+		if strings.EqualFold(filepath.Clean(candidate), normalizedInfPath) {
 			continue // this is (or matches) the inf actually being installed
 		}
 		if err := os.Remove(filepath.Join(dir, name)); err != nil {

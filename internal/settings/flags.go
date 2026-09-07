@@ -1,9 +1,6 @@
 package settings
 
-// Flags is a bitmask of engine behavior toggles, ported from the FLAG_*
-// and COLLECTION_* enum in settings.h. Bit positions are not preserved
-// from the original (they were tied to unrelated GUI menu-item IDs);
-// nothing depends on their numeric value.
+// Flags is a bitmask of engine behavior toggles.
 type Flags uint64
 
 const (
@@ -38,9 +35,8 @@ type boolFlagDef struct {
 	persist bool
 }
 
-// boolFlagDefs is the single source of truth for both flag registration
-// and saving, replacing the original's two independently-maintained
-// if-chains in parse() and save() (which had already drifted apart).
+// boolFlagDefs is the source for flag registration, persistence, and the
+// options screen.
 // These definitions are the single source for command-line parsing,
 // persistence, and the options screen.
 var boolFlagDefs = []boolFlagDef{

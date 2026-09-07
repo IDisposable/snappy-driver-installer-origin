@@ -17,24 +17,13 @@ type SkippedPack struct {
 	Err      error
 }
 
-// LoadResult separates driver packs that loaded successfully from
-// ones a fresh index couldn't be built for either (missing/corrupt
-// existing index, and the pack's own .7z couldn't be read to build a
-// replacement) - ported from the file-discovery half of
-// Collection::scanfolder.
+// LoadResult separates loaded driver packs from packs that could not be read.
 type LoadResult struct {
 	Packs   []*indexing.Driverpack
 	Skipped []SkippedPack
 }
 
-// indexFilename computes the expected indexes/**/*.bin filename for a
-// driver pack, assuming it lives directly under the collection root
-// (no subfolder nesting) - the only case a real installation used to
-// develop this rewrite exhibits. Driverpack::getindexfilename in
-// indexing.cpp also handles a nested-subfolder case (mirroring the
-// pack's subfolder into the index filename, with backslashes/spaces
-// sanitized to underscores) that isn't replicated here for lack of a
-// real example to verify the byte-exact naming against.
+// indexFilename computes the index filename for a pack in the collection root.
 func indexFilename(packFilename string) string {
 	ext := filepath.Ext(packFilename)
 	return packFilename[:len(packFilename)-len(ext)] + ".bin"
@@ -101,7 +90,7 @@ func LoadCollection(driverpackDir, indexDir string, reindex, writeHumanReadable 
 		result.Packs = append(result.Packs, drp)
 	}
 
-	pending, err := LoadOnlineIndexes(indexDir, result.Packs)
+	pending, err := LoadOnlineIndexes(driverpackDir, indexDir, result.Packs)
 	if err != nil {
 		return result, err
 	}
@@ -137,10 +126,13 @@ func expectedPackFilename(pendingIndexFilename string) string {
 // original's System.FileExists check) - that means it's already been
 // downloaded and its underscore-prefixed placeholder is just stale,
 // as most real installations accumulate over time.
-func LoadOnlineIndexes(indexDir string, alreadyLoaded []*indexing.Driverpack) ([]*indexing.Driverpack, error) {
+func LoadOnlineIndexes(driverpackDir, indexDir string, alreadyLoaded []*indexing.Driverpack) ([]*indexing.Driverpack, error) {
 	have := make(map[string]bool, len(alreadyLoaded))
 	for _, drp := range alreadyLoaded {
 		have[strings.ToLower(drp.Filename)] = true
+	}
+	for _, entry := range readDriverPackNames(driverpackDir) {
+		have[strings.ToLower(entry)] = true
 	}
 
 	matches, err := filepath.Glob(filepath.Join(indexDir, "_*.bin"))
@@ -162,6 +154,20 @@ func LoadOnlineIndexes(indexDir string, alreadyLoaded []*indexing.Driverpack) ([
 		pending = append(pending, &indexing.Driverpack{Filename: packFilename, Index: idx, Pending: true})
 	}
 	return pending, nil
+}
+
+func readDriverPackNames(dir string) []string {
+	entries, err := os.ReadDir(dir)
+	if err != nil {
+		return nil
+	}
+	names := make([]string, 0, len(entries))
+	for _, entry := range entries {
+		if !entry.IsDir() && strings.EqualFold(filepath.Ext(entry.Name()), ".7z") {
+			names = append(names, entry.Name())
+		}
+	}
+	return names
 }
 
 func loadIndex(path string) (*indexing.Index, error) {

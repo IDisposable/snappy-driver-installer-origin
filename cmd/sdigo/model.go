@@ -362,18 +362,13 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		var cmd tea.Cmd
 		switch {
 		case m.s.Flags&settings.FlagCheckUpdates != 0:
-			// Ported from -checkupdates' documented purpose ("check for
-			// driver pack updates") - runs as its own background step
-			// after the table's first render instead of blocking it, the
-			// way the original's launch-time bootstrap did.
+			// Refresh indexes after the first scan so the table appears quickly.
 			m.screen = screenDownloading
 			m.opLogReturnScreen = screenTable
 			ctx := m.startDownload()
 			cmd = tea.Batch(runIndexRefreshCmd(ctx, m.s, m.dlProgress, m.alertLogger(), m.logger), tickProgressCmd())
 		case m.s.Flags&settings.FlagAutoUpdate != 0:
-			// Ported from the "-autoupdate command line parameter" launch-
-			// time auto-trigger (update.cpp) - fires once, right after the
-			// first scan.
+			// Start the configured full download after the first scan.
 			m.screen = screenDownloading
 			m.opLogReturnScreen = screenTable
 			ctx := m.startDownload()
@@ -406,8 +401,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.applyResult(res)
 		}
 		if m.s.Flags&settings.FlagAutoClose != 0 && !msg.isErr {
-			// Ported from Manager::thread_install's PostMessage(WM_CLOSE)
-			// once an install finishes - exits straight from here rather
+			// Exit after a successful install rather
 			// than waiting at the log screen, matching an unattended run.
 			// Skipped on failure - -autoclose means "close once done," not
 			// "close and hide that it failed."
@@ -435,11 +429,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.applyResult(res)
 		}
 		if m.s.Flags&settings.FlagAutoClose != 0 && !msg.isErr {
-			// Ported from Updater_t's "Torrent finished" auto-exit
-			// (update.cpp) - the original skips this when -autoinstall is
-			// also set, since it closes after the install that follows
-			// instead; this rewrite has no -autoinstall to chain into, so
-			// there's nothing to wait for. Skipped on a failed download -
+			// Exit after a successful download. Skipped on failure -
 			// -autoclose means "close once done," not "close and hide
 			// that it failed."
 			return m, tea.Quit

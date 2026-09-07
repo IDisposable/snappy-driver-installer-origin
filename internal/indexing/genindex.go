@@ -6,14 +6,8 @@ import (
 	"sdio/internal/common"
 )
 
-// TxtBuilder incrementally interns strings/offset-arrays for a new
-// index's Txt blob - the write-side counterpart to Txt's read-only
-// Get/GetString/GetW. Unlike the original's Txt (which deduplicates
-// identical strings via a hash map before writing), this always
-// appends: a valid index only needs every record's offsets to resolve
-// to the right bytes, not the smallest possible file, and building a
-// dedup map here would just re-hash strings the search Hashtable is
-// about to hash again anyway.
+// TxtBuilder builds the string and offset blob for a new index. It appends
+// values because offsets only need stable byte locations.
 type TxtBuilder struct {
 	buf []byte
 }
@@ -68,19 +62,9 @@ func splitInfPath(archivePath string) (dir, name string) {
 
 // catIndex is a lookup from a .inf's declared CatalogFile* value to
 // the matching .cat file's OS-attribute string (see FindOSAttr).
-// Ported exactly from Driverpack::parsecat/genhashes (indexing.cpp):
-// parsecat keys cat_list by the .cat's own directory-plus-filename
-// string, lowercased (pathinf+inffilename, no basename extraction);
-// genhashes looks up a field by concatenating the .inf's own
-// directory with the field's raw declared value, unmodified, then
-// lowercasing and looking that up - an exact string match with no
-// basename-only fallback. A real pack can ship many identically-named
-// .cat files, one per version subfolder next to its own .inf (e.g.
-// "vendor/7x64/1.0/driver.cat" vs "vendor/7x64/2.0/driver.cat", signed
-// for different OS ranges) - only this exact per-directory match
-// disambiguates them the same way the original does; earlier attempts
-// at a basename-only or basename-with-fallback lookup silently picked
-// the wrong one.
+// catIndex maps each catalog file's directory-qualified name to its
+// embedded OS-attribute string. Directory-qualified keys avoid collisions
+// between same-named catalogs in different driver folders.
 type catIndex map[string]string
 
 // buildCatIndex runs FindOSAttr once per .cat file in catFiles (keyed
@@ -105,15 +89,10 @@ func (ci catIndex) lookup(infDir, rawFieldValue string) string {
 	return ci[strings.ToLower(infDir+rawFieldValue)]
 }
 
-// BuildIndex scans every already-extracted .inf file's content
-// (infFiles, keyed by its archive path, forward-slash-separated) into
-// a fresh Index - the write-side counterpart to DecodeIndex, ported
-// from Driverpack::genindex/indexinf_ansi's per-.inf orchestration
-// (indexing.cpp): discover sections, resolve every manufacturer's
-// every section variant, and record one Desc/HWID pair per device
-// line/hardware ID found - the exact same walk ScanInstalledInf
-// already does for a single target device, generalized to every
-// device in the pack. osDecorationSuffixes should be
+// BuildIndex scans every extracted .inf file into a fresh Index. It
+// discovers sections, resolves manufacturer variants, and records one
+// Desc/HWID pair for each device line and hardware ID. osDecorationSuffixes
+// should be
 // matcher.OSDecorations[:] (accepted as a parameter, not imported
 // directly, to avoid an internal/matcher <-> internal/indexing import
 // cycle - ScanInstalledInf already does the same).
@@ -162,6 +141,9 @@ func BuildIndex(infFiles map[string][]byte, catFiles map[string][]byte, osDecora
 		idx.InfFiles = append(idx.InfFiles, infFile)
 
 		for _, me := range ParseManufacturers(data, sections, strs) {
+			if len(me.Sections) == 0 || me.SectionRoot == "" {
+				continue
+			}
 			manufIndex := uint32(len(idx.Manufacturers))
 
 			offsets := make([]ofst, len(me.Sections))

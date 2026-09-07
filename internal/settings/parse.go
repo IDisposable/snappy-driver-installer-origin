@@ -57,8 +57,7 @@ func (f filterShowValue) Set(s string) error {
 	return nil
 }
 
-// stateFileValue sets StateFile and switches StateMode to emulation in
-// one step, matching the original's "-ls:" handling.
+// stateFileValue selects snapshot replay mode when -ls is parsed.
 type stateFileValue struct{ s *Settings }
 
 func (f stateFileValue) String() string {
@@ -74,9 +73,7 @@ func (f stateFileValue) Set(v string) error {
 	return nil
 }
 
-// extractDirValue sets ExtractDirRaw and, matching the original's
-// "-extractdir:" handling, switches on extract-only mode (scan and
-// extract driver packs, but don't install).
+// extractDirValue enables extract-only mode when an extraction directory is set.
 type extractDirValue struct{ s *Settings }
 
 func (f extractDirValue) String() string {
@@ -145,6 +142,8 @@ func (s *Settings) FlagSet(name string) *flag.FlagSet {
 		}
 		if b {
 			s.Flags |= FlagFilterSP
+		} else {
+			s.Flags &^= FlagFilterSP
 		}
 		return nil
 	})

@@ -5,11 +5,8 @@ import (
 	"fmt"
 )
 
-// Index is one driver pack's compiled index: everything
-// Driverpack::loadindex reads from the decompressed payload of an
-// indexes/**/*.bin file (see internal/sdwfile for the outer container
-// format). This is the storage layer only - the higher-level
-// Collection/Driverpack lookup and matching behavior isn't ported yet.
+// Index is one driver's compiled index decoded from an indexes/**/*.bin
+// payload. It is the storage layer for collection matching.
 type Index struct {
 	InfFiles      []InfFile
 	Manufacturers []Manufacturer

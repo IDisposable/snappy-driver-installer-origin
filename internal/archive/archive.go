@@ -1,9 +1,4 @@
-// Package archive reads driver-pack .7z archives, replacing the
-// bundled 7-Zip SDK's C API (SzArEx_Open/SzArEx_Extract, used by
-// Driverpack::genindex in indexing.cpp) with
-// github.com/bodgit/sevenzip, a pure-Go reader - per this rewrite's
-// standing decision to use existing Go libraries for 7-Zip and torrent
-// support rather than porting the bundled C SDKs.
+// Package archive reads driver-pack .7z archives with a pure-Go reader.
 package archive
 
 import (
@@ -91,7 +86,7 @@ func (r *Reader) Extract(name string) ([]byte, error) {
 // ExtractPrefix extracts every file whose name starts with prefix
 // (archive paths use "/", e.g. "dt/allx64/DtPort_1.0.0.6/") into
 // destDir, preserving the path structure below prefix. This is the
-// step driver_install (install.cpp) needs before it can call
+// step driver installation needs before it can call
 // UpdateDriverForPlugAndPlayDevices: Windows requires an .inf's
 // supporting files (.sys/.dll/.cat) to already be on disk alongside
 // it, not just the .inf itself. Returns the number of files
@@ -135,11 +130,21 @@ func (r *Reader) ExtractPrefixWithOptions(prefix, destDir string, options Extrac
 			rc.Close()
 			return n, fmt.Errorf("creating %s: %w", dest, err)
 		}
-		var source io.Reader = rc
+		maxRead := uint64(0)
 		if options.MaxFileBytes > 0 {
-			source = io.LimitReader(rc, int64(options.MaxFileBytes)+1)
+			maxRead = options.MaxFileBytes + 1
 		}
-		_, copyErr := io.Copy(tmp, source)
+		if options.MaxTotalBytes > 0 {
+			remaining := options.MaxTotalBytes - totalBytes
+			if maxRead == 0 || remaining+1 < maxRead {
+				maxRead = remaining + 1
+			}
+		}
+		var source io.Reader = rc
+		if maxRead > 0 {
+			source = io.LimitReader(rc, int64(maxRead))
+		}
+		written, copyErr := io.Copy(tmp, source)
 		rc.Close()
 		closeErr := tmp.Close()
 		if copyErr != nil {
@@ -149,6 +154,15 @@ func (r *Reader) ExtractPrefixWithOptions(prefix, destDir string, options Extrac
 		if closeErr != nil {
 			os.Remove(tmp.Name())
 			return n, fmt.Errorf("closing %s: %w", dest, closeErr)
+		}
+		actualBytes := uint64(written)
+		if options.MaxFileBytes > 0 && actualBytes > options.MaxFileBytes {
+			os.Remove(tmp.Name())
+			return n, fmt.Errorf("archive file %s exceeds the %d-byte limit", f.Name, options.MaxFileBytes)
+		}
+		if options.MaxTotalBytes > 0 && (actualBytes > options.MaxTotalBytes || totalBytes > options.MaxTotalBytes-actualBytes) {
+			os.Remove(tmp.Name())
+			return n, fmt.Errorf("archive extraction exceeds the %d-byte limit", options.MaxTotalBytes)
 		}
 		if options.MaxFileBytes > 0 {
 			if info, err := os.Stat(tmp.Name()); err != nil {
@@ -163,7 +177,7 @@ func (r *Reader) ExtractPrefixWithOptions(prefix, destDir string, options Extrac
 			os.Remove(tmp.Name())
 			return n, fmt.Errorf("placing %s: %w", dest, err)
 		}
-		totalBytes += f.UncompressedSize
+		totalBytes += actualBytes
 		n++
 	}
 	if n == 0 {

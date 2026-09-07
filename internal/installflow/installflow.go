@@ -67,10 +67,7 @@ func Run(s *settings.Settings, pending []Pending, out io.Writer, onAlert func(le
 		// Windows throttles System Restore to about one automatic
 		// checkpoint per day; without bypassing that,
 		// install.CreateRestorePoint can silently do nothing if one was
-		// already made recently. Ported from Manager::thread_install's
-		// GetRestorePointCreationFrequency -> SetRestorePointCreation
-		// Frequency(0) -> SRSetRestorePointW -> SetRestorePointCreation
-		// Frequency(original) sequence.
+		// already made recently. Temporarily disable the system interval.
 		origFreq, freqErr := install.GetRestorePointCreationFrequency()
 		if freqErr == nil {
 			if err := install.SetRestorePointCreationFrequency(0); err != nil {
@@ -90,8 +87,7 @@ func Run(s *settings.Settings, pending []Pending, out io.Writer, onAlert func(le
 	}
 
 	// A selected-but-failed restore point aborts the whole install
-	// rather than proceeding without one - ported from install.cpp's
-	// "if restore point was selected and failed then abort" guard.
+	// rather than proceeding without one.
 	// -nostop opts out, matching the flag's documented purpose.
 	if restorePointSelected && restorePointFailed && s.Flags&settings.FlagNoStop == 0 {
 		fmt.Fprintf(out, "install aborted: could not create a restore point (see -nostop to install anyway)\n")
@@ -113,7 +109,7 @@ func Run(s *settings.Settings, pending []Pending, out io.Writer, onAlert func(le
 }
 
 // DownloadPending fetches the .7z for every pending (not-yet-
-// downloaded) candidate driver pack via BitTorrent, ported from the
+// downloaded) candidate driver pack via BitTorrent.
 // role Collection::loadOnlineIndexes' DRIVERPACK_TYPE_UPDATE entries
 // play together with Updater_t::StartInstallDownload's selective
 // per-file download: a device can be matched against a pack whose

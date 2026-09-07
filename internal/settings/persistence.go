@@ -12,11 +12,8 @@ import (
 // matching the hardcoded "sdigo.cfg" startup sequence.
 const DefaultCfgFilename = "sdigo.cfg"
 
-// LoadDefaultCfg loads DefaultCfgFilename if present, silently doing
-// nothing if it doesn't exist - matching the original, where a
-// missing sdigo.cfg is the normal first-run case, not an error. Callers
-// should call this before parsing command-line flags, so a config
-// file provides defaults that command-line switches can still override.
+// LoadDefaultCfg loads DefaultCfgFilename when present. A missing file is
+// treated as a normal first-run condition.
 func (s *Settings) LoadDefaultCfg() error {
 	err := s.LoadFile(DefaultCfgFilename)
 	if err != nil && os.IsNotExist(err) {
@@ -54,8 +51,7 @@ func (s *Settings) LoadFile(filename string) error {
 		return err
 	}
 
-	// A missing per-host ignore file is the common case, not a failure:
-	// match the original, which logs and continues with an empty list.
+	// A missing per-host ignore file means there are no ignored devices.
 	_ = s.loadIgnoreList()
 	return nil
 }

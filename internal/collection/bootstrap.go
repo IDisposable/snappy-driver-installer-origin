@@ -15,12 +15,8 @@ import (
 	"github.com/rs/zerolog"
 )
 
-// placeholderIndexFilename computes the underscore-prefixed pending
-// placeholder name for a real index filename found in the torrent
-// (e.g. "DP_APO_SDIO01_26083.bin" -> "_P_APO_SDIO01_26083.bin") -
-// the inverse of expectedPackFilename, ported from the exact
-// transformation in Updater_t::WelcomeDownloadIndexes
-// ("DestFile=L"_"+DestFile.substr(1);").
+// placeholderIndexFilename computes the pending name used for an index
+// whose driver pack has not been downloaded yet.
 func placeholderIndexFilename(properBinName string) string {
 	return "_" + properBinName[1:]
 }
@@ -28,20 +24,14 @@ func placeholderIndexFilename(properBinName string) string {
 // BootstrapIndexes downloads every driver-pack index (.bin) file the
 // configured torrent has that isn't already present locally under its
 // underscore-prefixed pending-placeholder name, saving each one with
-// that name - ported from Updater_t::WelcomeDownloadIndexes (the
-// Welcome dialog's first-run "get the index catalog" step). This is
-// how a machine with no local index catalog at all gets one: a real
-// SDIO installer ships the index catalog directly; this rewrite
-// instead fetches it live from the torrent, since there's no
-// installer step to bundle it in. Also usable to refresh an existing
+// that name. This gives a new machine an index catalog from the selected
+// torrent source and also refreshes an existing catalog.
 // catalog (picking up newly-added driver-pack revisions, which get
 // their own distinct filename and so are never mistaken for an
 // already-known one) - see Settings.FlagCheckUpdates.
 //
 // Returns the number of index files downloaded. torrentFile is a
-// local .torrent path or magnet URI (Settings.TorrentFile); an empty
-// value is an error, matching the original's "Updates not
-// initialised" guard on the equivalent scripted commands. updatesDir
+// local .torrent path, magnet URI, or embedded source; updatesDir
 // (Settings.UpdatesDir) is a persistent staging directory for
 // in-progress file data - not a temp directory, so an interrupted
 // download resumes instead of restarting from zero next run.

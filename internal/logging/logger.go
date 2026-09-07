@@ -103,14 +103,8 @@ func (l *Logger) Start(logDir, timestamp string) error {
 
 	l.file = f
 	l.rebuild()
-	// Log() (zerolog's no-level event) rather than Info() - ported from
-	// log_start's unconditional print_file call (logging.cpp), which
-	// always records the start marker in the file regardless of
-	// console verbosity. l.level only ever gates what this rewrite's
-	// callers explicitly log afterward (e.g. -torrentalerts warnings);
-	// a leveled Info() call here would be filtered out at l.level's
-	// current WarnLevel default, producing a genuinely empty file even
-	// though the file itself opened and ran successfully.
+	// Log() bypasses the configured event threshold so the start marker
+	// is present even when normal operational events are filtered.
 	l.Logger.Log().Msg("start logging")
 	return nil
 }

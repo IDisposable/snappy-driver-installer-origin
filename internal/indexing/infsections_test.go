@@ -98,6 +98,15 @@ func TestParseManufacturersRootAndDecorations(t *testing.T) {
 	}
 }
 
+func TestParseManufacturersSkipsIncompleteEntry(t *testing.T) {
+	data := []byte("[Manufacturer]\n%MfgName%=")
+	sections, _ := DiscoverSections(data)
+	entries := ParseManufacturers(data, sections, map[string]string{"mfgname": "Acme"})
+	if len(entries) != 0 {
+		t.Fatalf("ParseManufacturers() returned %+v, want no incomplete entries", entries)
+	}
+}
+
 // readRealInfAsASCII reads a real Windows .inf file (typically
 // UTF-16LE with a BOM) via the WSL-mounted host filesystem and decodes
 // it to a plain byte buffer InfParser can operate on directly. This is

@@ -53,10 +53,11 @@ func Reboot() error {
 		if callErr == nil {
 			callErr = windows.GetLastError()
 		}
-		if err := exec.Command("shutdown.exe", "/r", "/t", "0").Run(); err == nil {
+		fallbackErr := exec.Command("shutdown.exe", "/r", "/t", "0").Run()
+		if fallbackErr == nil {
 			return nil
 		}
-		return fmt.Errorf("ExitWindowsEx failed: %w", callErr)
+		return fmt.Errorf("ExitWindowsEx failed: %w; shutdown.exe fallback failed: %v", callErr, fallbackErr)
 	}
 	if err := exec.Command("shutdown.exe", "/r", "/t", "0").Run(); err != nil {
 		return fmt.Errorf("rebooting with shutdown.exe: %w", err)

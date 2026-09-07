@@ -1,14 +1,10 @@
-// Command sdigo is Snappy Driver Installer: Go Forth, the single-EXE
-// entry point for this Go rewrite of Snappy Driver Installer Origin:
-// an interactive TUI by default (replacing gui.cpp/draw.cpp/theme*.cpp's
-// device-list screen - see README.md), or a plain-text report
-// (internal/report.Print) when -nogui is set. The TUI shows a
+// Command sdigo is the single executable entry point. It provides an
+// interactive TUI by default or a plain-text report through -nogui. The TUI shows a
 // scrollable table with an options screen (all engine flags and
 // display filters), a per-device detail screen, and per-row selection
 // wired to the real install path (internal/installflow). "sdigo
-// cleandrivers" removes superseded driver-pack files (replacing
-// del_old_driverpacks.bat); "sdigo hwdump"/"sdigo torrenttest" are
-// dev/diagnostic subcommands with no end-user purpose of their own.
+// cleandrivers removes superseded driver-pack files. hwdump and torrenttest
+// are diagnostic subcommands.
 //
 // The TUI's implementation is split across this package's other
 // files by screen/responsibility: model.go (core model type and the

@@ -1,7 +1,6 @@
 // Package collection finds and ranks driver-pack candidates for a
-// device against a whole collection of indexed driver packs, ported
-// from MatcherImp/Devicematch/Hwidmatch's orchestration in
-// matcher.cpp. It is the top-level package that ties together
+// device against a whole collection of indexed driver packs. It is the
+// top-level package that ties together
 // internal/hardware (device enumeration), internal/indexing
 // (driver-pack indexes), and internal/matcher (scoring primitives) -
 // none of which can import each other in this direction (hardware
@@ -9,13 +8,8 @@
 // imports matcher for OS-decoration data), so this orchestration lives
 // one level up from all three.
 //
-// Comparing a candidate against the currently installed driver's own
-// score (Hwidmatch::calc_status's STATUS_BETTER/WORSE/SAME/NEW/OLD/
-// CURRENT bits) needs that driver's own score, computed via
-// Driver::scaninf against its own .inf file (see
-// indexing.ScanInstalledInf) - which needs file I/O this package
-// doesn't otherwise do. Callers compute it (see internal/scan) and
-// pass it into Match as an InstalledScore.
+// Comparing a candidate against the installed driver's own score requires
+// file I/O, so callers compute InstalledScore and pass it into Match.
 package collection
 
 import (
@@ -49,8 +43,7 @@ type InstalledScore struct {
 const cmProbDisabled = 0x16
 
 // Candidate is one driver-pack HWID entry found for a device, ranked
-// against the running system - the scoring half of Hwidmatch
-// (matcher.cpp).
+// against the running system.
 type Candidate struct {
 	Driverpack   *indexing.Driverpack
 	HWIDIndex    int
@@ -60,10 +53,8 @@ type Candidate struct {
 	Dup          bool
 }
 
-// DeviceMatch is one enumerated device's collected candidate drivers,
-// ported from Devicematch (matcher.cpp). Candidates is sorted best
-// first (see matcher.Result.Cmp) with duplicates marked, matching
-// MatcherImp::sort.
+// DeviceMatch is one enumerated device's candidate drivers, sorted best
+// first with duplicates marked.
 type DeviceMatch struct {
 	Device     hardware.Device
 	Status     int // matcher.Status* bits; nonzero here means Candidates is empty

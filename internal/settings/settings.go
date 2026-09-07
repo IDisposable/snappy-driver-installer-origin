@@ -1,8 +1,5 @@
-// Package settings holds engine-level configuration: directories, the
-// finish-command hooks, behavior flags, and result filters. Ported from
-// settings.cpp/.h, with GUI presentation state (theme, window geometry,
-// scale, hint delay, license, expert mode) dropped since this rewrite
-// has no windowed GUI to configure.
+// Package settings holds directories, behavior flags, result filters, and
+// current-format configuration parsing.
 package settings
 
 import (
@@ -27,15 +24,10 @@ type Settings struct {
 	DrpDir    string
 	IndexDir  string
 	OutputDir string
-	DrpExtDir string
 	// UpdatesDir is where a torrent download's file data lands while
 	// in progress, before a completed file is moved into DrpDir/
-	// IndexDir - the original engine used a dedicated "updates"
-	// staging directory the same way, rather than a throwaway temp
-	// directory, so an interrupted download resumes instead of
-	// restarting from zero next run (the torrent client verifies
-	// already-written pieces against the torrent's own metainfo,
-	// which a fresh directory can never have).
+	// IndexDir. Keeping this directory persistent lets interrupted downloads
+	// resume after the process exits.
 	UpdatesDir           string
 	LogDirRaw            string // as configured, may contain %VAR% references
 	LogDir               string // LogDirRaw with environment variables expanded
@@ -97,8 +89,7 @@ func (s *Settings) TorrentSourceKind() string {
 // HasTorrentSource reports that the embedded torrent is always available.
 func (s *Settings) HasTorrentSource() bool { return true }
 
-// New returns Settings populated with the same defaults as the original
-// Settings_t constructor.
+// New returns Settings with the default application layout.
 func New() *Settings {
 	return &Settings{
 		DrpDir:               "drivers",

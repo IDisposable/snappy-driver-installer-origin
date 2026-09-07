@@ -1,6 +1,4 @@
-// Package update downloads driver packs via BitTorrent, using
-// github.com/anacrolix/torrent instead of the original's bundled
-// libtorrent glue.
+// Package update downloads selected driver-pack files via BitTorrent.
 //
 // update.h declares Updater_t::torrent_url/torrent2_url (the .torrent
 // metadata SDIO fetches to learn what's available) but never defines
@@ -55,8 +53,7 @@ type Config struct {
 
 	// OnAlert, if non-nil, is called for every Warning-or-higher event
 	// the torrent client itself logs (peer/tracker/webseed errors, not
-	// this package's own operations) - ported from Updater_t's alert
-	// handling (FLAG_TORRENTALERTS). Left unset, these are silently
+	// this package's own operations). Left unset, these are silently
 	// discarded rather than left at anacrolix/torrent's own default of
 	// writing straight to stderr, which would corrupt a caller that
 	// owns the whole terminal (e.g. a TUI's alternate screen buffer).
@@ -455,11 +452,16 @@ func SaveFile(src, dest string) error {
 	if err := replaceFile(tmp.Name(), dest); err != nil {
 		return err
 	}
-	return os.Remove(src)
+	// The destination is committed at this point. The torrent client may
+	// still hold the source file open, especially on Windows, so source
+	// cleanup can fail even though the move itself succeeded. Leave the
+	// staged source for the next run rather than reporting a false save
+	// failure; callers already treat the destination as authoritative.
+	_ = os.Remove(src)
+	return nil
 }
 
-// Drop removes the torrent from the client, ported from
-// Updater_t::StopTorrent.
+// Drop removes the torrent from the client.
 func (t *Torrent) Drop() {
 	t.t.Drop()
 }

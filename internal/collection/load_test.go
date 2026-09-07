@@ -114,7 +114,7 @@ func TestLoadOnlineIndexesRealInstallation(t *testing.T) {
 		locallyLoaded[i] = &indexing.Driverpack{Filename: f.Filename}
 	}
 
-	pending, err := LoadOnlineIndexes(indexDir, locallyLoaded)
+	pending, err := LoadOnlineIndexes(driverpackDir, indexDir, locallyLoaded)
 	if err != nil {
 		t.Fatalf("LoadOnlineIndexes() error: %v", err)
 	}

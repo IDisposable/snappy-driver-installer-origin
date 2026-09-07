@@ -61,9 +61,8 @@ func (m model) updateDetail(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	return m, nil
 }
 
-// comparison holds the per-field installed-vs-candidate outcome,
-// ported from Manager::draw_hint's cm_date/cm_ver/cm_hwid/cm_score
-// locals - answering "whose value for this ONE field is better",
+// comparison holds the per-field installed-vs-candidate outcome. It answers
+// which side wins each field, separately from the overall recommendation.
 // which is a different, finer-grained question than the overall
 // BETTER/WORSE/SAME verdict DeviceResult.Best already resolves: an
 // installed inbox driver can carry a numerically higher four-part
@@ -108,9 +107,8 @@ func compareInstalledVsCandidate(dr scan.DeviceResult, best *collection.Candidat
 }
 
 // hwidComparison finds whichever of installedID/candidateID matches
-// an earlier (more specific) entry in the device's own combined
-// hardware-then-compatible ID list, ported from the pp/cm_hwid
-// bookkeeping in Manager::draw_hint. Returns 0 if neither matches, or
+// an earlier (more specific) entry in the device's combined
+// hardware-then-compatible ID list. Returns 0 if neither matches, or
 // both match the very same entry (an exact tie, not "id" - genuinely
 // no fresh update: the driver pack targets the identical ID the
 // installed driver already used).
@@ -149,8 +147,7 @@ func styleIf(value string, winner, side int) string {
 }
 
 // styleIfMatched highlights an ID-list entry that matched either
-// side's matching ID (pp!=0, from hwidMatchBits) - ported from
-// Manager::draw_hint's per-entry `pp?POPUP_HWID_COLOR:c0`, which
+// side's matching ID (pp!=0, from hwidMatchBits). This highlights the
 // marks "this is one of the relevant IDs" rather than comparing which
 // side wins (that comparative judgment is the "Matched ID" summary
 // line below, via styleIf/cmp.hwid).
@@ -161,14 +158,11 @@ func styleIfMatched(value string, pp int) string {
 	return value
 }
 
-// signatureLabel describes a candidate's catalog-validity in the same
-// terms Manager::filter's altsectscore-based visibility rule uses:
+// signatureLabel describes a candidate's catalog validity:
 // 2 is catalog-signed and confirmed valid for the running OS, 1 is
 // present but unsigned or unconfirmed, 0 never reaches here (Best()
 // requires IsDriverValid, i.e. AltSectScore>0). Styled red when not
-// fully valid, mirroring Manager::draw_hint's isvalidcat check -
-// there's no equivalent styling for the installed side below since
-// this rewrite never ported Driver::isvalidcat's own catalog lookup.
+// fully valid. The installed-side signature is not available here.
 func signatureLabel(altSectScore int) string {
 	switch altSectScore {
 	case 2:
@@ -180,12 +174,8 @@ func signatureLabel(altSectScore int) string {
 	}
 }
 
-// verdictSummary states in one sentence why a candidate is (or isn't)
-// recommended, ported from the STR_STATUS_BETTER_NEW/_CUR/_OLD
-// sentences itembar_t::str_status builds - the Status column only has
-// room for a short word (scan.MatchLabel), which can otherwise read
-// as a plain negative ("Older") for a driver that's still the
-// recommended pick overall.
+// verdictSummary states why a candidate is or is not recommended. The
+// table label is intentionally shorter than this explanation.
 func verdictSummary(best *collection.Candidate) string {
 	if best == nil {
 		return "Not recommended: no candidate outranks the installed driver."

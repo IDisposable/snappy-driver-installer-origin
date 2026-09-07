@@ -5,7 +5,7 @@ import (
 )
 
 // betterStyle/invalidStyle render the detail screen's "greenlight"
-// comparison, ported from Manager::draw_hint's cb/POPUP_CMP_INVALID_
+// comparison uses betterStyle for the winning side.
 // COLOR text colors - the original highlights whichever side of a
 // per-field comparison wins in green, and flags a bad signature or
 // OS/arch mismatch in red. cautionStyle has no original equivalent -

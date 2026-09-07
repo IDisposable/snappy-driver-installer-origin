@@ -7,18 +7,23 @@ import (
 
 // WriteHumanReadable writes a plain-text listing of drp's index to w -
 // the human-readable counterpart -index-hr asks for alongside the
-// binary index. Ported in spirit, not byte-for-byte, from
-// Driverpack::print_index_hr (indexing.cpp): that function's exact
-// nested-loop layout (skip-detection between HWID runs, per-decoration
-// counts, "!!!" markers for an unrecognized section type) is a
-// debugging aid, not a compatibility-critical format - only
-// indexes/**/*.bin itself needs to round-trip (see
-// docs/COMPATIBILITY.md). This covers the same substance - every .inf
-// file, its manufacturers and section variants, and every device's
-// hardware IDs/install string/feature number - grouped by .inf file
-// rather than reproducing the original's exact formatting.
+// binary index. This is a debugging format, not a compatibility contract.
+// It lists each INF, manufacturer, section, device ID, install section, and
+// feature number grouped by INF.
 func WriteHumanReadable(drp *Driverpack, w io.Writer) error {
 	idx := drp.Index
+	manufByInf := make(map[uint32][]int)
+	descByManuf := make(map[uint32][]int)
+	hwidsByDesc := make(map[uint32][]HWID)
+	for i, m := range idx.Manufacturers {
+		manufByInf[m.InffileIndex] = append(manufByInf[m.InffileIndex], i)
+	}
+	for i, d := range idx.Descs {
+		descByManuf[d.ManufacturerIndex] = append(descByManuf[d.ManufacturerIndex], i)
+	}
+	for _, h := range idx.HWIDs {
+		hwidsByDesc[h.DescIndex] = append(hwidsByDesc[h.DescIndex], h)
+	}
 	if _, err := fmt.Fprintf(w, "%s (%d inf files, %d HWIDs)\n", drp.Filename, len(idx.InfFiles), len(idx.HWIDs)); err != nil {
 		return err
 	}
@@ -33,10 +38,8 @@ func WriteHumanReadable(drp *Driverpack, w io.Writer) error {
 			return err
 		}
 
-		for manufIdx, m := range idx.Manufacturers {
-			if m.InffileIndex != uint32(infIdx) {
-				continue
-			}
+		for _, manufIdx := range manufByInf[uint32(infIdx)] {
+			m := idx.Manufacturers[manufIdx]
 			if _, err := fmt.Fprintf(w, "  {%s}\n", idx.Text.GetString(m.Manufacturer)); err != nil {
 				return err
 			}
@@ -45,18 +48,16 @@ func WriteHumanReadable(drp *Driverpack, w io.Writer) error {
 				if _, err := fmt.Fprintf(w, "    [%s]\n", drp.SectionAtPos(manufIdx, pos)); err != nil {
 					return err
 				}
-				for descIdx, d := range idx.Descs {
-					if d.ManufacturerIndex != uint32(manufIdx) || int(d.SectPos) != pos {
+				for _, descIdx := range descByManuf[uint32(manufIdx)] {
+					d := idx.Descs[descIdx]
+					if int(d.SectPos) != pos {
 						continue
 					}
 					if _, err := fmt.Fprintf(w, "      %-50s -> %s (feature %#x)\n",
 						idx.Text.GetString(d.Desc), idx.Text.GetString(d.InstallPicked), d.Feature); err != nil {
 						return err
 					}
-					for _, h := range idx.HWIDs {
-						if h.DescIndex != uint32(descIdx) {
-							continue
-						}
+					for _, h := range hwidsByDesc[uint32(descIdx)] {
 						if _, err := fmt.Fprintf(w, "        %-2d %s\n", h.InfPos, idx.Text.GetString(h.HWID)); err != nil {
 							return err
 						}

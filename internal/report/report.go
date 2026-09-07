@@ -12,10 +12,18 @@ import (
 	"io"
 	"strings"
 
+	"sdio/internal/collection"
 	"sdio/internal/hardware"
 	"sdio/internal/installflow"
 	"sdio/internal/scan"
 )
+
+func missingReason(candidate *collection.Candidate) string {
+	if candidate.Result.AltSectScore == 0 || !candidate.Result.IsDriverValid() {
+		return "no valid candidate found"
+	}
+	return "already has an equal or better driver installed"
+}
 
 // WriteDeviceList writes one stable tab-separated row per scanned device.
 func WriteDeviceList(w io.Writer, result scan.Result) error {
@@ -84,10 +92,8 @@ func Print(w io.Writer, result scan.Result) []installflow.Pending {
 			switch {
 			case len(dr.Candidates) == 0:
 				fmt.Fprintf(w, "Missing  %-50s (%s)\n", dr.Device.Description, scan.StatusLabel(dr.Status))
-			case dr.Candidates[0].Result.AltSectScore == 0:
-				fmt.Fprintf(w, "Missing  %-50s (no valid candidate found)\n", dr.Device.Description)
 			default:
-				fmt.Fprintf(w, "Missing  %-50s (already has an equal or better driver installed)\n", dr.Device.Description)
+				fmt.Fprintf(w, "Missing  %-50s (%s)\n", dr.Device.Description, missingReason(&dr.Candidates[0]))
 			}
 			continue
 		}
@@ -193,10 +199,8 @@ func PrintJSON(w io.Writer, result scan.Result) ([]installflow.Pending, error) {
 			switch {
 			case len(dr.Candidates) == 0:
 				jd.Reason = "no candidate driver pack found"
-			case dr.Candidates[0].Result.AltSectScore == 0:
-				jd.Reason = "no valid candidate found"
 			default:
-				jd.Reason = "already has an equal or better driver installed"
+				jd.Reason = missingReason(&dr.Candidates[0])
 			}
 			rep.Devices = append(rep.Devices, jd)
 			continue

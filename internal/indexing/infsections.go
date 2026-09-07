@@ -8,14 +8,12 @@ import (
 
 // SectionRange is a byte range within an .inf file's content
 // corresponding to one "[Name]" section, excluding the "[Name]" header
-// line itself. Ported from sect_data_t in indexing.h.
+// line itself.
 type SectionRange struct {
 	Begin, End int
 }
 
-// InfSections maps lowercased section names to their byte ranges.
-// Ported from the section_list (an unordered_multimap<string,
-// sect_data_t>) built by Driverpack::indexinf_ansi. A name can map to
+// InfSections maps lowercased section names to their byte ranges. A name can map to
 // more than one range if the same "[Name]" appears more than once in
 // the file (legal but unusual in real .inf files).
 type InfSections map[string][]SectionRange
@@ -231,7 +229,9 @@ func ParseManufacturers(data []byte, sections InfSections, stringList map[string
 				}
 			}
 
-			result = append(result, entry)
+			if entry.SectionRoot != "" && len(entry.Sections) > 0 {
+				result = append(result, entry)
+			}
 		}
 	}
 	return result
